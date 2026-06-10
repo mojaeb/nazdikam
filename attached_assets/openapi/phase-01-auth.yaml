@@ -1,0 +1,1158 @@
+openapi: 3.1.0
+
+info:
+  title: Nazdikam API
+  version: 1.0.0
+  description: |
+    نزدیکام — Local Marketplace API
+    Persian RTL · Mobile-first · Location-based · Northern Iran
+
+    ## Authentication
+    All authenticated endpoints require a Bearer token in the Authorization header.
+    Tokens are issued after successful OTP verification.
+
+    ## Rate Limiting
+    Rate limit headers are returned on every response:
+    - `X-RateLimit-Limit` — requests allowed in the window
+    - `X-RateLimit-Remaining` — requests remaining in current window
+    - `X-RateLimit-Reset` — Unix timestamp when the window resets
+    - `Retry-After` — seconds to wait (only present on 429 responses)
+
+    ## Error Format
+    All errors return a consistent envelope:
+    ```json
+    {
+      "error": {
+        "code": "SNAKE_CASE_CODE",
+        "message": "Human-readable Persian message",
+        "details": {}
+      }
+    }
+    ```
+
+    ## Persian Numerals
+    API accepts both Persian (۰–۹) and Latin (0–9) digits in string fields.
+    All responses return Latin digits in numeric fields; Persian display is a client concern.
+
+    ## Jalali Dates
+    All `*_at` timestamps are ISO 8601 UTC.
+    Jalali equivalents (`*_at_jalali`) are included as formatted strings where noted.
+
+servers:
+  - url: /api
+    description: Shared proxy — all paths prefixed with /api
+
+# ─────────────────────────────────────────────────────────
+# SECTION 1 — TAGS
+# ─────────────────────────────────────────────────────────
+tags:
+  - name: Auth
+    description: OTP authentication, session management, current user
+
+# ─────────────────────────────────────────────────────────
+# SECTION 2 — SECURITY SCHEMES
+# ─────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT issued on successful OTP verification.
+        Pass as: `Authorization: Bearer <token>`
+
+  # ─── REUSABLE SCHEMAS ─────────────────────────────────
+  schemas:
+
+    # ── Common ──────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error identifier (SCREAMING_SNAKE_CASE)
+              examples:
+                - INVALID_MOBILE
+                - OTP_EXPIRED
+                - OTP_INCORRECT
+                - OTP_MAX_ATTEMPTS
+                - OTP_LOCKED
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - RATE_LIMITED
+                - SERVER_ERROR
+            message:
+              type: string
+              description: Human-readable Persian error message for display
+            details:
+              type: object
+              description: Optional structured data about the error
+              additionalProperties: true
+
+    # ── Auth Schemas ────────────────────────────────────
+
+    MobileNumber:
+      type: string
+      description: |
+        Iranian mobile number.
+        Accepted formats: 09XXXXXXXXX (11 digits), +989XXXXXXXXX (13 chars).
+        API normalises to 09XXXXXXXXX internally.
+        Persian digits (۰–۹) accepted and converted server-side.
+      pattern: '^(\+98|0)9[0-9۰-۹]{9}$'
+      examples:
+        - "09121234567"
+        - "+989121234567"
+
+    OtpCode:
+      type: string
+      description: |
+        5-digit one-time password sent via SMS.
+        Persian digits (۰–۹) accepted and converted server-side.
+      pattern: '^[0-9۰-۹]{5}$'
+      minLength: 5
+      maxLength: 5
+      examples:
+        - "48291"
+
+    UserRole:
+      type: string
+      enum:
+        - guest
+        - registered_user
+        - business_owner
+        - super_admin
+      description: |
+        Role hierarchy (highest to lowest):
+        - super_admin: Full platform access including admin CMS
+        - business_owner: Has at least one registered business
+        - registered_user: Authenticated with no business yet
+        - guest: Unauthenticated (not returned in tokens, for documentation only)
+
+    AuthToken:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+          description: JWT bearer token. Include in Authorization header.
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+          description: Token lifetime in seconds (typically 86400 = 24h)
+          examples:
+            - 86400
+        refresh_token:
+          type: string
+          description: |
+            Opaque refresh token for obtaining a new access token without re-authentication.
+            Longer-lived (typically 30 days). Stored in HTTP-only cookie or secure client storage.
+
+    UserProfile:
+      type: object
+      required: [id, mobile, role, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable user identifier
+        mobile:
+          type: string
+          description: Normalised mobile number (09XXXXXXXXX)
+          examples:
+            - "09121234567"
+        name:
+          type: string
+          nullable: true
+          description: User's full name (optional, set after registration)
+          maxLength: 100
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile picture URL
+        email:
+          type: string
+          format: email
+          nullable: true
+        province_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User's selected province (for location-based defaults)
+        city_id:
+          type: string
+          format: uuid
+          nullable: true
+        role:
+          $ref: '#/components/schemas/UserRole'
+        business_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: |
+            List of business IDs owned by this user.
+            Empty array if role is registered_user.
+            Populated if role is business_owner or super_admin.
+        is_active:
+          type: boolean
+          description: False if account is blocked by admin
+          default: true
+        created_at:
+          type: string
+          format: date-time
+          description: UTC ISO 8601 registration timestamp
+        created_at_jalali:
+          type: string
+          description: Jalali formatted date for display
+          examples:
+            - "۱۵ خرداد ۱۴۰۵"
+
+    OtpRequestResult:
+      type: object
+      required: [expires_in, masked_mobile]
+      properties:
+        masked_mobile:
+          type: string
+          description: Partially masked mobile number for confirmation display
+          examples:
+            - "0912***4567"
+        expires_in:
+          type: integer
+          description: OTP validity in seconds (from system_settings.otp_expiry_seconds)
+          examples:
+            - 120
+        resend_available_in:
+          type: integer
+          description: Seconds until resend is permitted (0 if immediately available)
+          examples:
+            - 60
+
+    RolePermissions:
+      type: object
+      description: |
+        Declarative list of permission identifiers for the caller's current role.
+        The frontend uses this to drive capability-based UI rendering.
+        This is NEVER used for server-side enforcement — server enforces independently.
+      required: [role, permissions]
+      properties:
+        role:
+          $ref: '#/components/schemas/UserRole'
+        permissions:
+          type: array
+          items:
+            type: string
+          description: |
+            Flat list of permission strings (snake_case).
+            Permissions for registered_user:
+              read:business, read:product, read:service, read:video,
+              write:profile, write:saved_business, write:saved_product,
+              write:saved_service, write:follow, write:notification_read,
+              write:business_register
+            Additional permissions for business_owner:
+              (All of the above, plus entitlement-gated permissions returned
+              from GET /businesses/:id/entitlements — not listed here)
+            Additional permissions for super_admin:
+              admin:*, manage:plans, manage:categories, manage:users,
+              manage:businesses, manage:banners, manage:blog,
+              manage:system_settings, manage:discount_codes,
+              manage:referral_settings
+          examples:
+            - - "read:business"
+              - "write:profile"
+              - "write:business_register"
+
+  # ── REUSABLE PARAMETERS ────────────────────────────────
+  parameters:
+
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: fa
+        enum: [fa, en]
+      description: Response language preference. Defaults to Persian (fa).
+
+  # ── REUSABLE RESPONSES ─────────────────────────────────
+  responses:
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: "برای این عملیات باید وارد شوید"
+
+    Forbidden:
+      description: Authenticated but insufficient role/permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FORBIDDEN
+              message: "دسترسی به این بخش مجاز نیست"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until requests are allowed again
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMITED
+              message: "تعداد درخواست‌ها بیش از حد مجاز است. لطفاً چند لحظه صبر کنید"
+              details:
+                retry_after_seconds: 30
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: SERVER_ERROR
+              message: "خطای سرور. لطفاً مجدد تلاش کنید"
+
+# ─────────────────────────────────────────────────────────
+# SECTION 3 — PATHS
+# ─────────────────────────────────────────────────────────
+paths:
+
+  # ────────────────────────────────────────────────────────
+  # POST /auth/otp/request
+  # Step 1 of 2: Send OTP to mobile
+  # ────────────────────────────────────────────────────────
+  /auth/otp/request:
+    post:
+      tags: [Auth]
+      operationId: requestOtp
+      summary: Request OTP (Step 1)
+      description: |
+        Sends a 5-digit OTP via SMS to the provided mobile number.
+
+        **Behaviour:**
+        - If the mobile number is not registered, a new user account is created automatically
+          upon successful OTP verification (not at this step).
+        - If the mobile number is already registered, the OTP is sent for login.
+        - A new OTP invalidates any previously issued OTP for the same mobile.
+        - Resend is permitted after `resend_available_in` seconds from the previous request.
+
+        **OTP lifetime:** Configured in `system_settings.otp_expiry_seconds` (default: 120s).
+
+        **Authorization:** None required. Public endpoint.
+
+        **Rate Limit:** 5 requests per mobile number per 10 minutes.
+        Global: 60 requests per IP per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile]
+              properties:
+                mobile:
+                  $ref: '#/components/schemas/MobileNumber'
+                terms_accepted:
+                  type: boolean
+                  description: |
+                    Must be true for new user registrations.
+                    For returning users, accepted terms on record remain valid.
+                    Frontend should still require this checkbox on the login form.
+                  default: false
+            examples:
+              new_user:
+                summary: New user registration
+                value:
+                  mobile: "09121234567"
+                  terms_accepted: true
+              returning_user:
+                summary: Returning user login
+                value:
+                  mobile: "09121234567"
+                  terms_accepted: true
+      responses:
+        '200':
+          description: |
+            OTP sent successfully. Proceed to POST /auth/otp/verify.
+            Note: Returns 200 (not 201) because this is a trigger action, not resource creation.
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              example: 5
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              example: 4
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OtpRequestResult'
+              example:
+                data:
+                  masked_mobile: "0912***4567"
+                  expires_in: 120
+                  resend_available_in: 60
+        '400':
+          description: Validation error (invalid mobile format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_mobile:
+                  summary: Mobile number format invalid
+                  value:
+                    error:
+                      code: INVALID_MOBILE
+                      message: "شماره موبایل معتبر نیست"
+                terms_not_accepted:
+                  summary: Terms not accepted for new user
+                  value:
+                    error:
+                      code: TERMS_NOT_ACCEPTED
+                      message: "پذیرش قوانین برای ثبت‌نام الزامی است"
+        '403':
+          description: Account is blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: ACCOUNT_BLOCKED
+                  message: "حساب کاربری شما مسدود شده. با پشتیبانی تماس بگیرید"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # POST /auth/otp/verify
+  # Step 2 of 2: Verify OTP and issue token
+  # ────────────────────────────────────────────────────────
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      operationId: verifyOtp
+      summary: Verify OTP and issue token (Step 2)
+      description: |
+        Verifies the 5-digit OTP received via SMS.
+
+        **On success:**
+        - Issues a JWT access token and a refresh token.
+        - If the mobile was not previously registered, creates the user account (role: `registered_user`).
+        - If the mobile was registered, returns the existing user profile.
+
+        **OTP Attempt Tracking:**
+        - Each wrong OTP increments the attempt counter.
+        - After `system_settings.otp_max_attempts` (default: 5) failed attempts,
+          the OTP is invalidated and further attempts are locked for 10 minutes.
+        - Remaining attempts are returned in the error response (`details.attempts_remaining`).
+
+        **Token Lifetime:**
+        - `access_token`: 24 hours (86400s)
+        - `refresh_token`: 30 days (2592000s)
+
+        **Authorization:** None required. Public endpoint.
+
+        **Rate Limit:** 10 requests per mobile number per 10 minutes (harder limit than request).
+        Global: 60 requests per IP per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile, otp]
+              properties:
+                mobile:
+                  $ref: '#/components/schemas/MobileNumber'
+                otp:
+                  $ref: '#/components/schemas/OtpCode'
+            example:
+              mobile: "09121234567"
+              otp: "48291"
+      responses:
+        '200':
+          description: |
+            OTP verified. Access token issued.
+            For new users: `is_new_user: true` indicates first registration.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [user, auth]
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserProfile'
+                      auth:
+                        $ref: '#/components/schemas/AuthToken'
+                      is_new_user:
+                        type: boolean
+                        description: True when a new account was just created
+              examples:
+                new_user:
+                  summary: First-time registration
+                  value:
+                    data:
+                      is_new_user: true
+                      user:
+                        id: "550e8400-e29b-41d4-a716-446655440000"
+                        mobile: "09121234567"
+                        name: null
+                        avatar_url: null
+                        email: null
+                        province_id: null
+                        city_id: null
+                        role: registered_user
+                        business_ids: []
+                        is_active: true
+                        created_at: "2026-06-10T08:30:00Z"
+                        created_at_jalali: "۲۰ خرداد ۱۴۰۵"
+                      auth:
+                        access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        token_type: Bearer
+                        expires_in: 86400
+                        refresh_token: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+                returning_user:
+                  summary: Returning login
+                  value:
+                    data:
+                      is_new_user: false
+                      user:
+                        id: "550e8400-e29b-41d4-a716-446655440001"
+                        mobile: "09131234567"
+                        name: "علی احمدی"
+                        avatar_url: "https://cdn.nazdikam.ir/avatars/ali.jpg"
+                        email: "ali@example.com"
+                        province_id: "uuid-mazandaran"
+                        city_id: "uuid-sari"
+                        role: business_owner
+                        business_ids:
+                          - "uuid-business-1"
+                        is_active: true
+                        created_at: "2025-03-15T10:00:00Z"
+                        created_at_jalali: "۲۴ اسفند ۱۴۰۳"
+                      auth:
+                        access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        token_type: Bearer
+                        expires_in: 86400
+                        refresh_token: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+        '400':
+          description: Validation error or wrong OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_mobile:
+                  value:
+                    error:
+                      code: INVALID_MOBILE
+                      message: "شماره موبایل معتبر نیست"
+                invalid_otp_format:
+                  value:
+                    error:
+                      code: INVALID_OTP_FORMAT
+                      message: "کد تایید باید ۵ رقم باشد"
+                otp_incorrect:
+                  summary: Wrong OTP (not yet at max attempts)
+                  value:
+                    error:
+                      code: OTP_INCORRECT
+                      message: "کد وارد شده اشتباه است"
+                      details:
+                        attempts_remaining: 3
+        '401':
+          description: OTP expired or max attempts exceeded or lock active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                otp_expired:
+                  value:
+                    error:
+                      code: OTP_EXPIRED
+                      message: "کد تایید منقضی شده. لطفاً کد جدید دریافت کنید"
+                otp_max_attempts:
+                  value:
+                    error:
+                      code: OTP_MAX_ATTEMPTS
+                      message: "تعداد تلاش‌های مجاز به پایان رسید. کد جدید دریافت کنید"
+                      details:
+                        attempts_used: 5
+                        attempts_allowed: 5
+                otp_locked:
+                  value:
+                    error:
+                      code: OTP_LOCKED
+                      message: "حساب موقتاً قفل شده. بعد از ۱۰ دقیقه مجدد تلاش کنید"
+                      details:
+                        locked_until: "2026-06-10T09:00:00Z"
+                        retry_after_seconds: 600
+        '403':
+          description: Account is blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: ACCOUNT_BLOCKED
+                  message: "حساب کاربری شما مسدود شده. با پشتیبانی تماس بگیرید"
+        '404':
+          description: No OTP request found for this mobile (must call /auth/otp/request first)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: OTP_NOT_FOUND
+                  message: "کد تایید یافت نشد. ابتدا درخواست کد ارسال کنید"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # POST /auth/token/refresh
+  # Exchange refresh token for new access token
+  # ────────────────────────────────────────────────────────
+  /auth/token/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshToken
+      summary: Refresh access token
+      description: |
+        Exchanges a valid refresh token for a new access token.
+        The old refresh token is invalidated (rotation).
+
+        **Security:** Refresh tokens are single-use. Each refresh returns a new refresh token.
+        Detected reuse of an already-consumed refresh token results in full session revocation.
+
+        **Authorization:** None required (the refresh token is the credential).
+
+        **Rate Limit:** 20 requests per token per hour.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  description: The opaque refresh token from a previous verify or refresh response
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AuthToken'
+              example:
+                data:
+                  access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type: Bearer
+                  expires_in: 86400
+                  refresh_token: "bmV3IHJlZnJlc2ggdG9rZW4..."
+        '401':
+          description: Refresh token invalid, expired, or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid:
+                  value:
+                    error:
+                      code: INVALID_REFRESH_TOKEN
+                      message: "توکن نامعتبر است. مجدد وارد شوید"
+                expired:
+                  value:
+                    error:
+                      code: REFRESH_TOKEN_EXPIRED
+                      message: "نشست شما منقضی شده. مجدد وارد شوید"
+                reuse_detected:
+                  value:
+                    error:
+                      code: REFRESH_TOKEN_REUSE_DETECTED
+                      message: "فعالیت مشکوک شناسایی شد. لطفاً مجدد وارد شوید"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # POST /auth/logout
+  # Revoke current session
+  # ────────────────────────────────────────────────────────
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Logout — revoke current session
+      description: |
+        Revokes the current access token and its associated refresh token.
+        After logout, the access token is immediately invalid (server-side blocklist).
+
+        **Behaviour:**
+        - Adds the JWT `jti` to a server-side revocation list until its natural expiry.
+        - Deletes the associated refresh token from storage.
+        - Frontend should additionally clear the token from local storage/cookie.
+
+        **Authorization:** Bearer token required.
+
+        **Rate Limit:** 10 requests per user per minute (prevent abuse).
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Session successfully revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+              example:
+                data:
+                  message: "با موفقیت خارج شدید"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /auth/me
+  # Return current authenticated user's profile
+  # ────────────────────────────────────────────────────────
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: Get current user profile
+      description: |
+        Returns the full profile of the currently authenticated user.
+
+        **Use cases:**
+        - On app load, after token restoration from storage, to verify token validity
+          and fetch fresh profile data (role, business_ids, is_active).
+        - After profile edits, to refresh UI state.
+
+        **Authorization:** Bearer token required.
+
+        **Rate Limit:** 60 requests per user per minute.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+              example:
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440001"
+                  mobile: "09131234567"
+                  name: "علی احمدی"
+                  avatar_url: "https://cdn.nazdikam.ir/avatars/ali.jpg"
+                  email: "ali@example.com"
+                  province_id: "uuid-mazandaran"
+                  city_id: "uuid-sari"
+                  role: business_owner
+                  business_ids:
+                    - "uuid-business-1"
+                  is_active: true
+                  created_at: "2025-03-15T10:00:00Z"
+                  created_at_jalali: "۲۴ اسفند ۱۴۰۳"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Account is blocked (token valid but account suspended)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: ACCOUNT_BLOCKED
+                  message: "حساب کاربری شما مسدود شده"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # PATCH /auth/me
+  # Update current user's own profile
+  # ────────────────────────────────────────────────────────
+  /auth/me:
+    patch:
+      tags: [Auth]
+      operationId: updateCurrentUser
+      summary: Update current user profile
+      description: |
+        Partially updates the authenticated user's own profile.
+
+        **Updatable fields:** `name`, `email`, `province_id`, `city_id`.
+        `mobile` and `role` cannot be changed through this endpoint.
+        Avatar upload is handled separately via `POST /auth/me/avatar`.
+
+        **Authorization:** Bearer token required (any authenticated role).
+
+        **Rate Limit:** 20 requests per user per hour.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  description: Full name. At least 2 characters.
+                email:
+                  type: string
+                  format: email
+                  nullable: true
+                  description: Email address. Set to null to remove.
+                province_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Selected province UUID (from GET /locations/provinces)
+                city_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: |
+                    Selected city UUID (from GET /locations/cities).
+                    Must belong to the selected province_id if both are provided.
+            examples:
+              update_name:
+                value:
+                  name: "سارا محمدی"
+              update_location:
+                value:
+                  province_id: "uuid-mazandaran"
+                  city_id: "uuid-sari"
+              update_full:
+                value:
+                  name: "رضا کریمی"
+                  email: "reza@example.com"
+                  province_id: "uuid-gilan"
+                  city_id: "uuid-rasht"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                name_too_short:
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: "نام باید حداقل ۲ کاراکتر باشد"
+                invalid_email:
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: "آدرس ایمیل معتبر نیست"
+                city_province_mismatch:
+                  value:
+                    error:
+                      code: CITY_PROVINCE_MISMATCH
+                      message: "شهر انتخابی متعلق به استان انتخابی نیست"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # POST /auth/me/avatar
+  # Upload user avatar
+  # ────────────────────────────────────────────────────────
+  /auth/me/avatar:
+    post:
+      tags: [Auth]
+      operationId: uploadUserAvatar
+      summary: Upload user avatar
+      description: |
+        Uploads and sets a new avatar image for the current user.
+
+        **File Constraints:**
+        - Accepted formats: JPEG, PNG, WebP
+        - Maximum file size: 5 MB
+        - Minimum dimensions: 100×100 px (server resizes to 256×256 after upload)
+
+        **Authorization:** Bearer token required.
+
+        **Rate Limit:** 10 uploads per user per hour.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, or WebP, max 5 MB)
+      responses:
+        '200':
+          description: Avatar uploaded and profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      avatar_url:
+                        type: string
+                        format: uri
+              example:
+                data:
+                  avatar_url: "https://cdn.nazdikam.ir/avatars/user-uuid.jpg"
+        '400':
+          description: File validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_type:
+                  value:
+                    error:
+                      code: INVALID_FILE_TYPE
+                      message: "فرمت فایل پشتیبانی نمی‌شود. فرمت‌های مجاز: JPEG، PNG، WebP"
+                file_too_large:
+                  value:
+                    error:
+                      code: FILE_TOO_LARGE
+                      message: "حجم فایل بیش از ۵ مگابایت است"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /auth/permissions
+  # Return permission list for current role
+  # ────────────────────────────────────────────────────────
+  /auth/permissions:
+    get:
+      tags: [Auth]
+      operationId: getRolePermissions
+      summary: Get current user role permissions
+      description: |
+        Returns the declarative list of permission identifiers for the caller's role.
+
+        **Purpose:** Allows the frontend to drive capability-based UI rendering
+        (showing/hiding actions, navigation items, etc.) without hardcoding role checks.
+
+        **Important:** This list is for UI hints ONLY.
+        Server enforces permissions independently on every request.
+        Do NOT use this response as the sole access control mechanism on the frontend.
+
+        **For business_owner roles:**
+        Subscription-gated permissions (can_manage_products, etc.) are NOT included here.
+        Fetch those from `GET /businesses/:id/entitlements` (Phase 6).
+
+        **Authorization:** Bearer token required.
+
+        **Rate Limit:** 60 requests per user per minute.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Role permissions for the current user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RolePermissions'
+              examples:
+                registered_user:
+                  summary: Registered user with no business
+                  value:
+                    data:
+                      role: registered_user
+                      permissions:
+                        - "read:business"
+                        - "read:product"
+                        - "read:service"
+                        - "read:video"
+                        - "write:profile"
+                        - "write:saved_business"
+                        - "write:saved_product"
+                        - "write:saved_service"
+                        - "write:follow"
+                        - "write:notification_read"
+                        - "write:business_register"
+                business_owner:
+                  summary: Business owner
+                  value:
+                    data:
+                      role: business_owner
+                      permissions:
+                        - "read:business"
+                        - "read:product"
+                        - "read:service"
+                        - "read:video"
+                        - "write:profile"
+                        - "write:saved_business"
+                        - "write:saved_product"
+                        - "write:saved_service"
+                        - "write:follow"
+                        - "write:notification_read"
+                        - "write:business_register"
+                        - "write:business_manage"
+                        - "write:business_contact"
+                        - "write:business_location"
+                        - "write:verification_submit"
+                        - "read:subscription"
+                        - "write:subscription_purchase"
+                super_admin:
+                  summary: Super Admin
+                  value:
+                    data:
+                      role: super_admin
+                      permissions:
+                        - "admin:*"
+                        - "manage:plans"
+                        - "manage:categories"
+                        - "manage:users"
+                        - "manage:businesses"
+                        - "manage:banners"
+                        - "manage:blog"
+                        - "manage:system_settings"
+                        - "manage:discount_codes"
+                        - "manage:referral_settings"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+# ─────────────────────────────────────────────────────────
+# SECTION 4 — AUTHORIZATION RULES SUMMARY
+# (non-path documentation)
+# ─────────────────────────────────────────────────────────
+# Endpoint                    | Guest | RegUser | BizOwner | Admin
+# ─────────────────────────── | ───── | ─────── | ──────── | ─────
+# POST /auth/otp/request      |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/otp/verify       |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/token/refresh    |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/logout           |  ❌   |   ✅   |    ✅    |  ✅
+# GET  /auth/me               |  ❌   |   ✅   |    ✅    |  ✅
+# PATCH /auth/me              |  ❌   |   ✅   |    ✅    |  ✅
+# POST /auth/me/avatar        |  ❌   |   ✅   |    ✅    |  ✅
+# GET  /auth/permissions      |  ❌   |   ✅   |    ✅    |  ✅
+#
+# ─────────────────────────────────────────────────────────
+# SECTION 5 — RATE LIMIT SUMMARY
+# ─────────────────────────────────────────────────────────
+# Endpoint                    | Window   | Limit  | Key
+# ─────────────────────────── | ──────── | ────── | ──────────────
+# POST /auth/otp/request      | 10 min   | 5      | mobile number
+# POST /auth/otp/request      | 1 min    | 60     | IP address
+# POST /auth/otp/verify       | 10 min   | 10     | mobile number
+# POST /auth/otp/verify       | 1 min    | 60     | IP address
+# POST /auth/token/refresh    | 1 hour   | 20     | refresh token
+# POST /auth/logout           | 1 min    | 10     | user ID
+# GET  /auth/me               | 1 min    | 60     | user ID
+# PATCH /auth/me              | 1 hour   | 20     | user ID
+# POST /auth/me/avatar        | 1 hour   | 10     | user ID
+# GET  /auth/permissions      | 1 min    | 60     | user ID
