@@ -129,7 +129,10 @@ components:
     OtpCode:
       type: string
       description: |
-        5-digit one-time password sent via SMS.
+        One-time password sent via SMS.
+        Length is determined by system_settings.otp_length (default: 5 digits).
+        Schema pattern and length constraints below reflect the default; server validates
+        against the live system_settings value at runtime.
         Persian digits (۰–۹) accepted and converted server-side.
       pattern: '^[0-9۰-۹]{5}$'
       minLength: 5
@@ -163,14 +166,17 @@ components:
           const: Bearer
         expires_in:
           type: integer
-          description: Token lifetime in seconds (typically 86400 = 24h)
+          description: |
+            Token lifetime in seconds.
+            Actual value is read from system_settings.access_token_ttl_seconds (default: 86400 = 24h).
           examples:
             - 86400
         refresh_token:
           type: string
           description: |
             Opaque refresh token for obtaining a new access token without re-authentication.
-            Longer-lived (typically 30 days). Stored in HTTP-only cookie or secure client storage.
+            Longer-lived — lifetime from system_settings.refresh_token_ttl_days (default: 30 days).
+            Stored in HTTP-only cookie or secure client storage.
         session_id:
           type: string
           format: uuid
@@ -353,8 +359,8 @@ components:
           description: |
             Timestamp when the user submitted an account deletion request.
             Null if no deletion request is pending.
-            Once set, the account enters a grace period (configurable in system_settings,
-            default: 30 days) before permanent deletion is executed.
+            Once set, the account enters a grace period before permanent deletion is executed.
+            Grace period length: system_settings.account_deletion_grace_period_days (default: 30).
             The user may cancel the request during the grace period.
         deleted_at:
           type: string
@@ -378,12 +384,14 @@ components:
             - "0912***4567"
         expires_in:
           type: integer
-          description: OTP validity in seconds (from system_settings.otp_expiry_seconds)
+          description: OTP validity in seconds (from system_settings.otp_expiry_seconds, default: 120)
           examples:
             - 120
         resend_available_in:
           type: integer
-          description: Seconds until resend is permitted (0 if immediately available)
+          description: |
+            Seconds until resend is permitted (0 if immediately available).
+            Cooldown period from system_settings.otp_resend_cooldown_seconds (default: 60).
           examples:
             - 60
 
@@ -521,7 +529,8 @@ paths:
       operationId: requestOtp
       summary: Request OTP (Step 1)
       description: |
-        Sends a 5-digit OTP via SMS to the provided mobile number.
+        Sends an OTP via SMS to the provided mobile number.
+        OTP digit count: system_settings.otp_length (default: 5).
 
         **Behaviour:**
         - If the mobile number is not registered, a new user account is created automatically
@@ -530,12 +539,14 @@ paths:
         - A new OTP invalidates any previously issued OTP for the same mobile.
         - Resend is permitted after `resend_available_in` seconds from the previous request.
 
-        **OTP lifetime:** Configured in `system_settings.otp_expiry_seconds` (default: 120s).
+        **OTP lifetime:** system_settings.otp_expiry_seconds (default: 120s).
 
         **Authorization:** None required. Public endpoint.
 
-        **Rate Limit:** 5 requests per mobile number per 10 minutes.
-        Global: 60 requests per IP per minute.
+        **Rate Limit (per mobile):** system_settings.rate_limit_otp_request_per_mobile (default: 5)
+        requests per system_settings.rate_limit_otp_request_window_minutes (default: 10) minutes.
+        **Rate Limit (global per IP):** system_settings.rate_limit_global_per_ip_per_minute (default: 60)
+        requests per minute.
       security: []
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -641,7 +652,8 @@ paths:
       operationId: verifyOtp
       summary: Verify OTP and issue token (Step 2)
       description: |
-        Verifies the 5-digit OTP received via SMS.
+        Verifies the OTP received via SMS.
+        OTP digit count: system_settings.otp_length (default: 5).
 
         **On success:**
         - Issues a JWT access token and a refresh token.
@@ -650,18 +662,20 @@ paths:
 
         **OTP Attempt Tracking:**
         - Each wrong OTP increments the attempt counter.
-        - After `system_settings.otp_max_attempts` (default: 5) failed attempts,
-          the OTP is invalidated and further attempts are locked for 10 minutes.
+        - After system_settings.otp_max_attempts (default: 5) failed attempts, the OTP is invalidated
+          and further attempts are locked for system_settings.otp_lock_duration_minutes (default: 10) minutes.
         - Remaining attempts are returned in the error response (`details.attempts_remaining`).
 
         **Token Lifetime:**
-        - `access_token`: 24 hours (86400s)
-        - `refresh_token`: 30 days (2592000s)
+        - `access_token`: system_settings.access_token_ttl_seconds (default: 86400s = 24h)
+        - `refresh_token`: system_settings.refresh_token_ttl_days (default: 30 days)
 
         **Authorization:** None required. Public endpoint.
 
-        **Rate Limit:** 10 requests per mobile number per 10 minutes (harder limit than request).
-        Global: 60 requests per IP per minute.
+        **Rate Limit (per mobile):** system_settings.rate_limit_otp_verify_per_mobile (default: 10)
+        requests per system_settings.rate_limit_otp_verify_window_minutes (default: 10) minutes.
+        **Rate Limit (global per IP):** system_settings.rate_limit_global_per_ip_per_minute (default: 60)
+        requests per minute.
       security: []
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
@@ -805,7 +819,9 @@ paths:
                   value:
                     error:
                       code: INVALID_OTP_FORMAT
-                      message: "کد تایید باید ۵ رقم باشد"
+                      message: "فرمت کد تایید صحیح نیست"
+                      details:
+                        expected_length: 5
                 otp_incorrect:
                   summary: Wrong OTP (not yet at max attempts)
                   value:
@@ -838,7 +854,7 @@ paths:
                   value:
                     error:
                       code: OTP_LOCKED
-                      message: "حساب موقتاً قفل شده. بعد از ۱۰ دقیقه مجدد تلاش کنید"
+                      message: "حساب موقتاً قفل شده. پس از مدتی مجدد تلاش کنید"
                       details:
                         locked_until: "2026-06-10T09:00:00Z"
                         retry_after_seconds: 600
@@ -885,7 +901,8 @@ paths:
 
         **Authorization:** None required (the refresh token is the credential).
 
-        **Rate Limit:** 20 requests per token per hour.
+        **Rate Limit:** system_settings.rate_limit_token_refresh_per_token (default: 20) requests
+        per system_settings.rate_limit_token_refresh_window_hours (default: 1) hour.
       security: []
       requestBody:
         required: true
@@ -962,7 +979,7 @@ paths:
 
         **Authorization:** Bearer token required.
 
-        **Rate Limit:** 10 requests per user per minute (prevent abuse).
+        **Rate Limit:** system_settings.rate_limit_logout_per_user (default: 10) requests per minute.
       security:
         - BearerAuth: []
       responses:
@@ -1005,7 +1022,7 @@ paths:
 
         **Authorization:** Bearer token required.
 
-        **Rate Limit:** 60 requests per user per minute.
+        **Rate Limit:** system_settings.rate_limit_read_per_user_per_minute (default: 60) requests per minute.
       security:
         - BearerAuth: []
       parameters:
@@ -1069,7 +1086,11 @@ paths:
 
         **Authorization:** Bearer token required (any authenticated role).
 
-        **Rate Limit:** 20 requests per user per hour.
+        **Rate Limit:** system_settings.rate_limit_write_per_user_per_hour (default: 20) requests per hour.
+
+        **Validation Constraints (from system_settings):**
+        - Name min length: system_settings.user_name_min_length (default: 2)
+        - Name max length: system_settings.user_name_max_length (default: 100)
       security:
         - BearerAuth: []
       requestBody:
@@ -1084,7 +1105,11 @@ paths:
                   type: string
                   minLength: 2
                   maxLength: 100
-                  description: Full name. At least 2 characters.
+                  description: |
+                    Full name.
+                    Min length: system_settings.user_name_min_length (default: 2).
+                    Max length: system_settings.user_name_max_length (default: 100).
+                    Schema constraints below reflect defaults; server validates against live values.
                 email:
                   type: string
                   format: email
@@ -1168,14 +1193,15 @@ paths:
       description: |
         Uploads and sets a new avatar image for the current user.
 
-        **File Constraints:**
+        **File Constraints (from system_settings):**
         - Accepted formats: JPEG, PNG, WebP
-        - Maximum file size: 5 MB
-        - Minimum dimensions: 100×100 px (server resizes to 256×256 after upload)
+        - Maximum file size: system_settings.avatar_max_file_size_mb (default: 5) MB
+        - Minimum dimensions: system_settings.avatar_min_dimension_px (default: 100)×system_settings.avatar_min_dimension_px px
+        - Server resize output: system_settings.avatar_output_size_px (default: 256)×system_settings.avatar_output_size_px px
 
         **Authorization:** Bearer token required.
 
-        **Rate Limit:** 10 uploads per user per hour.
+        **Rate Limit:** system_settings.rate_limit_upload_per_user_per_hour (default: 10) uploads per hour.
       security:
         - BearerAuth: []
       requestBody:
@@ -1189,7 +1215,9 @@ paths:
                 avatar:
                   type: string
                   format: binary
-                  description: Image file (JPEG, PNG, or WebP, max 5 MB)
+                  description: |
+                    Image file (JPEG, PNG, or WebP).
+                    Max size: system_settings.avatar_max_file_size_mb (default: 5) MB.
       responses:
         '200':
           description: Avatar uploaded and profile updated
@@ -1256,7 +1284,7 @@ paths:
 
         **Authorization:** Bearer token required.
 
-        **Rate Limit:** 60 requests per user per minute.
+        **Rate Limit:** system_settings.rate_limit_read_per_user_per_minute (default: 60) requests per minute.
       security:
         - BearerAuth: []
       responses:
@@ -1523,21 +1551,23 @@ paths:
 #
 # ─────────────────────────────────────────────────────────
 # SECTION 5 — RATE LIMIT SUMMARY
+# All limits are runtime-configurable via system_settings.
+# Values below are defaults only — no code change required to adjust.
 # ─────────────────────────────────────────────────────────
-# Endpoint                       | Window   | Limit  | Key
-# ────────────────────────────── | ──────── | ────── | ──────────────
-# POST /auth/otp/request         | 10 min   | 5      | mobile number
-# POST /auth/otp/request         | 1 min    | 60     | IP address
-# POST /auth/otp/verify          | 10 min   | 10     | mobile number
-# POST /auth/otp/verify          | 1 min    | 60     | IP address
-# POST /auth/token/refresh       | 1 hour   | 20     | refresh token
-# POST /auth/logout              | 1 min    | 10     | user ID
-# GET  /auth/me                  | 1 min    | 60     | user ID
-# PATCH /auth/me                 | 1 hour   | 20     | user ID
-# POST /auth/me/avatar           | 1 hour   | 10     | user ID
-# GET  /auth/permissions         | 1 min    | 60     | user ID
-# GET  /auth/sessions            | 1 hour   | 30     | user ID         [RESERVED]
-# DELETE /auth/sessions/:id      | 1 hour   | 20     | user ID         [RESERVED]
+# Endpoint                  | system_settings key (limit)                  | system_settings key (window)                | Default Limit | Default Window | Key by
+# ─────────────────────────── | ─────────────────────────────────────────── | ─────────────────────────────────────────── | ────── | ────── | ──────────────
+# POST /auth/otp/request    | rate_limit_otp_request_per_mobile            | rate_limit_otp_request_window_minutes       | 5      | 10 min | mobile number
+# POST /auth/otp/request    | rate_limit_global_per_ip_per_minute          | (1 minute, fixed window)                    | 60     | 1 min  | IP address
+# POST /auth/otp/verify     | rate_limit_otp_verify_per_mobile             | rate_limit_otp_verify_window_minutes        | 10     | 10 min | mobile number
+# POST /auth/otp/verify     | rate_limit_global_per_ip_per_minute          | (1 minute, fixed window)                    | 60     | 1 min  | IP address
+# POST /auth/token/refresh  | rate_limit_token_refresh_per_token           | rate_limit_token_refresh_window_hours       | 20     | 1 hour | refresh token
+# POST /auth/logout         | rate_limit_logout_per_user                   | (1 minute, fixed window)                    | 10     | 1 min  | user ID
+# GET  /auth/me             | rate_limit_read_per_user_per_minute          | (1 minute, fixed window)                    | 60     | 1 min  | user ID
+# PATCH /auth/me            | rate_limit_write_per_user_per_hour           | (1 hour, fixed window)                      | 20     | 1 hour | user ID
+# POST /auth/me/avatar      | rate_limit_upload_per_user_per_hour          | (1 hour, fixed window)                      | 10     | 1 hour | user ID
+# GET  /auth/permissions    | rate_limit_read_per_user_per_minute          | (1 minute, fixed window)                    | 60     | 1 min  | user ID
+# GET  /auth/sessions       | (TBD at implementation)                      | (TBD at implementation)                     | 30     | 1 hour | user ID  [RESERVED]
+# DELETE /auth/sessions/:id | (TBD at implementation)                      | (TBD at implementation)                     | 20     | 1 hour | user ID  [RESERVED]
 #
 # ─────────────────────────────────────────────────────────
 # SECTION 6 — NEW SCHEMAS ADDED IN REVIEW AMENDMENTS
