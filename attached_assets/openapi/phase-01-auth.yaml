@@ -38,6 +38,21 @@ info:
     All `*_at` timestamps are ISO 8601 UTC.
     Jalali equivalents (`*_at_jalali`) are included as formatted strings where noted.
 
+    ## App Version Header
+    All endpoints accept an optional `X-App-Version` header.
+    Used for mobile app compatibility gating and phased feature rollout.
+    Format: semantic version string — `major.minor.patch` (e.g. `1.4.2`).
+    If the client sends a version below a minimum supported threshold, the server
+    may respond with `426 Upgrade Required` with an `upgrade_url` in the error body.
+    Web clients should send the build version; native mobile clients must always send this header.
+
+    ## Device Session Tracking
+    Every login (POST /auth/otp/verify) accepts an optional `device` object.
+    The server records `device_id`, `device_name`, `platform`, `browser`, and tracks
+    `last_activity_at` per session. Future endpoints `GET /auth/sessions` and
+    `DELETE /auth/sessions/:id` will expose user-controlled session management.
+    The `session_id` returned in the auth token envelope identifies the created session.
+
 servers:
   - url: /api
     description: Shared proxy — all paths prefixed with /api
@@ -138,7 +153,7 @@ components:
 
     AuthToken:
       type: object
-      required: [access_token, token_type, expires_in]
+      required: [access_token, token_type, expires_in, session_id]
       properties:
         access_token:
           type: string
@@ -156,6 +171,120 @@ components:
           description: |
             Opaque refresh token for obtaining a new access token without re-authentication.
             Longer-lived (typically 30 days). Stored in HTTP-only cookie or secure client storage.
+        session_id:
+          type: string
+          format: uuid
+          description: |
+            Identifier for the device session created by this login.
+            Used in future `GET /auth/sessions` and `DELETE /auth/sessions/:id` endpoints
+            to allow user-controlled session management.
+
+    DeviceInfo:
+      type: object
+      description: |
+        Client device metadata sent on login. All fields are optional but recommended,
+        especially for native mobile clients. Used to populate the device session record
+        for future user-controlled session management.
+      properties:
+        device_id:
+          type: string
+          maxLength: 255
+          description: |
+            Stable, client-generated device identifier.
+            Mobile: use device UUID (e.g. `expo-device` ID or `react-native-device-info`).
+            Web: generate a UUID on first load and persist in localStorage.
+          examples:
+            - "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        device_name:
+          type: string
+          maxLength: 120
+          description: |
+            Human-readable device label for display in session management UI.
+            Mobile: model name (e.g. "Samsung Galaxy S23").
+            Web: browser + OS string (e.g. "Chrome on Windows").
+          examples:
+            - "iPhone 15 Pro"
+            - "Chrome on Windows 11"
+        platform:
+          type: string
+          maxLength: 30
+          enum: [ios, android, web, unknown]
+          description: Client platform type
+          examples:
+            - "ios"
+            - "web"
+        browser:
+          type: string
+          maxLength: 80
+          nullable: true
+          description: |
+            Browser name and version. Relevant for web platform.
+            Null for native mobile apps.
+          examples:
+            - "Chrome 124"
+            - "Safari 17"
+        app_version:
+          type: string
+          maxLength: 20
+          nullable: true
+          description: |
+            App version at time of login. Mirrors the X-App-Version header.
+            Stored on the session record for support and debugging.
+          examples:
+            - "1.4.2"
+
+    DeviceSession:
+      type: object
+      description: |
+        A device session record. Returned in future `GET /auth/sessions` responses.
+        Included here to establish the canonical shape for use in planning and future phases.
+      required: [id, created_at, last_activity_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Session identifier (same as `session_id` in AuthToken)
+        device_id:
+          type: string
+          nullable: true
+          description: Client-provided device identifier
+        device_name:
+          type: string
+          nullable: true
+          description: Human-readable device label
+        platform:
+          type: string
+          nullable: true
+          enum: [ios, android, web, unknown, null]
+        browser:
+          type: string
+          nullable: true
+        app_version:
+          type: string
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+          description: IP address at time of login (masked for display, e.g. "91.98.xxx.xxx")
+        is_current:
+          type: boolean
+          description: True if this is the session making the request
+        created_at:
+          type: string
+          format: date-time
+          description: Session creation time (login time)
+        created_at_jalali:
+          type: string
+          description: Jalali formatted login date
+        last_activity_at:
+          type: string
+          format: date-time
+          description: |
+            Last time this session was used to make an authenticated request.
+            Updated on every API call bearing this session's token.
+        last_activity_at_jalali:
+          type: string
+          description: Jalali formatted last activity date
 
     UserProfile:
       type: object
@@ -217,6 +346,26 @@ components:
           description: Jalali formatted date for display
           examples:
             - "۱۵ خرداد ۱۴۰۵"
+        deletion_requested_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Timestamp when the user submitted an account deletion request.
+            Null if no deletion request is pending.
+            Once set, the account enters a grace period (configurable in system_settings,
+            default: 30 days) before permanent deletion is executed.
+            The user may cancel the request during the grace period.
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Timestamp of permanent account deletion.
+            Null for active accounts.
+            When set, all personal data is anonymised/removed per data retention policy.
+            This field exists for audit log completeness only — deleted accounts
+            are not returned in standard API responses.
 
     OtpRequestResult:
       type: object
@@ -284,6 +433,24 @@ components:
         default: fa
         enum: [fa, en]
       description: Response language preference. Defaults to Persian (fa).
+
+    AppVersion:
+      name: X-App-Version
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: '^\d+\.\d+\.\d+$'
+        examples:
+          - "1.0.0"
+          - "2.3.1"
+      description: |
+        Client application version in semver format (major.minor.patch).
+        - Web clients: send the frontend build version.
+        - Native mobile clients: must always send this header.
+        - Server may return `426 Upgrade Required` if version is below minimum supported.
+        - Used for phased feature rollout and compatibility gating.
+        - Logged with every session for debugging and analytics.
 
   # ── REUSABLE RESPONSES ─────────────────────────────────
   responses:
@@ -498,6 +665,7 @@ paths:
       security: []
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
       requestBody:
         required: true
         content:
@@ -510,9 +678,41 @@ paths:
                   $ref: '#/components/schemas/MobileNumber'
                 otp:
                   $ref: '#/components/schemas/OtpCode'
-            example:
-              mobile: "09121234567"
-              otp: "48291"
+                device:
+                  $ref: '#/components/schemas/DeviceInfo'
+                  description: |
+                    Optional device metadata. Strongly recommended for native mobile clients.
+                    If omitted, the session is recorded with null device fields.
+                    The `device_id` is used to detect repeated logins from the same device
+                    and to label sessions in the future session management UI.
+            examples:
+              minimal:
+                summary: Minimal (no device info)
+                value:
+                  mobile: "09121234567"
+                  otp: "48291"
+              with_device_web:
+                summary: Web client with device info
+                value:
+                  mobile: "09121234567"
+                  otp: "48291"
+                  device:
+                    device_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                    device_name: "Chrome on Windows 11"
+                    platform: "web"
+                    browser: "Chrome 124"
+                    app_version: "1.0.0"
+              with_device_mobile:
+                summary: Native mobile client with device info
+                value:
+                  mobile: "09121234567"
+                  otp: "48291"
+                  device:
+                    device_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    device_name: "Samsung Galaxy S23"
+                    platform: "android"
+                    browser: null
+                    app_version: "1.2.0"
       responses:
         '200':
           description: |
@@ -554,11 +754,14 @@ paths:
                         is_active: true
                         created_at: "2026-06-10T08:30:00Z"
                         created_at_jalali: "۲۰ خرداد ۱۴۰۵"
+                        deletion_requested_at: null
+                        deleted_at: null
                       auth:
                         access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                         token_type: Bearer
                         expires_in: 86400
                         refresh_token: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+                        session_id: "c7a1b2d3-e4f5-6789-abcd-ef0123456789"
                 returning_user:
                   summary: Returning login
                   value:
@@ -578,11 +781,14 @@ paths:
                         is_active: true
                         created_at: "2025-03-15T10:00:00Z"
                         created_at_jalali: "۲۴ اسفند ۱۴۰۳"
+                        deletion_requested_at: null
+                        deleted_at: null
                       auth:
                         access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                         token_type: Bearer
                         expires_in: 86400
                         refresh_token: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+                        session_id: "d8b2c3e4-f5a6-7890-bcde-f01234567890"
         '400':
           description: Validation error or wrong OTP
           content:
@@ -1126,33 +1332,227 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  # ────────────────────────────────────────────────────────
+  # GET /auth/sessions
+  # RESERVED — Future user-controlled session management
+  # ────────────────────────────────────────────────────────
+  /auth/sessions:
+    get:
+      tags: [Auth]
+      operationId: listSessions
+      summary: "[RESERVED] List active sessions"
+      description: |
+        **⚠️ RESERVED ENDPOINT — Not yet implemented.**
+
+        When implemented, returns all active device sessions for the current user.
+        Allows users to see where they are logged in and revoke individual sessions.
+
+        **Planned behaviour:**
+        - Returns all sessions where the refresh token has not expired or been revoked.
+        - `is_current: true` marks the session making this request.
+        - Sessions are ordered by `last_activity_at` descending (most recent first).
+        - Displays: device name, platform, browser, IP (masked), login time (Jalali),
+          last active time (Jalali).
+
+        **Authorization (planned):** Bearer token required.
+
+        **Rate Limit (planned):** 30 requests per user per hour.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: |
+            List of active sessions.
+            *(Shape defined now for planning; implementation deferred.)*
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeviceSession'
+              example:
+                data:
+                  - id: "c7a1b2d3-e4f5-6789-abcd-ef0123456789"
+                    device_id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                    device_name: "iPhone 15 Pro"
+                    platform: ios
+                    browser: null
+                    app_version: "1.2.0"
+                    ip_address: "91.98.xxx.xxx"
+                    is_current: true
+                    created_at: "2026-06-10T08:30:00Z"
+                    created_at_jalali: "۲۰ خرداد ۱۴۰۵"
+                    last_activity_at: "2026-06-10T11:00:00Z"
+                    last_activity_at_jalali: "۲۰ خرداد ۱۴۰۵"
+                  - id: "d8b2c3e4-f5a6-7890-bcde-f01234567890"
+                    device_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    device_name: "Chrome on Windows 11"
+                    platform: web
+                    browser: "Chrome 124"
+                    app_version: "1.0.0"
+                    ip_address: "5.63.xxx.xxx"
+                    is_current: false
+                    created_at: "2026-06-08T14:00:00Z"
+                    created_at_jalali: "۱۸ خرداد ۱۴۰۵"
+                    last_activity_at: "2026-06-09T20:00:00Z"
+                    last_activity_at_jalali: "۱۹ خرداد ۱۴۰۵"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '501':
+          description: Not yet implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: NOT_IMPLEMENTED
+                  message: "این امکان در نسخه آینده در دسترس خواهد بود"
+
+  # ────────────────────────────────────────────────────────
+  # DELETE /auth/sessions/:id
+  # RESERVED — Future user-controlled session revocation
+  # ────────────────────────────────────────────────────────
+  /auth/sessions/{session_id}:
+    delete:
+      tags: [Auth]
+      operationId: revokeSession
+      summary: "[RESERVED] Revoke a specific session"
+      description: |
+        **⚠️ RESERVED ENDPOINT — Not yet implemented.**
+
+        When implemented, allows the authenticated user to revoke any of their
+        active sessions by `session_id` (obtained from `GET /auth/sessions`).
+
+        **Planned behaviour:**
+        - Immediately invalidates the refresh token for the target session.
+        - Adds the associated access token's `jti` to the revocation list
+          until its natural expiry.
+        - If the session being revoked is the current session, equivalent to logout.
+        - Cannot revoke another user's sessions — server verifies ownership.
+
+        **Authorization (planned):** Bearer token required.
+
+        **Rate Limit (planned):** 20 requests per user per hour.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The session ID to revoke (from GET /auth/sessions or AuthToken.session_id)
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Session revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      revoked_session_id:
+                        type: string
+                        format: uuid
+              example:
+                data:
+                  message: "نشست با موفقیت خاتمه یافت"
+                  revoked_session_id: "d8b2c3e4-f5a6-7890-bcde-f01234567890"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Session does not belong to the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: "دسترسی به این نشست مجاز نیست"
+        '404':
+          description: Session not found or already revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: SESSION_NOT_FOUND
+                  message: "نشست یافت نشد یا قبلاً خاتمه یافته"
+        '501':
+          description: Not yet implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: NOT_IMPLEMENTED
+                  message: "این امکان در نسخه آینده در دسترس خواهد بود"
+
 # ─────────────────────────────────────────────────────────
 # SECTION 4 — AUTHORIZATION RULES SUMMARY
 # (non-path documentation)
 # ─────────────────────────────────────────────────────────
-# Endpoint                    | Guest | RegUser | BizOwner | Admin
-# ─────────────────────────── | ───── | ─────── | ──────── | ─────
-# POST /auth/otp/request      |  ✅   |   ✅   |    ✅    |  ✅
-# POST /auth/otp/verify       |  ✅   |   ✅   |    ✅    |  ✅
-# POST /auth/token/refresh    |  ✅   |   ✅   |    ✅    |  ✅
-# POST /auth/logout           |  ❌   |   ✅   |    ✅    |  ✅
-# GET  /auth/me               |  ❌   |   ✅   |    ✅    |  ✅
-# PATCH /auth/me              |  ❌   |   ✅   |    ✅    |  ✅
-# POST /auth/me/avatar        |  ❌   |   ✅   |    ✅    |  ✅
-# GET  /auth/permissions      |  ❌   |   ✅   |    ✅    |  ✅
+# Endpoint                       | Guest | RegUser | BizOwner | Admin
+# ────────────────────────────── | ───── | ─────── | ──────── | ─────
+# POST /auth/otp/request         |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/otp/verify          |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/token/refresh       |  ✅   |   ✅   |    ✅    |  ✅
+# POST /auth/logout              |  ❌   |   ✅   |    ✅    |  ✅
+# GET  /auth/me                  |  ❌   |   ✅   |    ✅    |  ✅
+# PATCH /auth/me                 |  ❌   |   ✅   |    ✅    |  ✅
+# POST /auth/me/avatar           |  ❌   |   ✅   |    ✅    |  ✅
+# GET  /auth/permissions         |  ❌   |   ✅   |    ✅    |  ✅
+# GET  /auth/sessions            |  ❌   |   ✅   |    ✅    |  ✅  [RESERVED]
+# DELETE /auth/sessions/:id      |  ❌   |   ✅   |    ✅    |  ✅  [RESERVED]
 #
 # ─────────────────────────────────────────────────────────
 # SECTION 5 — RATE LIMIT SUMMARY
 # ─────────────────────────────────────────────────────────
-# Endpoint                    | Window   | Limit  | Key
-# ─────────────────────────── | ──────── | ────── | ──────────────
-# POST /auth/otp/request      | 10 min   | 5      | mobile number
-# POST /auth/otp/request      | 1 min    | 60     | IP address
-# POST /auth/otp/verify       | 10 min   | 10     | mobile number
-# POST /auth/otp/verify       | 1 min    | 60     | IP address
-# POST /auth/token/refresh    | 1 hour   | 20     | refresh token
-# POST /auth/logout           | 1 min    | 10     | user ID
-# GET  /auth/me               | 1 min    | 60     | user ID
-# PATCH /auth/me              | 1 hour   | 20     | user ID
-# POST /auth/me/avatar        | 1 hour   | 10     | user ID
-# GET  /auth/permissions      | 1 min    | 60     | user ID
+# Endpoint                       | Window   | Limit  | Key
+# ────────────────────────────── | ──────── | ────── | ──────────────
+# POST /auth/otp/request         | 10 min   | 5      | mobile number
+# POST /auth/otp/request         | 1 min    | 60     | IP address
+# POST /auth/otp/verify          | 10 min   | 10     | mobile number
+# POST /auth/otp/verify          | 1 min    | 60     | IP address
+# POST /auth/token/refresh       | 1 hour   | 20     | refresh token
+# POST /auth/logout              | 1 min    | 10     | user ID
+# GET  /auth/me                  | 1 min    | 60     | user ID
+# PATCH /auth/me                 | 1 hour   | 20     | user ID
+# POST /auth/me/avatar           | 1 hour   | 10     | user ID
+# GET  /auth/permissions         | 1 min    | 60     | user ID
+# GET  /auth/sessions            | 1 hour   | 30     | user ID         [RESERVED]
+# DELETE /auth/sessions/:id      | 1 hour   | 20     | user ID         [RESERVED]
+#
+# ─────────────────────────────────────────────────────────
+# SECTION 6 — NEW SCHEMAS ADDED IN REVIEW AMENDMENTS
+# ─────────────────────────────────────────────────────────
+# DeviceInfo     — login request device metadata (all optional)
+# DeviceSession  — session record shape (for future GET /auth/sessions)
+#
+# FIELDS ADDED TO EXISTING SCHEMAS:
+# AuthToken      — + session_id (UUID linking token to device session)
+# UserProfile    — + deletion_requested_at (nullable timestamp)
+#                — + deleted_at (nullable timestamp)
+#
+# PARAMETERS ADDED:
+# AppVersion     — X-App-Version header (optional, semver, all endpoints)
+#
+# RESERVED ENDPOINTS:
+# GET  /auth/sessions       — list user's active sessions
+# DELETE /auth/sessions/:id — revoke a specific session
