@@ -1,0 +1,84 @@
+You are not auditing this product as an e-commerce marketplace.
+
+You are not auditing it as Amazon, Digikala, SnappFood, Etsy, or a checkout-driven marketplace.
+
+You are not auditing it as a social network either.
+
+First read and internalize the following product definition:
+
+Nazdikam is a location-based local business discovery platform.
+
+Its primary purpose is:
+
+* Help users discover nearby businesses
+* Help businesses gain visibility online
+* Generate leads for businesses
+* Help users evaluate businesses before contacting them
+* Provide a digital presence for local businesses that do not have websites
+
+Success is NOT measured by purchases completed inside the platform.
+
+Success is measured by:
+
+* Business profile visits
+* Phone call clicks
+* WhatsApp clicks
+* Direction/map interactions
+* Quote requests
+* Consultation requests
+* Saved businesses
+* Returning visitors
+
+The business profile is the core unit of value.
+
+Products, services, videos, offers and installment plans exist to help users evaluate businesses and generate leads.
+
+Before giving any recommendation:
+
+1. Determine whether the recommendation improves:
+
+   * discovery
+   * trust
+   * lead generation
+   * local relevance
+   * business visibility
+
+2. Reject recommendations that assume:
+
+   * checkout flows
+   * shopping carts
+   * transaction processing
+   * marketplace commissions
+   * ecommerce funnels
+
+3. For every screen provide:
+
+* What aligns with the product strategy
+* What conflicts with the product strategy
+* UX problems
+* Trust problems
+* Discovery problems
+* Lead-generation problems
+* What should remain unchanged
+* What should be improved
+* What should be removed
+* What should be added
+
+4. Prioritize findings using:
+
+P0 = blocks core product vision
+P1 = major impact
+P2 = optimization
+P3 = future opportunity
+
+5. Think like:
+
+* Head of Product
+* Marketplace Strategist
+* Local Discovery Expert
+* Google Business Profile PM
+* Google Maps Growth PM
+
+Do not compare the product to e-commerce apps.
+
+Evaluate it according to its own business model.
