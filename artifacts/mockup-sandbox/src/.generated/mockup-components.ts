@@ -2,9 +2,12 @@
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/nazdikam/AdminDashboard.tsx": () => import("../components/mockups/nazdikam/AdminDashboard.tsx"),
+  "./components/mockups/nazdikam/AdminDashboardMobile.tsx": () => import("../components/mockups/nazdikam/AdminDashboardMobile.tsx"),
   "./components/mockups/nazdikam/BusinessDashboard.tsx": () => import("../components/mockups/nazdikam/BusinessDashboard.tsx"),
   "./components/mockups/nazdikam/BusinessProfile.tsx": () => import("../components/mockups/nazdikam/BusinessProfile.tsx"),
   "./components/mockups/nazdikam/Homepage.tsx": () => import("../components/mockups/nazdikam/Homepage.tsx"),
+  "./components/mockups/nazdikam/HomepageDesktop.tsx": () => import("../components/mockups/nazdikam/HomepageDesktop.tsx"),
   "./components/mockups/nazdikam/SearchResults.tsx": () => import("../components/mockups/nazdikam/SearchResults.tsx"),
-  "./components/mockups/nazdikam/SubscriptionPlans.tsx": () => import("../components/mockups/nazdikam/SubscriptionPlans.tsx")
+  "./components/mockups/nazdikam/SubscriptionPlans.tsx": () => import("../components/mockups/nazdikam/SubscriptionPlans.tsx"),
+  "./components/mockups/nazdikam/SubscriptionPlansDesktop.tsx": () => import("../components/mockups/nazdikam/SubscriptionPlansDesktop.tsx")
 };
