@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import Home from "./pages/Home";
 import DesignSystem from "./pages/DesignSystem";
 
 function NotFound() {
@@ -15,7 +16,8 @@ function NotFound() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={DesignSystem} />
+      <Route path="/" component={Home} />
+      <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>
   );

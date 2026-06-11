@@ -1,0 +1,200 @@
+Phase 2 — Nazdikam Homepage Mobile
+
+Use:
+
+* Existing Design System (Phase 1)
+* Approved Design Direction Report
+* Approved Reference Analysis
+* Updated Brand Color System
+
+Primary Brand Color:
+
+#1860DB
+
+Goal:
+
+Build a premium mobile-first homepage for Nazdikam.
+
+Nazdikam must feel like:
+
+* A living local marketplace
+* A business discovery platform
+* A trusted ecosystem for Northern Iran
+
+It must NOT feel like:
+
+* A generic ecommerce store
+* A classifieds platform
+* A traditional business directory
+
+Technical Requirements:
+
+* React + Vite architecture (current project)
+* TypeScript
+* Tailwind CSS v4
+* Framer Motion
+* RTL only
+* Mobile-first
+* 390px viewport
+
+Reuse all existing Phase 1 components and tokens.
+
+Homepage Section Order (strict):
+
+1. Sticky Header
+2. Search Bar
+3. Hero Banner / CMS Carousel
+4. Category Tiles
+5. Video Discovery Row
+6. Featured Products
+7. Featured Services
+8. Deals Section
+9. Installment Section
+10. Featured Businesses
+11. Province Strip
+12. Footer
+13. Bottom Navigation
+
+Header:
+
+* Nazdikam logo
+* Location selector
+* Notification action
+* Sticky behavior
+* White background
+* Brand blue accents
+
+Search:
+
+* Large search input
+* Search businesses, products and services
+* Voice search placeholder action
+* Rounded design
+* Elevated card style
+
+Hero Banner:
+
+Use:
+
+linear-gradient(
+135deg,
+#2D7BFF 0%,
+#1860DB 50%,
+#0E3F99 100%
+)
+
+Requirements:
+
+* Northern Iran imagery
+* Local businesses
+* Restaurants
+* Handmade products
+* Local services
+* White typography
+* Strong CTA
+* CMS-ready structure
+
+Category Tiles:
+
+* 80x80
+* Elevation 1
+* SVG icons
+* Brand-aware color themes
+* Horizontally scrollable
+
+Video Discovery Row:
+
+* 128x200
+* 9:16 ratio
+* Photo-first
+* Instagram-style discovery feeling
+
+Featured Products:
+
+Use ProductCard placeholder architecture.
+
+Products should feel local and marketplace-oriented.
+
+Featured Services:
+
+Use service card architecture.
+
+Deals Section:
+
+Background:
+#FFFBF0
+
+Installment Section:
+
+Background:
+#F5F3FF
+
+Featured Businesses:
+
+Large visual cards.
+
+Prioritize:
+
+* Photography
+* Trust
+* Verification
+* Local identity
+
+Province Strip:
+
+Focus on:
+
+* Mazandaran
+* Gilan
+* Golestan
+
+Bottom Navigation:
+
+RTL
+
+Tabs:
+
+* خانه
+* دسته‌بندی‌ها
+* نقشه
+* حساب کاربری
+
+Active state:
+
+#1860DB
+
+Rules:
+
+* No emoji
+* No generic stock UI
+* Photo-first design
+* Discovery-first experience
+* Business-first hierarchy
+* Trust-first hierarchy
+
+Animations:
+
+Use Framer Motion for:
+
+* Hero transitions
+* Card hover/tap
+* Horizontal carousels
+* Section appearance
+
+Deliverables:
+
+1. Full Homepage implementation
+2. Reusable section components
+3. Mock data structure
+4. Completion report
+
+At the end provide:
+
+* Files created
+* Files modified
+* Components created
+* Reusability assessment
+* Readiness score for Phase 3
+
+Do NOT start Phase 3.
+Only complete Phase 2.

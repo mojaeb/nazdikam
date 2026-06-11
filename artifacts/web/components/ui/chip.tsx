@@ -44,7 +44,7 @@ const chipVariants = cva(
 );
 
 export interface ChipProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">,
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children" | "onToggle">,
     VariantProps<typeof chipVariants> {
   label: string;
   icon?: React.ReactNode;
@@ -71,9 +71,9 @@ function Chip({
 }: ChipProps) {
   const resolvedVariant = selected ? "selected" : variant ?? "default";
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (e: React.MouseEvent) => {
     onToggle?.(!selected);
-    onClick?.(e);
+    onClick?.(e as React.MouseEvent<HTMLButtonElement>);
   };
 
   const handleRemove = (e: React.MouseEvent<HTMLButtonElement>) => {
