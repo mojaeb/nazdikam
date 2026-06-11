@@ -12,3 +12,9 @@ id = "cfWXtE7zOhqmC86W-vY2z"
 uri = "file://attached_assets/architecture/RTL_WIREFRAMES.md"
 type = "text"
 title = "RTL Wireframes — نزدیکام (Nazdikam) · 8 Screens · Mobile + Desktop"
+
+[[outputs]]
+id = "kYaV9Cd6Sw9aYMkHKWI1c"
+uri = "file://attached_assets/architecture/UX_COVERAGE_AUDIT.md"
+type = "text"
+title = "نزدیکام — UX Coverage Audit"
