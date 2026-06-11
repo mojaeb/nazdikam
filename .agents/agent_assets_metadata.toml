@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "RvGnbBow65N6ncV8jlTI0"
+uri = "file://attached_assets/architecture/FRONTEND_ARCHITECTURE_BLUEPRINT.md"
+type = "text"
+title = "Frontend Architecture Blueprint — نزدیکام (Nazdikam)"
