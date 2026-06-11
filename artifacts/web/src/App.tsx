@@ -4,6 +4,7 @@ import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategoryDetailPage from "./pages/CategoryDetailPage";
+import DesktopHomePage from "./pages/DesktopHomePage";
 
 function NotFound() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/categories/:slug">
         {(params) => <CategoryDetailPage slug={params?.slug ?? ""} />}
       </Route>
+      <Route path="/desktop" component={DesktopHomePage} />
       <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>

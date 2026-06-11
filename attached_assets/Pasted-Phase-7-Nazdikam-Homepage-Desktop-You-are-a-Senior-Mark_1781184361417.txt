@@ -1,0 +1,297 @@
+Phase 7 — Nazdikam Homepage Desktop
+
+You are a Senior Marketplace UX Architect and Staff Frontend Engineer.
+
+Context:
+
+Phase 1 — Foundation ✅
+Phase 2 — Homepage Mobile ✅
+Phase 3 — Business Card System ✅
+Phase 4 — Product Card System ✅
+Phase 5 — Search Results Experience ✅
+Phase 6 — Category Navigation & Discovery ✅
+
+Goal:
+
+Build the Desktop Homepage experience.
+
+This is NOT a responsive adaptation of the mobile homepage.
+
+This is a dedicated desktop experience.
+
+==================================================
+DESKTOP PRINCIPLES
+==================
+
+Desktop First
+
+Discovery First
+
+Business First
+
+Photo First
+
+Trust First
+
+Local Marketplace First
+
+==================================================
+LAYOUT SYSTEM
+=============
+
+Viewport:
+
+1440px desktop target
+
+Container:
+
+max-width: 1440px
+
+Content width:
+
+1280px
+
+Desktop spacing scale:
+
+increase vertical rhythm by 25%
+
+==================================================
+DESKTOP STRUCTURE
+=================
+
+Create:
+
+1. Desktop Header
+2. Mega Search
+3. Hero Area
+4. Category Discovery Panel
+5. Featured Businesses
+6. Featured Products
+7. Trending Businesses
+8. Deals Section
+9. Province Discovery
+10. Category Highlights
+11. Footer
+
+==================================================
+HEADER
+======
+
+Desktop navigation:
+
+* Home
+* Categories
+* Businesses
+* Products
+* Map
+
+Actions:
+
+* Notifications
+* Favorites
+* Profile
+
+Sticky desktop behavior.
+
+==================================================
+MEGA SEARCH
+===========
+
+Desktop search should become a major feature.
+
+Include:
+
+* Large search input
+* Popular searches
+* Quick categories
+* Recent searches
+
+Integrate existing Search architecture.
+
+==================================================
+HERO AREA
+=========
+
+Desktop split layout.
+
+Left:
+
+Featured businesses
+
+Right:
+
+Hero carousel
+
+Do not reuse mobile hero layout.
+
+==================================================
+CATEGORY DISCOVERY PANEL
+========================
+
+Use:
+
+CategoryCardFeatured
+
+Multi-column desktop layout.
+
+At least:
+
+4 columns
+
+==================================================
+FEATURED BUSINESSES
+===================
+
+This is the most important desktop section.
+
+Use:
+
+BusinessCardFeatured
+
+Desktop grid layout.
+
+Businesses remain visually dominant.
+
+==================================================
+FEATURED PRODUCTS
+=================
+
+Use:
+
+ProductCardStandard
+
+Desktop grid.
+
+Products remain secondary.
+
+==================================================
+TRENDING BUSINESSES
+===================
+
+Horizontal discovery rail.
+
+Use:
+
+BusinessCardStandard
+
+==================================================
+DEALS SECTION
+=============
+
+Use:
+
+ProductCardDeal
+
+Desktop campaign layout.
+
+==================================================
+PROVINCE DISCOVERY
+==================
+
+Visual exploration.
+
+Mazandaran
+
+Gilan
+
+Golestan
+
+Include:
+
+Business counts
+
+Product counts
+
+Featured imagery
+
+==================================================
+CATEGORY HIGHLIGHTS
+===================
+
+Reuse CategoryHighlights module.
+
+Desktop grid mode.
+
+==================================================
+RESPONSIVENESS
+==============
+
+Support:
+
+1280
+1440
+1600
+
+Desktop-first.
+
+Do not optimize for mobile in this phase.
+
+==================================================
+ANIMATIONS
+==========
+
+Framer Motion.
+
+Desktop-grade interactions:
+
+Hover elevation
+
+Image zoom
+
+Section reveal
+
+Card stagger
+
+==================================================
+ACCESSIBILITY
+=============
+
+Keyboard navigation
+
+ARIA labels
+
+Focus states
+
+==================================================
+INTEGRATION
+===========
+
+Reuse:
+
+Business Cards
+
+Product Cards
+
+Discovery Modules
+
+Search System
+
+Category System
+
+Do not rebuild existing components.
+
+Compose from existing architecture.
+
+==================================================
+DELIVERABLES
+============
+
+Generate:
+
+1. Desktop Homepage
+2. Desktop Header
+3. Mega Search
+4. Province Discovery Section
+5. Desktop-specific layouts
+
+Provide:
+
+* Files created
+* Files modified
+* Reuse percentage
+* Discovery effectiveness assessment
+* Readiness score for Phase 8
+
+Do NOT start Business Dashboard.
+
+Only complete Phase 7.
