@@ -1,0 +1,389 @@
+You are a Senior Marketplace Product Designer and Staff Frontend Engineer.
+
+Build the complete Business Card System for Nazdikam.
+
+Context:
+
+Phase 1 Design System is complete.
+Phase 2 Homepage Mobile is complete.
+
+Nazdikam is:
+
+- a local marketplace
+- a business discovery platform
+- a commerce ecosystem
+
+Nazdikam is NOT:
+
+- a generic ecommerce store
+- a classifieds website
+- a directory
+
+Businesses are the primary entity of the platform.
+
+Business cards must visually outperform product cards.
+
+Use:
+
+- Existing Design Tokens
+- Existing Typography System
+- Existing RTL Infrastructure
+- Existing Framer Motion setup
+- Primary Brand Color #1860DB
+
+==================================================
+CARD FAMILY
+==================================================
+
+Create:
+
+1. BusinessCardCompact
+2. BusinessCardStandard
+3. BusinessCardFeatured
+4. BusinessCardHorizontal
+5. BusinessCardMapPreview
+
+All cards must share the same design language.
+
+==================================================
+PHOTO-FIRST REQUIREMENT
+==================================================
+
+Photo-first design is mandatory.
+
+Visual hierarchy:
+
+1. Cover Photo
+2. Business Identity
+3. Trust Signals
+4. Actions
+5. Metadata
+
+Never allow text to dominate the card.
+
+==================================================
+FALLBACK HIERARCHY
+==================================================
+
+1. Cover Photo
+2. Business Logo
+3. Business Initial Avatar
+4. Gradient Avatar
+
+Generate deterministic gradients.
+
+==================================================
+BUSINESS DATA MODEL
+==================================================
+
+Create TypeScript interfaces.
+
+Business:
+
+id
+slug
+name
+description
+coverImage
+logo
+category
+subcategory
+city
+province
+address
+latitude
+longitude
+phone
+website
+
+rating
+reviewCount
+
+followersCount
+
+verified
+promoted
+
+isOpen
+opensAt
+closesAt
+
+responseRate
+
+gallery
+
+==================================================
+BUSINESSCARD COMPACT
+==================================================
+
+Size:
+
+120x180
+
+Usage:
+
+- Homepage rows
+- Related businesses
+- Carousels
+
+Elements:
+
+Cover Image
+Name
+Category
+Rating
+Verification Badge
+
+==================================================
+BUSINESSCARD STANDARD
+==================================================
+
+Usage:
+
+- Search Results
+- Category Pages
+- Discovery Pages
+
+Elements:
+
+Cover
+Logo
+Name
+Category
+City
+Rating
+Review Count
+Open/Closed Status
+
+Save Action
+
+==================================================
+BUSINESSCARD FEATURED
+==================================================
+
+This is the flagship card of Nazdikam.
+
+Requirements:
+
+Large Cover Photo
+Elevation 3
+Premium appearance
+
+Brand Accent:
+
+#1860DB
+
+Elements:
+
+Featured Badge
+Verification Badge
+Promoted Badge
+
+Business Name
+
+Category
+
+Rating
+Review Count
+
+Followers Count
+
+Open/Closed Status
+
+Response Rate
+
+Actions:
+
+Call
+Save
+Share
+Message
+
+Photo must occupy at least 60% of card height.
+
+==================================================
+BUSINESSCARD HORIZONTAL
+==================================================
+
+Usage:
+
+Search Results
+Map Drawer
+Recommendations
+
+Layout:
+
+Horizontal
+
+Image Left
+Content Right
+
+Compact information density
+
+==================================================
+BUSINESSCARD MAP PREVIEW
+==================================================
+
+Usage:
+
+Map marker popup
+
+Small footprint
+
+Cover Image
+Name
+Rating
+Open Status
+
+Navigate CTA
+
+==================================================
+TRUST SYSTEM
+==================================================
+
+Create reusable:
+
+VerificationBadge
+
+States:
+
+Verified
+Pending
+Unverified
+
+OpenStatusBadge
+
+States:
+
+Open
+Closing Soon
+Closed
+
+PromotedBadge
+
+FeaturedBadge
+
+==================================================
+RATING SYSTEM
+==================================================
+
+Reusable RatingRow component.
+
+Display:
+
+Rating
+Review Count
+
+Persian numerals
+
+==================================================
+FOLLOW SYSTEM
+==================================================
+
+Create:
+
+FollowButton
+
+States:
+
+Following
+Not Following
+
+Animated transition
+
+==================================================
+SAVE SYSTEM
+==================================================
+
+Create:
+
+SaveButton
+
+States:
+
+Saved
+Unsaved
+
+Animated state changes
+
+==================================================
+ANIMATIONS
+==================================================
+
+Use Framer Motion.
+
+Implement:
+
+Hover Elevation
+Image Zoom
+Tap Feedback
+Badge Appear
+Save Toggle
+Follow Toggle
+
+Subtle and premium.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Keyboard navigation
+
+ARIA labels
+
+Focus states
+
+Screen-reader friendly
+
+==================================================
+RTL
+==================================================
+
+RTL-only implementation.
+
+Use logical properties.
+
+No LTR assumptions.
+
+==================================================
+STORYBOOK-READY ARCHITECTURE
+==================================================
+
+Create:
+
+BusinessCard.stories structure
+
+Variant examples
+
+Mock business data
+
+==================================================
+DELIVERABLES
+==================================================
+
+Generate:
+
+1. Business interfaces
+2. Reusable badge system
+3. RatingRow
+4. FollowButton
+5. SaveButton
+6. BusinessCardCompact
+7. BusinessCardStandard
+8. BusinessCardFeatured
+9. BusinessCardHorizontal
+10. BusinessCardMapPreview
+
+Replace homepage business placeholders with the new card system.
+
+Provide:
+
+- Files created
+- Files modified
+- Reusability assessment
+- Design quality assessment
+- Readiness score for Phase 4
+
+Do NOT start Product Cards.
+
+Only complete the Business Card System.
