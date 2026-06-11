@@ -1,0 +1,381 @@
+# NAZDIKAM_DATABASE_SCHEMA
+
+## USERS
+
+id
+phone
+name
+avatar
+role
+
+Roles:
+
+* user
+* business_owner
+* admin
+
+created_at
+updated_at
+
+---
+
+## BUSINESSES
+
+id
+owner_id
+
+name
+slug
+
+description
+
+category_id
+
+province
+city
+address
+
+latitude
+longitude
+
+phone
+whatsapp
+website
+
+cover_image
+logo
+
+is_verified
+
+subscription_id
+
+created_at
+updated_at
+
+---
+
+## BUSINESS_CATEGORIES
+
+id
+name
+slug
+icon
+
+---
+
+## PRODUCTS
+
+id
+business_id
+
+name
+slug
+
+description
+
+price
+
+cover_image
+
+status
+
+views_count
+saves_count
+
+created_at
+updated_at
+
+---
+
+## SERVICES
+
+id
+business_id
+
+name
+slug
+
+description
+
+price
+
+cover_image
+
+status
+
+views_count
+saves_count
+
+created_at
+updated_at
+
+---
+
+## VIDEOS
+
+id
+business_id
+
+title
+
+video_url
+
+thumbnail
+
+views_count
+
+status
+
+created_at
+
+---
+
+## OFFERS
+
+id
+business_id
+
+title
+
+description
+
+discount_percent
+
+starts_at
+expires_at
+
+status
+
+created_at
+
+---
+
+## INSTALLMENT_PLANS
+
+id
+business_id
+
+title
+
+description
+
+monthly_payment
+
+months_count
+
+provider_name
+
+status
+
+created_at
+
+---
+
+## REVIEWS
+
+id
+
+business_id
+user_id
+
+rating
+
+comment
+
+is_verified
+
+created_at
+
+---
+
+## LEADS
+
+id
+
+business_id
+
+user_id
+
+source_type
+
+lead_type
+
+metadata
+
+created_at
+
+Source Types:
+
+* business_profile
+* product_detail
+* service_detail
+* video
+* search
+* map
+
+Lead Types:
+
+* whatsapp
+* phone
+* quote
+* consultation
+* directions
+* website
+
+---
+
+## SAVED_BUSINESSES
+
+id
+
+user_id
+business_id
+
+created_at
+
+---
+
+## SAVED_PRODUCTS
+
+id
+
+user_id
+product_id
+
+created_at
+
+---
+
+## SAVED_SERVICES
+
+id
+
+user_id
+service_id
+
+created_at
+
+---
+
+## BUSINESS_FOLLOWERS
+
+id
+
+user_id
+business_id
+
+created_at
+
+---
+
+## SUBSCRIPTIONS
+
+id
+
+business_id
+
+plan
+
+status
+
+started_at
+expires_at
+
+Plan Types:
+
+* basic
+* advanced
+* professional
+
+---
+
+## REFERRALS
+
+id
+
+referrer_business_id
+
+referred_user_id
+
+referral_code
+
+status
+
+reward_amount
+
+created_at
+
+Status:
+
+* pending
+* converted
+* rewarded
+
+---
+
+## NOTIFICATIONS
+
+id
+
+user_id
+
+title
+
+body
+
+is_read
+
+created_at
+
+---
+
+## ANALYTICS_EVENTS
+
+id
+
+business_id
+
+user_id
+
+event_type
+
+entity_type
+
+entity_id
+
+metadata
+
+created_at
+
+Event Types:
+
+* profile_view
+* product_view
+* service_view
+* video_view
+* save
+* follow
+* lead
+* review
+
+---
+
+## BUSINESS_VERIFICATIONS
+
+id
+
+business_id
+
+status
+
+verified_by
+
+verified_at
+
+notes
+
+Status:
+
+* pending
+* approved
+* rejected
