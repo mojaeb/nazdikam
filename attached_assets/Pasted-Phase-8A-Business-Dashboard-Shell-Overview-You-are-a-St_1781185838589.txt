@@ -1,0 +1,194 @@
+Phase 8A — Business Dashboard Shell & Overview
+
+You are a Staff Product Engineer specializing in Marketplace Seller Platforms.
+
+Context:
+
+All public-facing marketplace experiences are complete:
+
+* Foundation
+* Homepage Mobile
+* Business Cards
+* Product Cards
+* Search
+* Categories
+* Homepage Desktop
+
+Business Dashboard Architecture is approved.
+
+Goal:
+
+Build the Dashboard Shell and Overview experience.
+
+This phase establishes the entire dashboard foundation.
+
+==================================================
+ROUTES
+======
+
+/dashboard
+/dashboard/overview
+
+Overview should be the default route.
+
+==================================================
+DASHBOARD LAYOUT
+================
+
+Desktop:
+
+* Fixed Sidebar
+* Topbar
+* Content Area
+
+Mobile:
+
+* Mobile Dashboard Navigation
+* Bottom Sheet Navigation
+* Responsive Layout
+
+==================================================
+SIDEBAR
+=======
+
+Sections:
+
+Overview
+Business Profile
+Products
+Services
+
+Marketing:
+
+* Leads
+* Reviews
+* Customers
+* Notifications
+
+Growth:
+
+* Analytics
+* Promotions
+* Subscription
+
+Settings
+
+Active route indicators required.
+
+==================================================
+TOPBAR
+======
+
+Business selector
+Notification icon
+Search
+Profile menu
+
+==================================================
+OVERVIEW PAGE
+=============
+
+Create:
+
+1. Welcome Section
+2. KPI Grid
+3. Recent Activity
+4. Quick Actions
+5. Subscription Widget
+6. Lead Summary Widget
+7. Analytics Snapshot
+
+==================================================
+KPI CARDS
+=========
+
+New Leads
+Profile Views
+Product Views
+Review Score
+Conversion Rate
+
+Use dashboard stat-card system.
+
+==================================================
+LEAD SUMMARY
+============
+
+Use Lead architecture.
+
+Show:
+
+* New Leads
+* Contacted Leads
+* Conversion %
+
+==================================================
+RECENT ACTIVITY
+===============
+
+Timeline style.
+
+Events:
+
+Lead received
+Review received
+Product updated
+Subscription renewed
+
+==================================================
+QUICK ACTIONS
+=============
+
+Add Product
+Add Service
+Update Profile
+Create Promotion
+
+==================================================
+SUBSCRIPTION WIDGET
+===================
+
+Current Plan
+
+Usage Limits
+
+Upgrade CTA
+
+==================================================
+ANIMATIONS
+==========
+
+Framer Motion
+
+Dashboard-grade interactions.
+
+==================================================
+ACCESSIBILITY
+=============
+
+Keyboard navigation
+ARIA labels
+Focus states
+
+==================================================
+DELIVERABLES
+============
+
+Generate:
+
+Dashboard Layout
+Sidebar
+Topbar
+Overview Page
+Stat Cards
+Widgets
+
+Provide:
+
+Files Created
+Files Modified
+Typecheck Status
+
+Do not build Product Management yet.
+Do not build Leads page yet.
+Only Phase 8A.
