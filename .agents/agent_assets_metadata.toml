@@ -6,3 +6,9 @@ id = "RvGnbBow65N6ncV8jlTI0"
 uri = "file://attached_assets/architecture/FRONTEND_ARCHITECTURE_BLUEPRINT.md"
 type = "text"
 title = "Frontend Architecture Blueprint — نزدیکام (Nazdikam)"
+
+[[outputs]]
+id = "cfWXtE7zOhqmC86W-vY2z"
+uri = "file://attached_assets/architecture/RTL_WIREFRAMES.md"
+type = "text"
+title = "RTL Wireframes — نزدیکام (Nazdikam) · 8 Screens · Mobile + Desktop"
