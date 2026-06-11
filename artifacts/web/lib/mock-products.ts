@@ -50,6 +50,14 @@ export const mockProducts: Product[] = [
       { question: "آیا نسخه گیاهی وجود دارد؟", answer: "متأسفانه نسخه گیاهی این غذا در حال حاضر موجود نیست." },
     ],
     terms: "لطفاً پیش از سفارش با رستوران تماس بگیرید. سفارش‌های بالای ۱۰ نفر نیاز به هماهنگی قبلی دارند. تحویل در محدوده مشخص‌شده انجام می‌شود. پس از تأیید سفارش امکان کنسل وجود ندارد.",
+    expiresAt: "2026-08-31T23:59:59Z",
+    beforeAfterImages: [
+      {
+        before: "linear-gradient(135deg, #C2410C 0%, #7C2D12 100%)",
+        after: "linear-gradient(135deg, #7C2D12 0%, #C2410C 100%)",
+        label: "قبل و بعد از پخت",
+      },
+    ],
     socialProof: { purchases: 248, views: 1240, saves: 87 },
     ratingBreakdown: [
       { label: "کیفیت غذا", score: 4.9 },
@@ -113,6 +121,14 @@ export const mockProducts: Product[] = [
       { question: "نوع ماهی چیست؟", answer: "معمولاً کپور، آمور یا ماهی سفید خزر استفاده می‌شود." },
     ],
     terms: "ماهی دریایی محدودیت تعداد دارد. سفارش بالای ۳ عدد نیاز به هماهنگی یک روز قبل دارد.",
+    expiresAt: "2026-09-30T23:59:59Z",
+    beforeAfterImages: [
+      {
+        before: "linear-gradient(135deg, #0369A1 0%, #082F49 100%)",
+        after: "linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)",
+        label: "قبل و بعد از کباب کردن",
+      },
+    ],
     socialProof: { purchases: 312, views: 1560, saves: 105 },
     ratingBreakdown: [
       { label: "تازگی ماهی", score: 5.0 },
@@ -178,6 +194,13 @@ export const mockProducts: Product[] = [
       { question: "با چه نانی سرو می‌شود؟", answer: "با برنج کته و نان محلی سرو می‌شود." },
     ],
     terms: "به دلیل موجودی محدود (۸ عدد)، پیش‌سفارش توصیه می‌شود.",
+    beforeAfterImages: [
+      {
+        before: "linear-gradient(135deg, #65A30D 0%, #365314 100%)",
+        after: "linear-gradient(135deg, #84CC16 0%, #65A30D 100%)",
+        label: "قبل و بعد از پخت",
+      },
+    ],
     socialProof: { purchases: 178, views: 890, saves: 63 },
     ratingBreakdown: [
       { label: "طعم ترشی", score: 4.8 },
@@ -243,6 +266,8 @@ export const mockProducts: Product[] = [
     isInstallmentAvailable: true,
     installmentMonths: 3,
     installmentMonthlyAmount: 296_667,
+    installmentProvider: "سامانه اقساط نزدیکام",
+    installmentDownPayment: 296_667,
     isFeatured: true,
     isNew: false,
     createdAt: "2025-11-01",
@@ -270,6 +295,14 @@ export const mockProducts: Product[] = [
       { question: "آیا نمونه رنگ‌بندی دارید؟", answer: "بله، با تماس با فروشگاه نمونه‌های رنگی رایگان ارسال می‌کنیم." },
     ],
     terms: "پارچه قابل مرجوعی نیست مگر در صورت عیب کارخانه. رنگ واقعی ممکن است کمی با نمایش صفحه متفاوت باشد.",
+    expiresAt: "2026-10-31T23:59:59Z",
+    beforeAfterImages: [
+      {
+        before: "linear-gradient(135deg, #9333EA 0%, #4C1D95 100%)",
+        after: "linear-gradient(135deg, #C084FC 0%, #9333EA 100%)",
+        label: "نمونه پارچه خام و نهایی",
+      },
+    ],
     socialProof: { purchases: 134, views: 2100, saves: 198 },
     ratingBreakdown: [
       { label: "کیفیت ابریشم", score: 5.0 },

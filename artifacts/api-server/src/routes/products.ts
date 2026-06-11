@@ -164,10 +164,18 @@ router.get("/businesses/:businessId/products", requireOwnerOf(), async (req, res
   }
 });
 
+/* ─── OpenAPI-aligned schemas (coerce date-time strings per spec) ── */
+const createProductApiSchema = insertProductSchema.extend({
+  expiresAt: z.coerce.date().optional().nullable(),
+});
+const updateProductApiSchema = createProductApiSchema
+  .omit({ businessId: true, businessName: true, businessVerified: true })
+  .partial();
+
 /* ─── POST /api/businesses/:businessId/products — owner-only */
 router.post("/businesses/:businessId/products", requireOwnerOf(), async (req, res) => {
   const businessId = String(req.params["businessId"]);
-  const parsed = insertProductSchema.safeParse({
+  const parsed = createProductApiSchema.safeParse({
     ...req.body,
     businessId,
   });
@@ -200,10 +208,7 @@ router.patch("/businesses/:businessId/products/:productId", requireOwnerOf(), as
   }
 
   // Ownership fields must never be changed via PATCH — strip them from the allowed schema.
-  const updateSchema = insertProductSchema
-    .omit({ businessId: true, businessName: true, businessVerified: true })
-    .partial();
-  const parsed = updateSchema.safeParse(req.body);
+  const parsed = updateProductApiSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(422).json({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
     return;

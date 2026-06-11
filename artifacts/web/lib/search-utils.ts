@@ -88,6 +88,7 @@ export function filterAndSortProducts(
   if (filters.priceMax !== null) results = results.filter(p => p.price <= filters.priceMax!);
   if (filters.onlyDiscounted) results = results.filter(p => (p.discountPercent ?? 0) > 0);
   if (filters.onlyInstallment) results = results.filter(p => p.isInstallmentAvailable);
+  if (filters.onlyVerified) results = results.filter(p => !!p.businessVerified);
   if (filters.minRating !== null) results = results.filter(p => p.rating >= filters.minRating!);
   if (filters.provinces.length > 0) {
     /* Products inherit province from business — filter by businessName matching province businesses */
