@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SearchIcon } from "@/components/icons";
 
@@ -12,6 +13,8 @@ function MicIcon() {
 }
 
 export function SearchBar() {
+  const [, navigate] = useLocation();
+
   return (
     <motion.div
       className="px-4 pt-3 pb-4"
@@ -19,20 +22,27 @@ export function SearchBar() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      <div className="card flex items-center gap-3 px-4 h-12 rounded-2xl">
+      <div
+        className="card flex items-center gap-3 px-4 h-12 rounded-2xl cursor-pointer active:scale-[0.99] transition-transform"
+        role="button"
+        tabIndex={0}
+        aria-label="جستجو"
+        onClick={() => navigate("/search")}
+        onKeyDown={e => e.key === "Enter" && navigate("/search")}
+      >
         <SearchIcon size={18} className="text-neutral-400 shrink-0" />
-        <input
-          type="search"
-          inputMode="search"
-          placeholder="جستجو در کسب‌وکارها، محصولات و خدمات..."
-          className="flex-1 bg-transparent text-body font-vazirmatn text-neutral-900 placeholder:text-neutral-400 outline-none min-w-0 rtl:text-right"
-          readOnly
-        />
+        <span className="flex-1 text-body font-vazirmatn text-neutral-400 text-right select-none">
+          جستجو در کسب‌وکارها، محصولات و خدمات...
+        </span>
         <div className="h-5 w-px bg-neutral-200 shrink-0" />
         <motion.button
           className="text-blue-500 shrink-0"
           whileTap={{ scale: 0.9 }}
           aria-label="جستجوی صوتی"
+          onClick={e => {
+            e.stopPropagation();
+            navigate("/search");
+          }}
         >
           <MicIcon />
         </motion.button>
