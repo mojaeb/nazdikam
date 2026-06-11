@@ -110,6 +110,12 @@ export interface Product {
   isNew: boolean;
   isPublished?: boolean;
 
+  /* Social / engagement */
+  followerCount?: number;
+
+  /* Installment monthly (computed or stored) */
+  installmentMonthlyAmount?: number;
+
   /* Meta */
   createdAt: string;
 }

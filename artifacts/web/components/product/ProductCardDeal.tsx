@@ -127,11 +127,25 @@ export function ProductCardDeal({
           )}
         </div>
 
-        {/* Business identity — subtle */}
+        {/* Business identity + city */}
         <div className="flex items-center gap-1 text-neutral-400">
           <StoreIcon size={10} className="text-blue-400 shrink-0" />
-          <span className="text-[10px] font-vazirmatn truncate">{product.businessName}</span>
+          <span className="text-[10px] font-vazirmatn truncate flex-1">{product.businessName}</span>
+          {product.city && (
+            <span className="text-[9px] font-vazirmatn text-neutral-400 shrink-0">📍 {product.city}</span>
+          )}
         </div>
+
+        {/* Tags */}
+        {product.tags && product.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.tags.slice(0, 2).map(tag => (
+              <span key={tag} className="text-[9px] font-bold bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded-md">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );

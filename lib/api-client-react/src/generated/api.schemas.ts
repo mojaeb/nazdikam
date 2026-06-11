@@ -18,6 +18,45 @@ export interface ErrorResponse {
   error?: ErrorResponseError;
 }
 
+export interface RatingCategory {
+  label: string;
+  score: number;
+}
+
+export interface RatingDistribution {
+  star: number;
+  count: number;
+  percent: number;
+}
+
+export interface Faq {
+  question: string;
+  answer: string;
+}
+
+export interface SocialProof {
+  purchases: number;
+  views: number;
+  saves: number;
+}
+
+export interface ProductReview {
+  id: string;
+  userName: string;
+  date: string;
+  rating: number;
+  text: string;
+  pros?: string[];
+  cons?: string[];
+  helpful: number;
+}
+
+export interface BeforeAfterImage {
+  before: string;
+  after: string;
+  label?: string;
+}
+
 export type ProductInventoryStatus = typeof ProductInventoryStatus[keyof typeof ProductInventoryStatus];
 
 
@@ -51,18 +90,26 @@ export interface Product {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   rating: number;
   reviewCount: number;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
   coverGradient: string;
   gallery?: string[];
+  beforeAfterImages?: BeforeAfterImage[];
   inventoryStatus: ProductInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
+  socialProof?: SocialProof;
   isFeatured: boolean;
   isNew: boolean;
   isPublished?: boolean;
+  followerCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -92,10 +139,12 @@ export interface CreateProductBody {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   inventoryStatus?: CreateProductBodyInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
   phone?: string;
   whatsapp?: string;
@@ -104,6 +153,7 @@ export interface CreateProductBody {
   isFeatured?: boolean;
   isNew?: boolean;
   isPublished?: boolean;
+  followerCount?: number;
 }
 
 export type UpdateProductBodyInventoryStatus = typeof UpdateProductBodyInventoryStatus[keyof typeof UpdateProductBodyInventoryStatus];
@@ -132,10 +182,12 @@ export interface UpdateProductBody {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   inventoryStatus?: UpdateProductBodyInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
   phone?: string;
   whatsapp?: string;
@@ -144,6 +196,7 @@ export interface UpdateProductBody {
   isFeatured?: boolean;
   isNew?: boolean;
   isPublished?: boolean;
+  followerCount?: number;
 }
 
 export interface ProductMeta {
@@ -195,4 +248,12 @@ export const ListProductsSort = {
   price_desc: 'price_desc',
   rating_desc: 'rating_desc',
 } as const;
+
+export type ListBusinessProductsOwnerParams = {
+page?: number;
+/**
+ * @maximum 50
+ */
+per_page?: number;
+};
 

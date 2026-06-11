@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import { db } from "@workspace/db";
 import { productsTable, insertProductSchema, type DbProduct } from "@workspace/db";
 import { eq, ilike, and, desc, asc, sql } from "drizzle-orm";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireOwnerOf } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -18,7 +18,7 @@ const ListQuerySchema = z.object({
   sort:        z.enum(["created_at_desc", "price_asc", "price_desc", "rating_desc"]).default("created_at_desc"),
 });
 
-/* ─── GET /api/products — paginated list ──────────────── */
+/* ─── GET /api/products — paginated public list ───────── */
 router.get("/products", async (req, res) => {
   const parsed = ListQuerySchema.safeParse(req.query);
   if (!parsed.success) {
@@ -78,7 +78,7 @@ router.get("/products/:slug", async (req, res) => {
     const [product] = await db
       .select()
       .from(productsTable)
-      .where(eq(productsTable.slug, req.params["slug"]!))
+      .where(eq(productsTable.slug, String(req.params["slug"])))
       .limit(1);
 
     if (!product) {
@@ -93,8 +93,9 @@ router.get("/products/:slug", async (req, res) => {
   }
 });
 
-/* ─── GET /api/businesses/:businessId/products — public listing */
-router.get("/businesses/:businessId/products", async (req, res) => {
+/* ─── GET /api/businesses/:businessId/products/public ── */
+/* Public: returns only published products for a business */
+router.get("/businesses/:businessId/products/public", async (req, res) => {
   const businessId = String(req.params["businessId"]);
   try {
     const rows = await db
@@ -108,15 +109,59 @@ router.get("/businesses/:businessId/products", async (req, res) => {
       )
       .orderBy(desc(productsTable.createdAt));
 
-    res.json({ data: rows, meta: { total: rows.length } });
+    res.json({
+      data: rows,
+      meta: { page: 1, per_page: rows.length, total: rows.length, total_pages: 1 },
+    });
   } catch (err) {
-    req.log.error({ err }, "GET /businesses/:id/products failed");
+    req.log.error({ err }, "GET /businesses/:id/products/public failed");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal server error" } });
+  }
+});
+
+/* ─── GET /api/businesses/:businessId/products — owner-only */
+/* Returns ALL products (including unpublished drafts) for the owner */
+router.get("/businesses/:businessId/products", requireOwnerOf(), async (req, res) => {
+  const businessId = String(req.params["businessId"]);
+  const parsed = ListQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(422).json({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+    return;
+  }
+
+  const { page, per_page } = parsed.data;
+  try {
+    const [rows, countResult] = await Promise.all([
+      db.select()
+        .from(productsTable)
+        .where(eq(productsTable.businessId, businessId))
+        .orderBy(desc(productsTable.createdAt))
+        .limit(per_page)
+        .offset((page - 1) * per_page),
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(productsTable)
+        .where(eq(productsTable.businessId, businessId)),
+    ]);
+
+    const total = countResult[0]?.count ?? rows.length;
+
+    res.json({
+      data: rows,
+      meta: {
+        page,
+        per_page,
+        total,
+        total_pages: Math.ceil(total / per_page),
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "GET /businesses/:id/products (owner) failed");
     res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal server error" } });
   }
 });
 
 /* ─── POST /api/businesses/:businessId/products — owner-only */
-router.post("/businesses/:businessId/products", requireAuth, async (req, res) => {
+router.post("/businesses/:businessId/products", requireOwnerOf(), async (req, res) => {
   const businessId = String(req.params["businessId"]);
   const parsed = insertProductSchema.safeParse({
     ...req.body,
@@ -142,9 +187,9 @@ router.post("/businesses/:businessId/products", requireAuth, async (req, res) =>
 });
 
 /* ─── PATCH /api/businesses/:businessId/products/:productId — owner-only */
-router.patch("/businesses/:businessId/products/:productId", requireAuth, async (req, res) => {
+router.patch("/businesses/:businessId/products/:productId", requireOwnerOf(), async (req, res) => {
   const businessId = String(req.params["businessId"]);
-  const productId = Number(req.params["productId"]);
+  const productId  = Number(req.params["productId"]);
   if (!Number.isInteger(productId) || productId <= 0) {
     res.status(400).json({ error: { code: "INVALID_ID", message: "Invalid product ID" } });
     return;
@@ -182,9 +227,9 @@ router.patch("/businesses/:businessId/products/:productId", requireAuth, async (
 });
 
 /* ─── DELETE /api/businesses/:businessId/products/:productId — owner-only */
-router.delete("/businesses/:businessId/products/:productId", requireAuth, async (req, res) => {
+router.delete("/businesses/:businessId/products/:productId", requireOwnerOf(), async (req, res) => {
   const businessId = String(req.params["businessId"]);
-  const productId = Number(req.params["productId"]);
+  const productId  = Number(req.params["productId"]);
   if (!Number.isInteger(productId) || productId <= 0) {
     res.status(400).json({ error: { code: "INVALID_ID", message: "Invalid product ID" } });
     return;

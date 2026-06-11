@@ -72,6 +72,20 @@ export function ProductCardHorizontal({
           )}
         </div>
 
+        {/* City + first tag */}
+        {(product.city || (product.tags && product.tags.length > 0)) && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {product.city && (
+              <span className="text-[9px] font-vazirmatn text-neutral-400">📍 {product.city}</span>
+            )}
+            {product.tags?.[0] && (
+              <span className="text-[8px] font-bold bg-neutral-100 text-neutral-500 px-1 py-0.5 rounded">
+                {product.tags[0]}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-2">
           <RatingRow
             rating={product.rating}

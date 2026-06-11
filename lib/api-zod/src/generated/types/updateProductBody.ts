@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Faq } from './faq';
 import type { UpdateProductBodyInventoryStatus } from './updateProductBodyInventoryStatus';
 
 /**
@@ -23,10 +24,12 @@ export interface UpdateProductBody {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   inventoryStatus?: UpdateProductBodyInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
   phone?: string;
   whatsapp?: string;
@@ -35,4 +38,5 @@ export interface UpdateProductBody {
   isFeatured?: boolean;
   isNew?: boolean;
   isPublished?: boolean;
+  followerCount?: number;
 }

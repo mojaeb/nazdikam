@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './beforeAfterImage';
 export * from './createProductBody';
 export * from './createProductBodyInventoryStatus';
 export * from './errorResponse';
 export * from './errorResponseError';
+export * from './faq';
 export * from './healthStatus';
+export * from './listBusinessProductsOwnerParams';
 export * from './listProductsFeatured';
 export * from './listProductsParams';
 export * from './listProductsSort';
@@ -18,6 +21,10 @@ export * from './product';
 export * from './productInventoryStatus';
 export * from './productListResponse';
 export * from './productMeta';
+export * from './productReview';
 export * from './productSingleResponse';
+export * from './ratingCategory';
+export * from './ratingDistribution';
+export * from './socialProof';
 export * from './updateProductBody';
 export * from './updateProductBodyInventoryStatus';

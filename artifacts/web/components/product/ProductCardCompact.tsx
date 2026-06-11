@@ -71,7 +71,7 @@ export function ProductCardCompact({
           {product.name}
         </p>
         <p className="text-white/55 text-[9px] font-vazirmatn truncate">
-          {product.businessName}
+          {product.city ? `📍 ${product.city}` : product.businessName}
         </p>
         <PriceDisplay
           price={product.price}

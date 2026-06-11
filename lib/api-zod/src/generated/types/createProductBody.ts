@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CreateProductBodyInventoryStatus } from './createProductBodyInventoryStatus';
+import type { Faq } from './faq';
 
 export interface CreateProductBody {
   slug: string;
@@ -22,10 +23,12 @@ export interface CreateProductBody {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   inventoryStatus?: CreateProductBodyInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
   phone?: string;
   whatsapp?: string;
@@ -34,4 +37,5 @@ export interface CreateProductBody {
   isFeatured?: boolean;
   isNew?: boolean;
   isPublished?: boolean;
+  followerCount?: number;
 }

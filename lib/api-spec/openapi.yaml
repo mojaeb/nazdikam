@@ -33,7 +33,7 @@ paths:
       operationId: listProducts
       tags:
         - products
-      summary: List products (paginated)
+      summary: List products (paginated, public)
       parameters:
         - in: query
           name: page
@@ -89,7 +89,7 @@ paths:
       operationId: getProduct
       tags:
         - products
-      summary: Get a single product by slug
+      summary: Get a single product by slug (public)
       parameters:
         - in: path
           name: slug
@@ -110,12 +110,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /businesses/{businessId}/products:
+  /businesses/{businessId}/products/public:
     get:
-      operationId: listBusinessProducts
+      operationId: listBusinessProductsPublic
       tags:
         - products
-      summary: List published products for a business (public)
+      summary: List published products for a business (public, no auth)
       parameters:
         - in: path
           name: businessId
@@ -124,11 +124,56 @@ paths:
             type: string
       responses:
         "200":
-          description: Products for the business
+          description: Published products for the business
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProductListResponse"
+
+  /businesses/{businessId}/products:
+    get:
+      operationId: listBusinessProductsOwner
+      tags:
+        - products
+      summary: List all products for a business including drafts (owner-only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        "200":
+          description: All products for the business (including unpublished)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden — token does not authorize this business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       operationId: createBusinessProduct
       tags:
@@ -157,6 +202,12 @@ paths:
                 $ref: "#/components/schemas/ProductSingleResponse"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden — token does not authorize this business
           content:
             application/json:
               schema:
@@ -206,6 +257,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden — token does not authorize this business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Not found
           content:
@@ -235,6 +292,12 @@ paths:
           description: Product deleted
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden — token does not authorize this business
           content:
             application/json:
               schema:
@@ -274,6 +337,100 @@ components:
           required:
             - code
             - message
+
+    RatingCategory:
+      type: object
+      properties:
+        label:
+          type: string
+        score:
+          type: number
+      required:
+        - label
+        - score
+
+    RatingDistribution:
+      type: object
+      properties:
+        star:
+          type: integer
+        count:
+          type: integer
+        percent:
+          type: number
+      required:
+        - star
+        - count
+        - percent
+
+    FAQ:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+      required:
+        - question
+        - answer
+
+    SocialProof:
+      type: object
+      properties:
+        purchases:
+          type: integer
+        views:
+          type: integer
+        saves:
+          type: integer
+      required:
+        - purchases
+        - views
+        - saves
+
+    ProductReview:
+      type: object
+      properties:
+        id:
+          type: string
+        userName:
+          type: string
+        date:
+          type: string
+        rating:
+          type: number
+        text:
+          type: string
+        pros:
+          type: array
+          items:
+            type: string
+        cons:
+          type: array
+          items:
+            type: string
+        helpful:
+          type: integer
+      required:
+        - id
+        - userName
+        - date
+        - rating
+        - text
+        - helpful
+
+    BeforeAfterImage:
+      type: object
+      properties:
+        before:
+          type: string
+        after:
+          type: string
+        label:
+          type: string
+      required:
+        - before
+        - after
 
     Product:
       type: object
@@ -325,16 +482,34 @@ components:
           type: string
         installmentDownPayment:
           type: integer
+        installmentMonthlyAmount:
+          type: integer
         rating:
           type: number
         reviewCount:
           type: integer
+        ratingBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingCategory"
+        ratingDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingDistribution"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductReview"
         coverGradient:
           type: string
         gallery:
           type: array
           items:
             type: string
+        beforeAfterImages:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeforeAfterImage"
         inventoryStatus:
           type: string
           enum:
@@ -352,14 +527,22 @@ components:
           type: array
           items:
             type: string
+        faqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/FAQ"
         terms:
           type: string
+        socialProof:
+          $ref: "#/components/schemas/SocialProof"
         isFeatured:
           type: boolean
         isNew:
           type: boolean
         isPublished:
           type: boolean
+        followerCount:
+          type: integer
         createdAt:
           type: string
           format: date-time
@@ -417,6 +600,8 @@ components:
           type: string
         installmentDownPayment:
           type: integer
+        installmentMonthlyAmount:
+          type: integer
         inventoryStatus:
           type: string
           enum:
@@ -434,6 +619,10 @@ components:
           type: array
           items:
             type: string
+        faqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/FAQ"
         terms:
           type: string
         phone:
@@ -450,6 +639,8 @@ components:
           type: boolean
         isPublished:
           type: boolean
+        followerCount:
+          type: integer
       required:
         - slug
         - name
@@ -486,6 +677,8 @@ components:
           type: string
         installmentDownPayment:
           type: integer
+        installmentMonthlyAmount:
+          type: integer
         inventoryStatus:
           type: string
           enum:
@@ -503,6 +696,10 @@ components:
           type: array
           items:
             type: string
+        faqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/FAQ"
         terms:
           type: string
         phone:
@@ -519,6 +716,8 @@ components:
           type: boolean
         isPublished:
           type: boolean
+        followerCount:
+          type: integer
 
     ProductMeta:
       type: object

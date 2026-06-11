@@ -117,6 +117,20 @@ export function ProductCardFeatured({
           </p>
         )}
 
+        {/* City + tags */}
+        {(product.city || (product.tags && product.tags.length > 0)) && (
+          <div className="flex items-center flex-wrap gap-1.5">
+            {product.city && (
+              <span className="text-[11px] font-vazirmatn text-neutral-400">📍 {product.city}</span>
+            )}
+            {product.tags?.slice(0, 2).map(tag => (
+              <span key={tag} className="text-[10px] font-bold bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded-md">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Business identity */}
         <div className="flex items-center gap-1.5 text-neutral-500 border-t border-neutral-100 pt-2">
           <StoreIcon size={13} className="text-blue-500 shrink-0" />

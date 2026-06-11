@@ -5,7 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { BeforeAfterImage } from './beforeAfterImage';
+import type { Faq } from './faq';
 import type { ProductInventoryStatus } from './productInventoryStatus';
+import type { ProductReview } from './productReview';
+import type { RatingCategory } from './ratingCategory';
+import type { RatingDistribution } from './ratingDistribution';
+import type { SocialProof } from './socialProof';
 
 export interface Product {
   id: number;
@@ -30,18 +36,26 @@ export interface Product {
   installmentMonths?: number;
   installmentProvider?: string;
   installmentDownPayment?: number;
+  installmentMonthlyAmount?: number;
   rating: number;
   reviewCount: number;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
   coverGradient: string;
   gallery?: string[];
+  beforeAfterImages?: BeforeAfterImage[];
   inventoryStatus: ProductInventoryStatus;
   stockCount?: number;
   benefits?: string[];
   eligibleGroups?: string[];
+  faqs?: Faq[];
   terms?: string;
+  socialProof?: SocialProof;
   isFeatured: boolean;
   isNew: boolean;
   isPublished?: boolean;
+  followerCount?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

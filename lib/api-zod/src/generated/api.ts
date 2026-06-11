@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary List products (paginated)
+ * @summary List products (paginated, public)
  */
 export const listProductsQueryPageDefault = 1;
 export const listProductsQueryPerPageDefault = 20;
@@ -60,18 +60,53 @@ export const ListProductsResponse = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional(),
   "coverGradient": zod.string(),
   "gallery": zod.array(zod.string()).optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
   "isFeatured": zod.boolean(),
   "isNew": zod.boolean(),
   "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional(),
   "createdAt": zod.coerce.date().optional(),
   "updatedAt": zod.coerce.date().optional()
 })),
@@ -85,7 +120,7 @@ export const ListProductsResponse = zod.object({
 
 
 /**
- * @summary Get a single product by slug
+ * @summary Get a single product by slug (public)
  */
 export const GetProductParams = zod.object({
   "slug": zod.coerce.string()
@@ -115,18 +150,53 @@ export const GetProductResponse = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional(),
   "coverGradient": zod.string(),
   "gallery": zod.array(zod.string()).optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
   "isFeatured": zod.boolean(),
   "isNew": zod.boolean(),
   "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional(),
   "createdAt": zod.coerce.date().optional(),
   "updatedAt": zod.coerce.date().optional()
 })
@@ -134,13 +204,13 @@ export const GetProductResponse = zod.object({
 
 
 /**
- * @summary List published products for a business (public)
+ * @summary List published products for a business (public, no auth)
  */
-export const ListBusinessProductsParams = zod.object({
+export const ListBusinessProductsPublicParams = zod.object({
   "businessId": zod.coerce.string()
 })
 
-export const ListBusinessProductsResponse = zod.object({
+export const ListBusinessProductsPublicResponse = zod.object({
   "data": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
@@ -164,18 +234,154 @@ export const ListBusinessProductsResponse = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional(),
   "coverGradient": zod.string(),
   "gallery": zod.array(zod.string()).optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
   "isFeatured": zod.boolean(),
   "isNew": zod.boolean(),
   "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})),
+  "meta": zod.object({
+  "page": zod.number(),
+  "per_page": zod.number(),
+  "total": zod.number(),
+  "total_pages": zod.number()
+})
+})
+
+
+/**
+ * @summary List all products for a business including drafts (owner-only)
+ */
+export const ListBusinessProductsOwnerParams = zod.object({
+  "businessId": zod.coerce.string()
+})
+
+export const listBusinessProductsOwnerQueryPageDefault = 1;
+export const listBusinessProductsOwnerQueryPerPageDefault = 20;
+export const listBusinessProductsOwnerQueryPerPageMax = 50;
+
+
+
+export const ListBusinessProductsOwnerQueryParams = zod.object({
+  "page": zod.coerce.number().default(listBusinessProductsOwnerQueryPageDefault),
+  "per_page": zod.coerce.number().max(listBusinessProductsOwnerQueryPerPageMax).default(listBusinessProductsOwnerQueryPerPageDefault)
+})
+
+export const ListBusinessProductsOwnerResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "businessId": zod.string(),
+  "businessName": zod.string(),
+  "businessVerified": zod.boolean().optional(),
+  "phone": zod.string().optional(),
+  "whatsapp": zod.string().optional(),
+  "city": zod.string().optional(),
+  "category": zod.string(),
+  "subcategory": zod.string().optional(),
+  "tags": zod.array(zod.string()).optional(),
+  "price": zod.number(),
+  "originalPrice": zod.number().optional(),
+  "discountPercent": zod.number().optional(),
+  "currency": zod.string(),
+  "expiresAt": zod.coerce.date().optional(),
+  "isInstallmentAvailable": zod.boolean(),
+  "installmentMonths": zod.number().optional(),
+  "installmentProvider": zod.string().optional(),
+  "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
+  "rating": zod.number(),
+  "reviewCount": zod.number(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional(),
+  "coverGradient": zod.string(),
+  "gallery": zod.array(zod.string()).optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
+  "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']),
+  "stockCount": zod.number().optional(),
+  "benefits": zod.array(zod.string()).optional(),
+  "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
+  "terms": zod.string().optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
+  "isFeatured": zod.boolean(),
+  "isNew": zod.boolean(),
+  "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional(),
   "createdAt": zod.coerce.date().optional(),
   "updatedAt": zod.coerce.date().optional()
 })),
@@ -210,10 +416,15 @@ export const CreateBusinessProductBody = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']).optional(),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
   "phone": zod.string().optional(),
   "whatsapp": zod.string().optional(),
@@ -221,7 +432,8 @@ export const CreateBusinessProductBody = zod.object({
   "coverGradient": zod.string().optional(),
   "isFeatured": zod.boolean().optional(),
   "isNew": zod.boolean().optional(),
-  "isPublished": zod.boolean().optional()
+  "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional()
 })
 
 
@@ -246,10 +458,15 @@ export const UpdateBusinessProductBody = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']).optional(),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
   "phone": zod.string().optional(),
   "whatsapp": zod.string().optional(),
@@ -257,7 +474,8 @@ export const UpdateBusinessProductBody = zod.object({
   "coverGradient": zod.string().optional(),
   "isFeatured": zod.boolean().optional(),
   "isNew": zod.boolean().optional(),
-  "isPublished": zod.boolean().optional()
+  "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional()
 }).describe('Partial update — all fields optional')
 
 export const UpdateBusinessProductResponse = zod.object({
@@ -284,18 +502,53 @@ export const UpdateBusinessProductResponse = zod.object({
   "installmentMonths": zod.number().optional(),
   "installmentProvider": zod.string().optional(),
   "installmentDownPayment": zod.number().optional(),
+  "installmentMonthlyAmount": zod.number().optional(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional(),
   "coverGradient": zod.string(),
   "gallery": zod.array(zod.string()).optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
   "inventoryStatus": zod.enum(['in-stock', 'low-stock', 'out-of-stock', 'pre-order']),
   "stockCount": zod.number().optional(),
   "benefits": zod.array(zod.string()).optional(),
   "eligibleGroups": zod.array(zod.string()).optional(),
+  "faqs": zod.array(zod.object({
+  "question": zod.string(),
+  "answer": zod.string()
+})).optional(),
   "terms": zod.string().optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
   "isFeatured": zod.boolean(),
   "isNew": zod.boolean(),
   "isPublished": zod.boolean().optional(),
+  "followerCount": zod.number().optional(),
   "createdAt": zod.coerce.date().optional(),
   "updatedAt": zod.coerce.date().optional()
 })

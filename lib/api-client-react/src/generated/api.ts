@@ -23,6 +23,7 @@ import type {
   CreateProductBody,
   ErrorResponse,
   HealthStatus,
+  ListBusinessProductsOwnerParams,
   ListProductsParams,
   ProductListResponse,
   ProductSingleResponse,
@@ -135,7 +136,7 @@ export const getListProductsUrl = (params?: ListProductsParams,) => {
 }
 
 /**
- * @summary List products (paginated)
+ * @summary List products (paginated, public)
  */
 export const listProducts = async (params?: ListProductsParams, options?: RequestInit): Promise<ProductListResponse> => {
 
@@ -182,7 +183,7 @@ export type ListProductsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List products (paginated)
+ * @summary List products (paginated, public)
  */
 
 export function useListProducts<TData = Awaited<ReturnType<typeof listProducts>>, TError = ErrorType<unknown>>(
@@ -212,7 +213,7 @@ export const getGetProductUrl = (slug: string,) => {
 }
 
 /**
- * @summary Get a single product by slug
+ * @summary Get a single product by slug (public)
  */
 export const getProduct = async (slug: string, options?: RequestInit): Promise<ProductSingleResponse> => {
 
@@ -259,7 +260,7 @@ export type GetProductQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Get a single product by slug
+ * @summary Get a single product by slug (public)
  */
 
 export function useGetProduct<TData = Awaited<ReturnType<typeof getProduct>>, TError = ErrorType<ErrorResponse>>(
@@ -280,20 +281,20 @@ export function useGetProduct<TData = Awaited<ReturnType<typeof getProduct>>, TE
 
 
 
-export const getListBusinessProductsUrl = (businessId: string,) => {
+export const getListBusinessProductsPublicUrl = (businessId: string,) => {
 
 
 
 
-  return `/api/businesses/${businessId}/products`
+  return `/api/businesses/${businessId}/products/public`
 }
 
 /**
- * @summary List published products for a business (public)
+ * @summary List published products for a business (public, no auth)
  */
-export const listBusinessProducts = async (businessId: string, options?: RequestInit): Promise<ProductListResponse> => {
+export const listBusinessProductsPublic = async (businessId: string, options?: RequestInit): Promise<ProductListResponse> => {
 
-  return customFetch<ProductListResponse>(getListBusinessProductsUrl(businessId),
+  return customFetch<ProductListResponse>(getListBusinessProductsPublicUrl(businessId),
   {
     ...options,
     method: 'GET'
@@ -306,45 +307,134 @@ export const listBusinessProducts = async (businessId: string, options?: Request
 
 
 
-export const getListBusinessProductsQueryKey = (businessId: string,) => {
+export const getListBusinessProductsPublicQueryKey = (businessId: string,) => {
     return [
-    `/api/businesses/${businessId}/products`
+    `/api/businesses/${businessId}/products/public`
     ] as const;
     }
 
 
-export const getListBusinessProductsQueryOptions = <TData = Awaited<ReturnType<typeof listBusinessProducts>>, TError = ErrorType<unknown>>(businessId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListBusinessProductsPublicQueryOptions = <TData = Awaited<ReturnType<typeof listBusinessProductsPublic>>, TError = ErrorType<unknown>>(businessId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsPublic>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListBusinessProductsQueryKey(businessId);
+  const queryKey =  queryOptions?.queryKey ?? getListBusinessProductsPublicQueryKey(businessId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBusinessProducts>>> = ({ signal }) => listBusinessProducts(businessId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBusinessProductsPublic>>> = ({ signal }) => listBusinessProductsPublic(businessId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: !!(businessId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBusinessProducts>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, enabled: !!(businessId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsPublic>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type ListBusinessProductsQueryResult = NonNullable<Awaited<ReturnType<typeof listBusinessProducts>>>
-export type ListBusinessProductsQueryError = ErrorType<unknown>
+export type ListBusinessProductsPublicQueryResult = NonNullable<Awaited<ReturnType<typeof listBusinessProductsPublic>>>
+export type ListBusinessProductsPublicQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List published products for a business (public)
+ * @summary List published products for a business (public, no auth)
  */
 
-export function useListBusinessProducts<TData = Awaited<ReturnType<typeof listBusinessProducts>>, TError = ErrorType<unknown>>(
- businessId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListBusinessProductsPublic<TData = Awaited<ReturnType<typeof listBusinessProductsPublic>>, TError = ErrorType<unknown>>(
+ businessId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsPublic>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListBusinessProductsQueryOptions(businessId,options)
+  const queryOptions = getListBusinessProductsPublicQueryOptions(businessId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListBusinessProductsOwnerUrl = (businessId: string,
+    params?: ListBusinessProductsOwnerParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/businesses/${businessId}/products?${stringifiedParams}` : `/api/businesses/${businessId}/products`
+}
+
+/**
+ * @summary List all products for a business including drafts (owner-only)
+ */
+export const listBusinessProductsOwner = async (businessId: string,
+    params?: ListBusinessProductsOwnerParams, options?: RequestInit): Promise<ProductListResponse> => {
+
+  return customFetch<ProductListResponse>(getListBusinessProductsOwnerUrl(businessId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBusinessProductsOwnerQueryKey = (businessId: string,
+    params?: ListBusinessProductsOwnerParams,) => {
+    return [
+    `/api/businesses/${businessId}/products`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListBusinessProductsOwnerQueryOptions = <TData = Awaited<ReturnType<typeof listBusinessProductsOwner>>, TError = ErrorType<ErrorResponse>>(businessId: string,
+    params?: ListBusinessProductsOwnerParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsOwner>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBusinessProductsOwnerQueryKey(businessId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBusinessProductsOwner>>> = ({ signal }) => listBusinessProductsOwner(businessId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(businessId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsOwner>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBusinessProductsOwnerQueryResult = NonNullable<Awaited<ReturnType<typeof listBusinessProductsOwner>>>
+export type ListBusinessProductsOwnerQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List all products for a business including drafts (owner-only)
+ */
+
+export function useListBusinessProductsOwner<TData = Awaited<ReturnType<typeof listBusinessProductsOwner>>, TError = ErrorType<ErrorResponse>>(
+ businessId: string,
+    params?: ListBusinessProductsOwnerParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBusinessProductsOwner>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBusinessProductsOwnerQueryOptions(businessId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

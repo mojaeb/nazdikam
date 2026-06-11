@@ -75,6 +75,8 @@ export const productsTable = pgTable("products", {
   isFeatured: boolean("is_featured").default(false),
   isNew: boolean("is_new").default(false),
   isPublished: boolean("is_published").default(false),
+  followerCount: integer("follower_count").default(0),
+  installmentMonthlyAmount: integer("installment_monthly_amount"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
