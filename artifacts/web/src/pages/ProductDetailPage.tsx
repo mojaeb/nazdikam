@@ -371,8 +371,22 @@ export default function ProductDetailPage({ slug }: Props) {
       <div className="-mt-14">
         {product.beforeAfterImages && product.beforeAfterImages.length > 0 ? (
           <div>
-            <Gallery images={gallery} />
-            {/* Hero toggle tabs */}
+            {/* Mutually exclusive: render either gallery OR before/after */}
+            {galleryView === "images" ? (
+              <Gallery images={gallery} />
+            ) : (
+              <div className="bg-white px-4 pt-4 pb-4" style={{ minHeight: 280 }}>
+                {product.beforeAfterImages.map((pair, i) => (
+                  <div key={i} className={i > 0 ? "mt-4" : ""}>
+                    {pair.label && (
+                      <p className="font-vazirmatn text-xs text-neutral-600 font-medium mb-2">{pair.label}</p>
+                    )}
+                    <BeforeAfterSection images={[pair]} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Toggle tabs — always visible when both modes are available */}
             <div className="flex gap-2 px-4 py-2 bg-white border-b border-neutral-100 justify-center">
               {(["images", "before-after"] as const).map(view => (
                 <button
@@ -390,18 +404,6 @@ export default function ProductDetailPage({ slug }: Props) {
                 </button>
               ))}
             </div>
-            {galleryView === "before-after" && (
-              <div className="bg-white px-4 pb-4">
-                {product.beforeAfterImages.map((pair, i) => (
-                  <div key={i} className="mt-3">
-                    {pair.label && (
-                      <p className="font-vazirmatn text-xs text-neutral-600 font-medium mb-2">{pair.label}</p>
-                    )}
-                    <BeforeAfterSection images={[pair]} />
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         ) : (
           <Gallery images={gallery} />
