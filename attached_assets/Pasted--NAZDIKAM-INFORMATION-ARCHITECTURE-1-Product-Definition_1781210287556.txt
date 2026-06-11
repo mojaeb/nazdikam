@@ -1,0 +1,543 @@
+# NAZDIKAM_INFORMATION_ARCHITECTURE
+
+## 1. Product Definition
+
+Nazdikam is a Local Discovery & Business Visibility Platform focused on Northern Iran.
+
+The platform helps:
+
+* Users discover nearby businesses
+* Businesses gain digital visibility
+* Users evaluate businesses before contacting them
+* Businesses generate leads
+* Traditional local businesses establish an online presence
+
+Nazdikam is NOT:
+
+* An e-commerce marketplace
+* A checkout platform
+* A commission-based marketplace
+* A transaction processing platform
+
+Success is measured by:
+
+* Business profile visits
+* Phone call clicks
+* WhatsApp clicks
+* Direction/map interactions
+* Quote requests
+* Consultation requests
+* Saved businesses
+* Returning visitors
+* Subscription purchases
+
+---
+
+# 2. Core Product Principles
+
+## Principle 1
+
+Business Profile is the Core Unit of Value.
+
+Everything exists to improve the visibility and effectiveness of the Business Profile.
+
+## Principle 2
+
+Products and Services are Evidence.
+
+Products and services are not the destination.
+
+They help users evaluate a business.
+
+## Principle 3
+
+Lead Generation is Conversion.
+
+Conversion includes:
+
+* WhatsApp click
+* Phone call
+* Quote request
+* Consultation request
+* Direction request
+* Profile save
+
+## Principle 4
+
+Discovery Before Transaction.
+
+Users discover and evaluate businesses first.
+
+Transactions may happen outside the platform.
+
+---
+
+# 3. User Roles
+
+## Guest User
+
+Can:
+
+* Browse businesses
+* Browse products
+* Browse services
+* Browse videos
+* Use search
+* Use map
+* View business profiles
+
+Cannot:
+
+* Save items
+* Follow businesses
+* Leave reviews
+* Register a business
+
+---
+
+## Registered User
+
+Can:
+
+* Save businesses
+* Save products
+* Save services
+* Follow businesses
+* Leave reviews
+* View history
+* Register a business
+
+---
+
+## Business Owner
+
+A Registered User who has created at least one business.
+
+Can:
+
+* Access Business Dashboard
+* Manage profile
+* View analytics
+* Manage content
+* Manage subscription
+* Invite referrals
+
+---
+
+## Subscriber
+
+A Business Owner with an active paid subscription.
+
+Can:
+
+* Publish content
+* Edit content
+* Create videos
+* Create offers
+* Create installment plans
+* Access advanced analytics
+* Receive premium visibility
+
+---
+
+## Administrator
+
+Can:
+
+* Verify businesses
+* Moderate content
+* Manage subscriptions
+* Manage referrals
+* Manage users
+
+---
+
+# 4. Core Entities
+
+## User
+
+Stores:
+
+* Identity
+* Authentication
+* Preferences
+* Saved items
+* Following
+
+---
+
+## Business
+
+Stores:
+
+* Business information
+* Contact channels
+* Location
+* Operating hours
+* Verification status
+* Subscription status
+
+Business is the parent entity.
+
+---
+
+## Product
+
+Belongs to Business.
+
+Purpose:
+
+Showcase physical offerings.
+
+---
+
+## Service
+
+Belongs to Business.
+
+Purpose:
+
+Showcase non-physical offerings.
+
+---
+
+## Video
+
+Belongs to Business.
+
+Purpose:
+
+Increase trust and engagement.
+
+---
+
+## Offer
+
+Belongs to Business.
+
+Purpose:
+
+Create urgency and increase lead generation.
+
+---
+
+## Installment Plan
+
+Belongs to Business.
+
+Purpose:
+
+Reduce financial barriers.
+
+---
+
+## Review
+
+Belongs to Business.
+
+Purpose:
+
+Create trust.
+
+---
+
+## Lead
+
+Belongs to Business.
+
+Generated when:
+
+* WhatsApp clicked
+* Phone clicked
+* Quote requested
+* Consultation requested
+
+---
+
+## Subscription
+
+Belongs to Business.
+
+Controls feature access.
+
+---
+
+## Referral
+
+Belongs to Business.
+
+Tracks invitation rewards.
+
+---
+
+# 5. Platform Architecture
+
+## Consumer Platform
+
+Public-facing discovery experience.
+
+Includes:
+
+* Home
+* Search
+* Categories
+* Map
+* Business Profiles
+* Product Pages
+* Service Pages
+* Videos
+* Offers
+* Installment Opportunities
+
+---
+
+## User Dashboard
+
+Personal account area.
+
+Includes:
+
+* Profile
+* Saved Businesses
+* Saved Products
+* Saved Services
+* Following
+* History
+* Notifications
+
+---
+
+## Business Dashboard
+
+Business management area.
+
+Includes:
+
+* Overview
+* Business Profile
+* Products
+* Services
+* Videos
+* Offers
+* Installments
+* Reviews
+* Leads
+* Analytics
+* Subscription
+* Referral Program
+
+---
+
+## Admin Portal
+
+Platform operations area.
+
+Includes:
+
+* Business Verification
+* User Management
+* Content Moderation
+* Subscription Management
+* Referral Monitoring
+
+---
+
+# 6. User Lifecycle
+
+Guest
+↓
+Registered User
+↓
+Create Business
+↓
+Business Owner
+↓
+Purchase Subscription
+↓
+Subscriber
+↓
+Invite Businesses
+↓
+Referral Rewards
+
+---
+
+# 7. Discovery Architecture
+
+## Home
+
+Purpose:
+
+Introduce nearby businesses and opportunities.
+
+Contains:
+
+* Featured Businesses
+* Categories
+* Videos
+* Offers
+* Installment Opportunities
+
+---
+
+## Search
+
+Supports:
+
+* Businesses
+* Products
+* Services
+* Videos
+
+---
+
+## Categories
+
+Organized by:
+
+* Industry
+* Region
+* Business Type
+
+---
+
+## Map
+
+Location-based discovery.
+
+Primary proximity experience.
+
+---
+
+## Business Profile
+
+Primary conversion destination.
+
+Contains:
+
+* Contact methods
+* Products
+* Services
+* Videos
+* Reviews
+* Offers
+
+---
+
+# 8. Lead Generation Architecture
+
+Lead Types:
+
+* Phone Call
+* WhatsApp
+* Website Click
+* Quote Request
+* Consultation Request
+* Directions Request
+
+Every lead stores:
+
+* Business ID
+* User ID
+* Lead Type
+* Source Screen
+* Timestamp
+
+---
+
+# 9. Subscription Architecture
+
+## Basic
+
+Entry plan.
+
+Limited visibility.
+
+---
+
+## Advanced
+
+Growth plan.
+
+Expanded content limits.
+
+---
+
+## Professional
+
+Maximum visibility.
+
+Advanced analytics.
+
+Priority placement.
+
+---
+
+# 10. Referral Architecture
+
+Business Owner receives:
+
+Referral Code
+
+↓
+
+Invites New Business
+
+↓
+
+New Business Purchases Subscription
+
+↓
+
+Referrer Receives Discount
+
+↓
+
+Discount Applied To Renewal
+
+---
+
+# 11. Analytics Architecture
+
+## Consumer Analytics
+
+* Searches
+* Saves
+* Visits
+* Follows
+
+## Business Analytics
+
+* Profile Visits
+* Product Views
+* Service Views
+* Video Views
+* Leads
+* Conversion Rates
+
+## Platform Analytics
+
+* Active Businesses
+* Active Subscribers
+* Leads Generated
+* Referral Conversions
+
+---
+
+# 12. Success Metrics
+
+North Star Metrics:
+
+* Business Profile Visits
+* Leads Generated
+* Active Businesses
+* Active Subscribers
+
+Supporting Metrics:
+
+* Search Usage
+* Saves
+* Follows
+* Video Views
+* Returning Users
+* Referral Conversions
