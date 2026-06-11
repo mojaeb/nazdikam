@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ProductCardDeal } from "@/components/product/ProductCardDeal";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getDealProducts } from "@/lib/mock-products";
+import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import { adaptApiProduct } from "@/lib/api-product-adapter";
 
+const PARAMS = { per_page: 50, sort: "created_at_desc" as const };
 const COUNTDOWNS = ["۴ ساعت", "۱۱ ساعت", "۲ ساعت", "۸ ساعت", "۵ ساعت", "۳ ساعت", "۷ ساعت", "۱ ساعت"];
-const deals = getDealProducts().slice(0, 8);
 
 function FlashIcon() {
   return (
@@ -15,23 +17,23 @@ function FlashIcon() {
   );
 }
 
-function ClockDisplay({ remaining }: { remaining: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="h-7 w-9 rounded-lg bg-amber-600/20 text-amber-800 font-iran-yekan-x font-bold text-xs flex items-center justify-center">
-        {remaining.split(" ")[0]}
-      </span>
-      <span className="text-amber-700 font-vazirmatn text-[10px]">
-        {remaining.split(" ")[1] ?? ""}
-      </span>
-    </div>
-  );
-}
-
 export function DesktopDealsSection() {
   const [, navigate] = useLocation();
 
-  if (deals.length === 0) return null;
+  const { data, isLoading } = useListProducts(PARAMS, {
+    query: { queryKey: getListProductsQueryKey(PARAMS) },
+  });
+
+  const deals = useMemo(
+    () =>
+      (data?.data ?? [])
+        .map(adaptApiProduct)
+        .filter(p => (p.discountPercent ?? 0) >= 10)
+        .slice(0, 8),
+    [data]
+  );
+
+  if (!isLoading && deals.length === 0) return null;
 
   return (
     <section
@@ -40,7 +42,6 @@ export function DesktopDealsSection() {
       aria-label="تخفیف‌های ویژه"
     >
       <div className="max-w-[1440px] mx-auto px-10">
-        {/* Header */}
         <motion.div
           className="flex items-center justify-between mb-8"
           initial={{ opacity: 0, y: 12 }}
@@ -76,37 +77,45 @@ export function DesktopDealsSection() {
           </button>
         </motion.div>
 
-        {/* Deals grid — 4 columns */}
-        <div className="grid grid-cols-4 gap-5">
-          {deals.slice(0, 4).map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.4 }}
-              whileHover={{ y: -4 }}
-            >
-              <ProductCardDeal product={p} countdown={COUNTDOWNS[i]} className="w-full" />
-            </motion.div>
-          ))}
-        </div>
-
-        {deals.length > 4 && (
-          <div className="grid grid-cols-4 gap-5 mt-5">
-            {deals.slice(4, 8).map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07 + 0.2, duration: 0.35 }}
-                whileHover={{ y: -4 }}
-              >
-                <ProductCardDeal product={p} countdown={COUNTDOWNS[i + 4]} className="w-full" />
-              </motion.div>
+        {isLoading ? (
+          <div className="grid grid-cols-4 gap-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-64 rounded-2xl bg-amber-100 animate-pulse" />
             ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-5">
+              {deals.slice(0, 4).map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08, duration: 0.4 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <ProductCardDeal product={p} countdown={COUNTDOWNS[i]} className="w-full" />
+                </motion.div>
+              ))}
+            </div>
+            {deals.length > 4 && (
+              <div className="grid grid-cols-4 gap-5 mt-5">
+                {deals.slice(4, 8).map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.07 + 0.2, duration: 0.35 }}
+                    whileHover={{ y: -4 }}
+                  >
+                    <ProductCardDeal product={p} countdown={COUNTDOWNS[i + 4]} className="w-full" />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

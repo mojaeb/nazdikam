@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/sections/BottomNav";
@@ -11,10 +11,11 @@ import { NewBusinessesSection } from "@/components/sections/NewBusinessesSection
 import { PopularProductsSection } from "@/components/sections/PopularProductsSection";
 import { CategoryHighlights } from "@/components/sections/CategoryHighlights";
 import { SearchIcon } from "@/components/icons";
-import { findCategoryBySlug, getCategoryKeywords, mockCategories } from "@/lib/mock-categories";
+import { findCategoryBySlug, getCategoryKeywords, getProductCategoryKeywords, mockCategories } from "@/lib/mock-categories";
 import { mockBusinesses } from "@/lib/mock-businesses";
-import { mockProducts } from "@/lib/mock-products";
 import { toPersianNumerals } from "@/lib/utils";
+import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import { adaptApiProduct } from "@/lib/api-product-adapter";
 
 type FilterTab = "all" | "businesses" | "products" | "services";
 
@@ -48,6 +49,31 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
 
   const category = findCategoryBySlug(slug);
 
+  /* Live products from API — fetch all, then filter client-side by product category keywords.
+     We do NOT use the API `category` param because top-level category.name (e.g. "غذا و رستوران")
+     does not match the specific product.category values in the DB ("غذای محلی", "چای", etc.). */
+  const productsApiParams = { per_page: 50 };
+  const { data: productsApiData, isLoading: isProductsLoading } = useListProducts(
+    productsApiParams,
+    { query: { enabled: !!category, queryKey: getListProductsQueryKey(productsApiParams) } }
+  );
+
+  const productKeywords = useMemo(
+    () => (category ? getProductCategoryKeywords(category.slug) : []),
+    [category]
+  );
+
+  const apiProducts = useMemo(() => {
+    const all = (productsApiData?.data ?? []).map(adaptApiProduct);
+    if (productKeywords.length === 0) return all;
+    const matched = all.filter(p =>
+      productKeywords.some(k =>
+        p.category === k || (p.subcategory ?? "") === k
+      )
+    );
+    return matched.length >= 2 ? matched : all;
+  }, [productsApiData, productKeywords]);
+
   if (!category) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-page-bg" dir="rtl">
@@ -75,36 +101,24 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
         )
       )
     : mockBusinesses;
-
-  /* Fall back to all if no matches (demo mode) */
   const businesses = categoryBusinesses.length >= 2 ? categoryBusinesses : mockBusinesses;
 
-  /* Filter products by category keywords */
-  const categoryProducts = keywords.length > 0
-    ? mockProducts.filter(p =>
-        keywords.some(k =>
-          p.category.includes(k) || (p.subcategory ?? "").includes(k)
-        )
-      )
-    : mockProducts;
-  const products = categoryProducts.length >= 2 ? categoryProducts : mockProducts;
+  /* Apply installment/verified filters to API products */
+  const filteredProducts = apiProducts.filter(p => {
+    if (onlyInstallment && !p.isInstallmentAvailable) return false;
+    if (onlyVerified && !p.businessVerified) return false;
+    return true;
+  });
+
+  /* Product sections */
+  const popular = filteredProducts.filter(p => p.rating >= 4.5).slice(0, 6);
+  const featuredProducts = filteredProducts.slice(0, 4);
 
   /* Divide businesses into sections */
   const featured = businesses.filter(b => b.featured).slice(0, 3);
   const trending = businesses.filter(b => b.rating >= 4.5).slice(0, 4);
   const nearby = businesses.filter(b => b.distance).slice(0, 5);
   const newOnes = businesses.filter(b => !b.featured).slice(0, 4);
-
-  /* Apply installment/verified product-level filters */
-  const filteredForDisplay = products.filter(p => {
-    if (onlyInstallment && !p.isInstallmentAvailable) return false;
-    if (onlyVerified && !p.businessVerified) return false;
-    return true;
-  });
-
-  /* Popular products */
-  const popular = filteredForDisplay.filter(p => p.rating >= 4.5).slice(0, 6);
-  const featuredProducts = filteredForDisplay.slice(0, 4);
 
   /* Related categories (siblings) */
   const related = mockCategories
@@ -118,7 +132,6 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
           .find(s => s.slug === activeSubcategory)?.name === b.subcategory
       )
     : businesses;
-
   const displayBusinesses = filteredBusinesses.length > 0 ? filteredBusinesses : businesses;
 
   const showBusinesses = activeFilter === "all" || activeFilter === "businesses";
@@ -255,7 +268,7 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
           ))}
         </div>
 
-        {/* Product-level filter chips — shown when products tab is active */}
+        {/* Product-level filter chips */}
         {showProducts && (
           <div className="flex items-center gap-2 px-4 mt-2">
             <button
@@ -302,12 +315,23 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
                 />
               )}
 
-              {showProducts && featuredProducts.length > 0 && (
-                <FeaturedProductsSection
-                  title="محصولات این دسته"
-                  products={featuredProducts}
-                  layout="scroll"
-                />
+              {showProducts && (
+                isProductsLoading ? (
+                  <div className="px-4 mb-6">
+                    <div className="h-5 w-32 rounded-lg bg-neutral-100 animate-pulse mb-3" />
+                    <div className="flex gap-3 overflow-hidden">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="shrink-0 w-40 h-52 rounded-2xl bg-neutral-100 animate-pulse" />
+                      ))}
+                    </div>
+                  </div>
+                ) : featuredProducts.length > 0 ? (
+                  <FeaturedProductsSection
+                    title="محصولات این دسته"
+                    products={featuredProducts}
+                    layout="scroll"
+                  />
+                ) : null
               )}
 
               {showBusinesses && trending.length > 0 && (
@@ -318,7 +342,7 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
                 />
               )}
 
-              {showProducts && popular.length > 0 && (
+              {showProducts && !isProductsLoading && popular.length > 0 && (
                 <PopularProductsSection
                   title="محصولات پرطرفدار"
                   products={popular}

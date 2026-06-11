@@ -154,7 +154,18 @@ export default function SearchPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              {search.productResults.length === 0 ? (
+              {search.isProductsLoading ? (
+                <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="rounded-2xl bg-neutral-100 animate-pulse h-52" />
+                  ))}
+                </div>
+              ) : search.isProductsError ? (
+                <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+                  <p className="text-3xl mb-3">⚠️</p>
+                  <p className="font-vazirmatn text-neutral-500 text-sm">خطا در دریافت نتایج. لطفاً دوباره تلاش کنید.</p>
+                </div>
+              ) : search.productResults.length === 0 ? (
                 <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
               ) : search.viewMode === "grid" ? (
                 <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">

@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import type { ListProductsSort } from "@workspace/api-client-react";
+import { adaptApiProduct } from "@/lib/api-product-adapter";
 import type { Business } from "@/lib/business.types";
 import type { Product } from "@/lib/product.types";
 import type {
@@ -12,8 +15,8 @@ import type {
 } from "@/lib/search.types";
 import { DEFAULT_FILTERS } from "@/lib/search.types";
 import {
-  filterAndSortBusinesses,
   filterAndSortProducts,
+  filterAndSortBusinesses,
   classifyIntent,
   findLocationMatches,
   findCategoryMatches,
@@ -21,7 +24,6 @@ import {
   getActiveFilterChips,
 } from "@/lib/search-utils";
 import { mockBusinesses } from "@/lib/mock-businesses";
-import { mockProducts } from "@/lib/mock-products";
 
 const RECENT_SEARCHES_KEY = "nazdikam_recent_searches";
 const VIEW_MODE_KEY = "nazdikam_view_mode";
@@ -32,6 +34,21 @@ function readLocalStorage<T>(key: string, fallback: T): T {
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function mapSortToApi(sortBy: SortOption): ListProductsSort | undefined {
+  switch (sortBy) {
+    case "rating":
+      return "rating_desc";
+    case "price_asc":
+      return "price_asc";
+    case "price_desc":
+      return "price_desc";
+    case "newest":
+      return "created_at_desc";
+    default:
+      return undefined;
   }
 }
 
@@ -128,6 +145,32 @@ export function useSearch() {
     if (searchQuery) addRecentSearch(searchQuery);
   }, [query, addRecentSearch]);
 
+  /* ── Live Products from API ───────────────────────────── */
+  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
+  const isIdle = debouncedQuery.trim() === "" && activeFilterCount === 0;
+
+  const apiCategory = filters.categories.length === 1 ? filters.categories[0] : undefined;
+  const apiSort = mapSortToApi(sortBy);
+
+  const apiParams = {
+    q: debouncedQuery || undefined,
+    category: apiCategory,
+    sort: apiSort,
+    per_page: 50,
+  };
+
+  const { data: productsApiData, isLoading: isProductsLoading, isError: isProductsError } = useListProducts(apiParams, {
+    query: {
+      enabled: !isIdle,
+      queryKey: getListProductsQueryKey(apiParams),
+    },
+  });
+
+  const rawApiProducts = useMemo(
+    () => (productsApiData?.data ?? []).map(adaptApiProduct),
+    [productsApiData]
+  );
+
   /* ── Derived Results ──────────────────────────────────── */
   const businessResults = useMemo<Business[]>(
     () => filterAndSortBusinesses(mockBusinesses, debouncedQuery, filters, sortBy),
@@ -135,8 +178,11 @@ export function useSearch() {
   );
 
   const productResults = useMemo<Product[]>(
-    () => filterAndSortProducts(mockProducts, debouncedQuery, filters, sortBy),
-    [debouncedQuery, filters, sortBy]
+    () => {
+      if (isIdle) return [];
+      return filterAndSortProducts(rawApiProducts, debouncedQuery, filters, sortBy);
+    },
+    [rawApiProducts, debouncedQuery, filters, sortBy, isIdle]
   );
 
   const queryIntent = useMemo(() => classifyIntent(debouncedQuery), [debouncedQuery]);
@@ -151,14 +197,11 @@ export function useSearch() {
     [debouncedQuery]
   );
 
-  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
-
   const activeFilterChips = useMemo(() => getActiveFilterChips(filters), [filters]);
 
   const totalCount = businessResults.length + productResults.length +
     locationResults.length + categoryResults.length;
 
-  const isIdle = debouncedQuery.trim() === "" && activeFilterCount === 0;
   const isEmpty = !isIdle && totalCount === 0;
 
   return {
@@ -195,5 +238,6 @@ export function useSearch() {
     businessResults, productResults, queryIntent,
     locationResults, categoryResults,
     totalCount, isIdle, isEmpty,
+    isProductsLoading, isProductsError,
   };
 }

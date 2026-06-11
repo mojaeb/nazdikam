@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals } from "@/lib/utils";
+import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import { adaptApiDashboardProduct } from "@/lib/api-product-adapter";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
 import { EmptyState } from "@/components/dashboard/shared/EmptyState";
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { ProductTable } from "@/components/dashboard/products/ProductTable";
-import { mockDashboardProducts, type DashboardProduct } from "@/lib/dashboard-products-data";
+import type { DashboardProduct } from "@/lib/dashboard-products-data";
 import { PlusIcon, SearchIcon, GridIcon, ListIcon } from "@/components/icons";
 
 type SortKey = "updated" | "name" | "price-asc" | "price-desc";
 type FilterStatus = "all" | "published" | "draft" | "low-stock" | "out-of-stock" | "featured" | "new";
 type ViewMode = "table" | "grid";
+
+interface Props {
+  businessId?: string;
+}
 
 const STATUS_FILTERS: { value: FilterStatus; label: string }[] = [
   { value: "all",          label: "همه" },
@@ -50,9 +56,29 @@ function filterAndSort(products: DashboardProduct[], search: string, filterStatu
     });
 }
 
-export function ProductList() {
+/* ── Loading skeleton rows ─────────────────────────────── */
+function ProductListSkeleton() {
+  return (
+    <div className="divide-y divide-neutral-100">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+          <div className="w-4 h-4 bg-neutral-200 rounded" />
+          <div className="w-10 h-10 bg-neutral-200 rounded-xl shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 bg-neutral-200 rounded w-40" />
+            <div className="h-2.5 bg-neutral-100 rounded w-24" />
+          </div>
+          <div className="h-3 bg-neutral-200 rounded w-20" />
+          <div className="h-3 bg-neutral-200 rounded w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ProductList({ businessId }: Props) {
   const [, navigate] = useLocation();
-  const [products, setProducts]           = useState<DashboardProduct[]>(mockDashboardProducts);
+  const [localProducts, setLocalProducts]   = useState<DashboardProduct[] | null>(null);
   const [search, setSearch]               = useState("");
   const [sortBy, setSortBy]               = useState<SortKey>("updated");
   const [filterStatus, setFilterStatus]   = useState<FilterStatus>("all");
@@ -60,8 +86,25 @@ export function ProductList() {
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget]   = useState<string | null>(null);
 
-  const filtered = filterAndSort(products, search, filterStatus, sortBy);
+  /* ── Live data from API ─────────────────────────────── */
+  const listParams = { business_id: businessId, per_page: 50 };
+  const { data: apiData, isLoading, isError } = useListProducts(listParams, {
+    query: {
+      enabled: !!businessId,
+      queryKey: getListProductsQueryKey(listParams),
+    },
+  });
+
+  const apiProducts = useMemo(
+    () => (apiData?.data ?? []).map(adaptApiDashboardProduct),
+    [apiData]
+  );
+
+  /* localProducts shadows apiProducts when the user edits locally */
+  const products = localProducts ?? apiProducts;
+
   const publishedCount = products.filter(p => p.isPublished).length;
+  const filtered = filterAndSort(products, search, filterStatus, sortBy);
 
   /* ── Selection ──────────────────────────────────────── */
   const handleSelectAll = (checked: boolean) => {
@@ -75,20 +118,20 @@ export function ProductList() {
 
   /* ── Bulk actions ───────────────────────────────────── */
   const bulkPublish = (publish: boolean) => {
-    setProducts(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, isPublished: publish } : p));
+    setLocalProducts(products.map(p => selectedIds.has(p.id) ? { ...p, isPublished: publish } : p));
     setSelectedIds(new Set());
   };
   const bulkDelete = () => {
-    setProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
+    setLocalProducts(products.filter(p => !selectedIds.has(p.id)));
     setSelectedIds(new Set());
   };
 
   /* ── Single actions ─────────────────────────────────── */
   const handleTogglePublish = (id: string) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, isPublished: !p.isPublished } : p));
+    setLocalProducts(products.map(p => p.id === id ? { ...p, isPublished: !p.isPublished } : p));
   };
   const handleDelete = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+    setLocalProducts(products.filter(p => p.id !== id));
   };
 
   return (
@@ -211,7 +254,14 @@ export function ProductList() {
 
       {/* Content */}
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <ProductListSkeleton />
+        ) : isError ? (
+          <div className="flex flex-col items-center gap-3 py-12 px-4">
+            <p className="font-vazirmatn text-sm text-neutral-500">خطا در بارگذاری محصولات</p>
+            <p className="font-vazirmatn text-xs text-neutral-400 text-center">اتصال خود به سرور را بررسی کنید.</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <EmptyState
             title="محصولی یافت نشد"
             description={search ? `هیچ محصولی با "${search}" یافت نشد` : "محصولی برای نمایش وجود ندارد"}
@@ -238,6 +288,7 @@ export function ProductList() {
         onConfirm={() => {
           if (deleteTarget === "bulk") bulkDelete();
           else if (deleteTarget) handleDelete(deleteTarget);
+          setDeleteTarget(null);
         }}
         title="حذف محصول"
         message={deleteTarget === "bulk"

@@ -337,3 +337,17 @@ const SLUG_TO_BUSINESS_CATEGORY: Record<string, string[]> = {
 export function getCategoryKeywords(slug: string): string[] {
   return SLUG_TO_BUSINESS_CATEGORY[slug] ?? [];
 }
+
+/* Maps category slugs to product.category values used in the database */
+const SLUG_TO_PRODUCT_CATEGORY: Record<string, string[]> = {
+  "food-restaurants": ["غذای محلی", "غذا و ساندویچ", "نوشیدنی گرم", "نوشیدنی سرد", "قهوه", "چای", "شیرینی و کیک", "شیرینی و دسر", "دسر و بستنی", "عسل"],
+  "shopping": ["عسل", "شیرینی و کیک", "شیرینی و دسر", "دسر و بستنی", "نوشیدنی سرد", "نوشیدنی گرم"],
+  "handicrafts": ["صنایع دستی", "جواهرات", "پارچه و نساجی", "هدیه"],
+  "beauty": ["مراقبت پوست"],
+  "health": ["مکمل"],
+  "fashion": ["پارچه و نساجی"],
+};
+
+export function getProductCategoryKeywords(slug: string): string[] {
+  return SLUG_TO_PRODUCT_CATEGORY[slug] ?? [];
+}

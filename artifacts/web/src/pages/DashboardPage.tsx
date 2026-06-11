@@ -185,7 +185,7 @@ function DashboardContent() {
   }
 
   /* Products */
-  if (location === "/dashboard/products") return <ProductList />;
+  if (location === "/dashboard/products") return <ProductList businessId={mockDashboardBusiness.id} />;
   if (location === "/dashboard/products/new") return <ProductForm mode="create" />;
   const productEditMatch = location.match(/^\/dashboard\/products\/([^/]+)\/edit$/);
   if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;

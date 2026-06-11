@@ -16,14 +16,9 @@ import { EligibleGroupsSection } from "@/components/product/EligibleGroupsSectio
 import { BeforeAfterSection } from "@/components/product/BeforeAfterSection";
 import { InstallmentBadge } from "@/components/product/InstallmentBadge";
 import { InventoryBadge } from "@/components/product/InventoryBadge";
-import {
-  findProductBySlug,
-  getProductsFromSameBusiness,
-  getSimilarProducts,
-  findBusinessForProduct,
-  getProductGallery,
-  getProductSpecs,
-} from "@/lib/mock-product-detail";
+import { useGetProduct } from "@workspace/api-client-react";
+import { adaptApiProduct } from "@/lib/api-product-adapter";
+import { getProductGallery, getProductSpecs } from "@/lib/mock-product-detail";
 import { getSavingsAmount } from "@/lib/product.types";
 import type { ProductReview } from "@/lib/product.types";
 
@@ -43,6 +38,32 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#9333EA,#4C1D95)",
   "linear-gradient(135deg,#E11D48,#881337)",
 ];
+
+/* ─── Loading Skeleton ───────────────────────────────────── */
+function ProductDetailSkeleton() {
+  return (
+    <div dir="rtl" className="min-h-screen bg-page-bg animate-pulse">
+      <div className="w-full bg-neutral-200" style={{ height: 280 }} />
+      <div className="bg-white px-4 pt-4 pb-3 mt-0 space-y-3">
+        <div className="flex gap-2">
+          <div className="h-6 w-20 bg-neutral-200 rounded-full" />
+          <div className="h-6 w-16 bg-neutral-100 rounded-full" />
+        </div>
+        <div className="h-6 w-3/4 bg-neutral-200 rounded-lg" />
+        <div className="h-4 w-1/3 bg-neutral-100 rounded" />
+      </div>
+      <div className="bg-white px-4 py-4 mt-2 space-y-2">
+        <div className="h-8 w-1/2 bg-neutral-200 rounded-xl" />
+        <div className="h-4 w-1/3 bg-neutral-100 rounded" />
+      </div>
+      <div className="bg-white px-4 py-4 mt-2 space-y-2">
+        <div className="h-4 w-full bg-neutral-100 rounded" />
+        <div className="h-4 w-5/6 bg-neutral-100 rounded" />
+        <div className="h-4 w-4/6 bg-neutral-100 rounded" />
+      </div>
+    </div>
+  );
+}
 
 /* ─── 404 ────────────────────────────────────────────────── */
 function ProductNotFound({ onBack }: { onBack: () => void }) {
@@ -272,7 +293,9 @@ export default function ProductDetailPage({ slug }: Props) {
   const [galleryView, setGalleryView] = useState<"images" | "before-after">("images");
   const [countdown, setCountdown] = useState<string | null>(null);
 
-  const product = findProductBySlug(slug);
+  const { data, isLoading, error } = useGetProduct(slug);
+
+  const product = data?.data ? adaptApiProduct(data.data) : null;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 200);
@@ -299,12 +322,24 @@ export default function ProductDetailPage({ slug }: Props) {
     return () => clearInterval(id);
   }, [product?.expiresAt]);
 
-  if (!product) return <ProductNotFound onBack={() => navigate("/")} />;
+  if (isLoading) return <ProductDetailSkeleton />;
+
+  const is404 = error && "status" in error && (error as { status: number }).status === 404;
+  if (is404 || (!isLoading && !error && !product)) return <ProductNotFound onBack={() => navigate("/")} />;
+  if (error && !is404) return (
+    <div className="min-h-screen flex items-center justify-center bg-page-bg" dir="rtl">
+      <div className="text-center px-8">
+        <p className="text-5xl mb-4">⚠️</p>
+        <p className="font-iran-yekan-x font-bold text-neutral-800 text-lg mb-2">خطا در دریافت اطلاعات</p>
+        <p className="font-vazirmatn text-neutral-500 text-sm mb-6">لطفاً دوباره تلاش کنید</p>
+        <button type="button" className="h-10 px-6 rounded-xl bg-blue-500 text-white font-vazirmatn text-sm font-medium" onClick={() => navigate("/")}>بازگشت</button>
+      </div>
+    </div>
+  );
+
+  if (!product) return null;
 
   const gallery = getProductGallery(product);
-  const relatedFromBusiness = getProductsFromSameBusiness(product.businessId, product.id);
-  const similarProducts = getSimilarProducts(product.category, product.id).slice(0, 6);
-  const businessData = findBusinessForProduct(product.businessId);
   const specs = getProductSpecs(product);
   const savings = getSavingsAmount(product);
   const avatarIdx = avatarGradientIndex(product.businessName);
@@ -314,12 +349,12 @@ export default function ProductDetailPage({ slug }: Props) {
     : [];
 
   const handlePhoneClick = () => {
-    const tel = product.phone ?? businessData?.phone;
+    const tel = product.phone;
     if (tel) window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
   };
 
   const handleWhatsAppClick = () => {
-    const num = (product.whatsapp ?? businessData?.phone ?? "")
+    const num = (product.whatsapp ?? product.phone ?? "")
       .replace(/[^0-9]/g, "")
       .replace(/^0/, "98");
     if (num) window.open(`https://wa.me/${num}`, "_blank");
@@ -371,7 +406,6 @@ export default function ProductDetailPage({ slug }: Props) {
       <div className="-mt-14">
         {product.beforeAfterImages && product.beforeAfterImages.length > 0 ? (
           <div>
-            {/* Mutually exclusive: render either gallery OR before/after */}
             {galleryView === "images" ? (
               <Gallery images={gallery} />
             ) : (
@@ -386,7 +420,6 @@ export default function ProductDetailPage({ slug }: Props) {
                 ))}
               </div>
             )}
-            {/* Toggle tabs — always visible when both modes are available */}
             <div className="flex gap-2 px-4 py-2 bg-white border-b border-neutral-100 justify-center">
               {(["images", "before-after"] as const).map(view => (
                 <button
@@ -638,13 +671,7 @@ export default function ProductDetailPage({ slug }: Props) {
       {/* ── 15. Business Card ───────────────────────────────── */}
       <div className="px-4 py-4 bg-white mt-2">
         <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-sm mb-3">فروشنده</h2>
-        <div
-          className="flex items-center gap-3 p-4 bg-neutral-50 rounded-2xl cursor-pointer hover:bg-neutral-100 transition-colors"
-          onClick={() => businessData && navigate(`/businesses/${businessData.slug}`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => e.key === "Enter" && businessData && navigate(`/businesses/${businessData.slug}`)}
-        >
+        <div className="flex items-center gap-3 p-4 bg-neutral-50 rounded-2xl">
           <div
             className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
             style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
@@ -661,7 +688,7 @@ export default function ProductDetailPage({ slug }: Props) {
             <div className="flex items-center gap-1.5">
               <StoreIcon size={11} className="text-neutral-400" />
               <span className="font-vazirmatn text-xs text-neutral-500">
-                {businessData?.category ?? product.category}
+                {product.category}
               </span>
               {product.city && (
                 <>
@@ -672,7 +699,6 @@ export default function ProductDetailPage({ slug }: Props) {
               )}
             </div>
           </div>
-          <ChevronStartIcon size={16} className="text-neutral-300 rotate-180 shrink-0" />
         </div>
 
         {/* Delivery / Returns */}
@@ -693,23 +719,20 @@ export default function ProductDetailPage({ slug }: Props) {
       </div>
 
       {/* ── Contact Card ─────────────────────────────────── */}
-      {(product.phone ?? businessData?.phone ?? product.city) && (
+      {(product.phone ?? product.city) && (
         <div className="mx-4 mt-2 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-4 space-y-3">
           <h3 className="font-iran-yekan-x font-bold text-neutral-900 text-sm">تماس با فروشنده</h3>
           <div className="grid grid-cols-2 gap-2">
-            {(product.phone ?? businessData?.phone) && (
+            {product.phone && (
               <button
                 type="button"
-                onClick={() => {
-                  const tel = product.phone ?? businessData?.phone;
-                  if (tel) window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
-                }}
+                onClick={handlePhoneClick}
                 className="flex items-center justify-center gap-2 h-11 rounded-xl bg-emerald-50 text-emerald-700 font-vazirmatn text-sm font-medium active:scale-95 transition-transform"
               >
                 📞 تماس مستقیم
               </button>
             )}
-            {(product.whatsapp ?? businessData?.phone) && (
+            {(product.whatsapp ?? product.phone) && (
               <button
                 type="button"
                 onClick={handleWhatsAppClick}
@@ -750,46 +773,6 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       )}
 
-      {/* ── 17. Related from same business ──────────────────── */}
-      {relatedFromBusiness.length > 0 && (
-        <div className="mt-2 bg-white pt-4 pb-2">
-          <div className="px-4 mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">
-              بیشتر از {product.businessName}
-            </h2>
-            {businessData && (
-              <button type="button" onClick={() => navigate(`/businesses/${businessData.slug}`)}
-                className="text-[11px] font-vazirmatn text-blue-500">مشاهده همه</button>
-            )}
-          </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
-            {relatedFromBusiness.map((p, i) => (
-              <motion.div key={p.id} className="snap-start"
-                initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
-                <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── 18. Similar products ────────────────────────────── */}
-      {similarProducts.length > 0 && (
-        <div className="mt-2 bg-white pt-4 pb-2">
-          <div className="px-4 mb-3">
-            <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">محصولات مشابه</h2>
-          </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
-            {similarProducts.map((p, i) => (
-              <motion.div key={p.id} className="snap-start"
-                initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
-                <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── Lead Form Sheet ─────────────────────────────────── */}
       <LeadFormSheet
         isOpen={leadSheet !== null}
@@ -813,7 +796,7 @@ export default function ProductDetailPage({ slug }: Props) {
           </div>
 
           {/* WhatsApp */}
-          {(product.whatsapp ?? businessData?.phone) && !isOutOfStock && (
+          {(product.whatsapp ?? product.phone) && !isOutOfStock && (
             <button
               type="button"
               onClick={handleWhatsAppClick}

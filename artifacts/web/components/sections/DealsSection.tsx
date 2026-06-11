@@ -1,11 +1,12 @@
+import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ProductCardDeal } from "@/components/product/ProductCardDeal";
-import { getDealProducts } from "@/lib/mock-products";
+import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import { adaptApiProduct } from "@/lib/api-product-adapter";
 
-const deals = getDealProducts().slice(0, 6);
-
+const PARAMS = { per_page: 50, sort: "created_at_desc" as const };
 const COUNTDOWNS = ["۴ ساعت", "۱۲ ساعت", "۲ ساعت", "۸ ساعت", "۵ ساعت", "۳ ساعت"];
 
 function ClockCountdownIcon() {
@@ -19,6 +20,22 @@ function ClockCountdownIcon() {
 
 export function DealsSection() {
   const [, navigate] = useLocation();
+
+  const { data, isLoading } = useListProducts(PARAMS, {
+    query: { queryKey: getListProductsQueryKey(PARAMS) },
+  });
+
+  const deals = useMemo(
+    () =>
+      (data?.data ?? [])
+        .map(adaptApiProduct)
+        .filter(p => (p.discountPercent ?? 0) >= 10)
+        .slice(0, 6),
+    [data]
+  );
+
+  if (!isLoading && deals.length === 0) return null;
+
   return (
     <motion.section
       className="pb-6"
@@ -38,7 +55,6 @@ export function DealsSection() {
         />
       </div>
 
-      {/* Urgency strip */}
       <div className="mx-4 mb-4 bg-amber-500 rounded-xl px-4 py-2.5 flex items-center gap-2">
         <ClockCountdownIcon />
         <span className="text-white text-xs font-vazirmatn font-medium flex-1">
@@ -46,24 +62,32 @@ export function DealsSection() {
         </span>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
-        {deals.map((product, i) => (
-          <motion.div
-            key={product.id}
-            className="snap-start"
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35, delay: i * 0.07 }}
-          >
-            <ProductCardDeal
-              product={product}
-              countdown={COUNTDOWNS[i % COUNTDOWNS.length]}
-              onPress={() => navigate(`/products/${product.slug}`)}
-            />
-          </motion.div>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="shrink-0 w-44 h-60 rounded-2xl bg-amber-100 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
+          {deals.map((product, i) => (
+            <motion.div
+              key={product.id}
+              className="snap-start"
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: i * 0.07 }}
+            >
+              <ProductCardDeal
+                product={product}
+                countdown={COUNTDOWNS[i % COUNTDOWNS.length]}
+                onPress={() => navigate(`/products/${product.slug}`)}
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.section>
   );
 }
