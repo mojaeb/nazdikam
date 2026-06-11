@@ -34,7 +34,7 @@ export function EligibleGroupsSection({ groups, className }: EligibleGroupsSecti
   const [expanded, setExpanded] = useState(false);
   if (!groups || groups.length === 0) return null;
 
-  const VISIBLE = 4;
+  const VISIBLE = 3;
   const shown = expanded ? groups : groups.slice(0, VISIBLE);
   const hasMore = groups.length > VISIBLE;
 

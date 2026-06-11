@@ -56,6 +56,20 @@ export function ProductCardCompact({
         </div>
       )}
 
+      {/* Verified + installment badges — top-end */}
+      <div className="absolute top-2 end-2 flex flex-col items-end gap-1">
+        {product.businessVerified && (
+          <span className="inline-flex items-center h-4 px-1 rounded-md bg-blue-500/90 text-white text-[8px] font-vazirmatn font-bold">
+            ✓
+          </span>
+        )}
+        {product.isInstallmentAvailable && (
+          <span className="inline-flex items-center h-4 px-1 rounded-md bg-white/25 text-white text-[8px] font-vazirmatn font-bold">
+            اقساطی
+          </span>
+        )}
+      </div>
+
       {/* Out of stock overlay */}
       {product.inventoryStatus === "out-of-stock" && (
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

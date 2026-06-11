@@ -592,24 +592,51 @@ export default function BusinessProfilePage({ slug }: Props) {
             </span>
           </div>
 
-          {/* Social proof + installment aggregation */}
+          {/* Product-level aggregation: rating + social proof + installment */}
           {(() => {
+            const ratedProducts = products.filter(p => p.reviewCount > 0);
+            const avgRating = ratedProducts.length > 0
+              ? ratedProducts.reduce((sum, p) => sum + p.rating, 0) / ratedProducts.length
+              : 0;
+            const totalReviews = products.reduce((sum, p) => sum + p.reviewCount, 0);
             const totalPurchases = products.reduce((sum, p) => sum + (p.socialProof?.purchases ?? 0), 0);
             const installmentCount = products.filter(p => p.isInstallmentAvailable).length;
-            return (totalPurchases > 0 || installmentCount > 0) ? (
-              <div className="flex items-center gap-4 px-4 mb-3">
-                {totalPurchases > 0 && (
-                  <span className="text-[11px] font-vazirmatn text-emerald-600 font-medium">
-                    🛒 {toPersianNumerals(totalPurchases)} خرید از این کسب‌وکار
-                  </span>
+            return (
+              <div className="px-4 mb-3 space-y-2">
+                {ratedProducts.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <StarFilledIcon size={11} className="text-amber-400" />
+                      <span className="font-iran-yekan-x text-xs font-bold text-neutral-800">
+                        {toPersianNumerals(Math.round(avgRating * 10) / 10)}
+                      </span>
+                      <span className="font-vazirmatn text-[10px] text-neutral-400">
+                        میانگین امتیاز محصولات
+                      </span>
+                    </div>
+                    {totalReviews > 0 && (
+                      <span className="text-[10px] font-vazirmatn text-neutral-400">
+                        ({toPersianNumerals(totalReviews)} نظر)
+                      </span>
+                    )}
+                  </div>
                 )}
-                {installmentCount > 0 && (
-                  <span className="text-[11px] font-vazirmatn text-blue-600 font-medium">
-                    💳 {toPersianNumerals(installmentCount)} محصول اقساطی
-                  </span>
+                {(totalPurchases > 0 || installmentCount > 0) && (
+                  <div className="flex items-center gap-4">
+                    {totalPurchases > 0 && (
+                      <span className="text-[11px] font-vazirmatn text-emerald-600 font-medium">
+                        🛒 {toPersianNumerals(totalPurchases)} خرید
+                      </span>
+                    )}
+                    {installmentCount > 0 && (
+                      <span className="text-[11px] font-vazirmatn text-blue-600 font-medium">
+                        💳 {toPersianNumerals(installmentCount)} محصول اقساطی
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-            ) : null;
+            );
           })()}
           <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-3 snap-x">
             {products.map((product, i) => (

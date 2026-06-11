@@ -690,6 +690,51 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       </div>
 
+      {/* ── Contact Card ─────────────────────────────────── */}
+      {(product.phone ?? businessData?.phone ?? product.city) && (
+        <div className="mx-4 mt-2 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-4 space-y-3">
+          <h3 className="font-iran-yekan-x font-bold text-neutral-900 text-sm">تماس با فروشنده</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {(product.phone ?? businessData?.phone) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const tel = product.phone ?? businessData?.phone;
+                  if (tel) window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
+                }}
+                className="flex items-center justify-center gap-2 h-11 rounded-xl bg-emerald-50 text-emerald-700 font-vazirmatn text-sm font-medium active:scale-95 transition-transform"
+              >
+                📞 تماس مستقیم
+              </button>
+            )}
+            {(product.whatsapp ?? businessData?.phone) && (
+              <button
+                type="button"
+                onClick={handleWhatsAppClick}
+                className="flex items-center justify-center gap-2 h-11 rounded-xl bg-green-50 text-green-700 font-vazirmatn text-sm font-medium active:scale-95 transition-transform"
+              >
+                💬 واتساپ
+              </button>
+            )}
+          </div>
+          {product.city && (
+            <div className="flex items-center justify-between bg-neutral-50 rounded-xl px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <MapPinIcon size={14} className="text-neutral-400" />
+                <span className="font-vazirmatn text-sm text-neutral-700">{product.city}</span>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-vazirmatn text-blue-500 font-medium"
+                onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(product.city ?? "")}`, "_blank")}
+              >
+                مسیریابی 🗺️
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── 16. Tags ────────────────────────────────────────── */}
       {product.tags && product.tags.length > 0 && (
         <div className="px-4 py-3 bg-white mt-2">
