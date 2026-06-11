@@ -1,0 +1,290 @@
+# NAZDIKAM_USER_FLOWS
+
+## Flow 1 — Guest Discovery
+
+Guest User
+↓
+Home Page
+↓
+Search / Categories / Map
+↓
+Business Profile
+↓
+Evaluate Business
+↓
+Lead Action
+
+Lead Actions:
+
+* WhatsApp Click
+* Phone Call
+* Website Visit
+* Directions
+* Quote Request
+* Consultation Request
+
+Success Metric:
+Lead Generated
+
+---
+
+## Flow 2 — Guest Registration
+
+Guest User
+↓
+Save Business / Follow Business / Register Business
+↓
+Login Required
+↓
+OTP Authentication
+↓
+Registered User
+
+Success Metric:
+Account Created
+
+---
+
+## Flow 3 — Save Business
+
+Registered User
+↓
+Business Profile
+↓
+Save Business
+↓
+Saved Businesses
+
+Success Metric:
+Retention
+
+---
+
+## Flow 4 — Follow Business
+
+Registered User
+↓
+Business Profile
+↓
+Follow
+↓
+Following List
+
+Success Metric:
+Retention
+
+---
+
+## Flow 5 — Create Business
+
+Registered User
+↓
+Dashboard
+↓
+ثبت کسب و کار
+↓
+Business Setup Wizard
+
+Step 1:
+Business Name
+
+Step 2:
+Category
+
+Step 3:
+Province
+
+Step 4:
+City
+
+Step 5:
+Phone
+
+Step 6:
+Description
+
+Business Created
+↓
+Business Dashboard
+
+Success Metric:
+Business Created
+
+---
+
+## Flow 6 — Subscription Upgrade
+
+Business Owner
+↓
+Business Dashboard
+↓
+Subscription Page
+↓
+Choose Plan
+↓
+Payment
+↓
+Subscription Activated
+
+Success Metric:
+Paid Subscription
+
+---
+
+## Flow 7 — Product Management
+
+Business Owner
+↓
+Dashboard
+↓
+Products
+↓
+Create Product
+↓
+Publish Product
+
+Success Metric:
+Published Product
+
+---
+
+## Flow 8 — Service Management
+
+Business Owner
+↓
+Dashboard
+↓
+Services
+↓
+Create Service
+↓
+Publish Service
+
+Success Metric:
+Published Service
+
+---
+
+## Flow 9 — Video Management
+
+Business Owner
+↓
+Dashboard
+↓
+Videos
+↓
+Upload Video
+↓
+Publish Video
+
+Success Metric:
+Published Video
+
+---
+
+## Flow 10 — Offer Management
+
+Business Owner
+↓
+Dashboard
+↓
+Offers
+↓
+Create Offer
+↓
+Publish Offer
+
+Success Metric:
+Published Offer
+
+---
+
+## Flow 11 — Installment Plan Management
+
+Business Owner
+↓
+Dashboard
+↓
+Installments
+↓
+Create Plan
+↓
+Publish Plan
+
+Success Metric:
+Published Installment Plan
+
+---
+
+## Flow 12 — Referral Program
+
+Business Owner
+↓
+Referral Section
+↓
+Copy Referral Code
+↓
+Invite Business
+↓
+New Business Registers
+↓
+New Business Purchases Subscription
+↓
+Reward Generated
+
+Success Metric:
+Referral Conversion
+
+---
+
+## Flow 13 — Lead Tracking
+
+Consumer
+↓
+Business Profile
+↓
+WhatsApp Click
+
+OR
+
+Phone Call
+
+OR
+
+Quote Request
+
+OR
+
+Consultation Request
+
+↓
+
+Lead Event Recorded
+
+↓
+
+Business Dashboard
+
+↓
+
+Lead Analytics Updated
+
+Success Metric:
+Qualified Lead
+
+---
+
+## Flow 14 — Review Flow
+
+Registered User
+↓
+Business Profile
+↓
+Leave Review
+↓
+Moderation
+↓
+Published Review
+
+Success Metric:
+Review Created
