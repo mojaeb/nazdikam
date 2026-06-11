@@ -1,0 +1,416 @@
+You are a Senior Product Designer, UX Expert and Frontend Engineer.
+
+I already have a mobile marketplace application that sells discounted and installment-based services and products.
+
+The current Product/Service Detail page exists but suffers from conversion, hierarchy and UX issues.
+
+Your task is to redesign and implement the entire Product Detail page using modern mobile-first UX principles.
+
+IMPORTANT:
+Do not simply recreate the existing wireframe.
+Use the existing structure as a baseline and improve it significantly.
+
+# Product Context
+
+Users browse businesses and services.
+
+Examples:
+
+* Beauty clinics
+* Medical services
+* Restaurants
+* Educational services
+* Retail products
+
+Users may purchase:
+
+* Discounted offers
+* Installment plans
+* Special campaigns
+
+The page must maximize:
+
+* Conversion
+* Trust
+* Contact rate
+* Installment plan usage
+* Lead generation
+
+---
+
+# CURRENT DATA AVAILABLE
+
+Business Information:
+
+* Business Name
+* Business Category
+* City / Location
+* Follower Count
+* Profile Image
+* Rating
+* Reviews
+
+Product Information:
+
+* Product/Service Name
+* Description
+* Original Price
+* Discounted Cash Price
+* Discount Percentage
+* Expiration Date
+* Installment Plans
+* Eligible User Groups
+* Terms & Conditions
+* Tags
+
+Business Information:
+
+* Address
+* Phone Number
+
+Reviews:
+
+* User Reviews
+* Rating
+* Helpful Votes
+
+---
+
+# MAJOR PROBLEMS TO FIX
+
+1. No primary CTA
+   The current design has no strong conversion action.
+
+2. Description is too low on the page.
+
+3. Product images are underutilized.
+
+4. Eligible groups and conditions are hidden behind accordions.
+
+5. The page lacks trust-building elements.
+
+6. Review section is weak.
+
+7. There is no FAQ section.
+
+8. There are no social proof indicators.
+
+---
+
+# REQUIRED PAGE STRUCTURE
+
+Design the page in this exact hierarchy.
+
+1. HERO IMAGE SECTION
+
+Full-width image gallery.
+
+Support:
+
+* Swipe gallery
+* Pagination dots
+* Zoom image
+* Before / After comparison (for beauty and medical services)
+
+Overlay actions:
+
+* Back
+* Share
+* Save / Bookmark
+
+---
+
+2. PRODUCT HEADER
+
+Display:
+
+* Product Name
+* Business Name
+* Category
+* City
+* Rating
+* Review Count
+* Followers Count
+
+Show verification badge if business is verified.
+
+---
+
+3. PRICE CARD
+
+Show:
+
+Original Price (strikethrough)
+
+Discounted Price
+
+Discount Percentage
+
+Expiration Date
+
+Highlight savings amount.
+
+Example:
+
+You save 3,800,000 Toman
+
+---
+
+4. INSTALLMENT CARD
+
+This must be visually separated and highly noticeable.
+
+Show:
+
+* Number of installments
+* Installment amount
+* Total installment price
+* First payment amount
+* Financing provider if available
+
+Use a premium card style.
+
+---
+
+5. PRIMARY CTA
+
+Add sticky bottom action bar.
+
+Always visible.
+
+Examples:
+
+* دریافت تخفیف
+* خرید اقساطی
+* رزرو نوبت
+* تماس با فروشنده
+
+Depending on product type.
+
+Sticky CTA must remain visible while scrolling.
+
+---
+
+6. PRODUCT DESCRIPTION
+
+Move this section much higher.
+
+Include:
+
+* Full description
+* Key benefits
+* Features
+
+Add Read More / Read Less.
+
+---
+
+7. KEY BENEFITS SECTION
+
+Visual checklist style.
+
+Examples:
+
+✓ بدون درد
+
+✓ بدون جراحی
+
+✓ پزشک متخصص
+
+✓ ماندگاری بالا
+
+✓ گارانتی خدمات
+
+This section should be optional.
+
+---
+
+8. ELIGIBLE GROUPS
+
+Do NOT hide everything inside accordion.
+
+Show first few groups immediately.
+
+Examples:
+
+* بازنشستگان
+* تامین اجتماعی
+* فراجا
+
+Then:
+
+"مشاهده همه"
+
+---
+
+9. TERMS & CONDITIONS
+
+Accordion allowed.
+
+Clean typography.
+
+Easy to read.
+
+---
+
+10. CONTACT CARD
+
+Include:
+
+* Call Button
+* View Address Button
+* Open Map Button
+* WhatsApp Button (if available)
+
+---
+
+11. SOCIAL PROOF
+
+Show:
+
+* Number of purchases
+* Number of views
+* Number of saves
+* Number of users who used this offer
+
+Examples:
+
+124 people used this offer.
+
+---
+
+12. FAQ SECTION
+
+Create FAQ accordion.
+
+Examples:
+
+* How long does treatment last?
+* Is financing available?
+* Who is eligible?
+* What documents are required?
+
+---
+
+13. REVIEWS SECTION
+
+Completely redesign.
+
+Show:
+
+Overall Rating
+
+Review Count
+
+Rating Breakdown
+
+Examples:
+
+Quality
+Staff Behavior
+Environment
+Value For Money
+
+Display progress bars.
+
+---
+
+14. REVIEW CARDS
+
+Each review should include:
+
+* User Name
+* Date
+* Rating
+* Review Text
+
+Optional:
+
+Pros
+
+Cons
+
+Recommendation
+
+Helpful / Not Helpful voting
+
+---
+
+15. ADD REVIEW CTA
+
+Large button:
+
+"ثبت دیدگاه شما"
+
+---
+
+16. RELATED OFFERS
+
+Horizontal scroll section.
+
+Display:
+
+* Similar services
+* Same business offers
+* Nearby businesses
+
+---
+
+# UI REQUIREMENTS
+
+Use modern mobile-first design.
+
+Use:
+
+* Card-based layout
+* Soft shadows
+* Proper spacing
+* Rounded corners
+* Sticky CTA
+* Skeleton loading states
+
+Support:
+
+* Dark Mode
+* Light Mode
+
+Responsive design required.
+
+---
+
+# TECHNICAL REQUIREMENTS
+
+Use:
+
+* React
+* Next.js
+* TypeScript
+* TailwindCSS
+* shadcn/ui
+
+Create reusable components.
+
+Examples:
+
+* ProductGallery
+* PriceCard
+* InstallmentCard
+* BenefitsList
+* EligibleGroups
+* FAQSection
+* ReviewSection
+* StickyCTA
+* RelatedOffers
+
+Use clean architecture and production-ready code.
+
+Provide:
+
+1. Component structure
+2. Page layout
+3. Responsive implementation
+4. UX improvements
+5. Accessibility improvements
+6. Conversion optimization suggestions
+
+The final result should feel similar in quality to modern Digikala, Snapp Shop, Amazon Mobile and Airbnb detail pages while being optimized for discounted and installment-based services.

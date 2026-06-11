@@ -1,0 +1,160 @@
+Before implementation, perform a full product-system audit.
+
+Do not limit the scope to the Product Detail page only.
+
+The Product Detail redesign must be treated as a platform-wide feature upgrade.
+
+# Full System Consistency Requirement
+
+Any new field, section, widget, metric, CTA, card, badge, gallery, review component, FAQ item, installment setting, or social proof element introduced on the Product Detail page must be fully supported across the entire platform.
+
+Update all related layers:
+
+- Database Schema
+- Migrations
+- Prisma Models (if applicable)
+- API Endpoints
+- Validation Schemas
+- TypeScript Types
+- Admin Dashboard
+- Business Dashboard
+- Forms
+- Analytics
+- Search & Filtering
+- Listing Cards
+- Business Profile Pages
+
+No UI element should exist without a way to manage its data from a dashboard.
+
+# Required Audit
+
+Analyze and update all related screens:
+
+1. Home Page
+2. Category Pages
+3. Search Results
+4. Product Cards
+5. Business Profile Page
+6. Business Dashboard
+7. Admin Dashboard
+8. Favorites / Saved Items
+9. User Profile Purchase History
+10. Analytics Screens
+
+# Cross-Page Consistency
+
+If a field is important enough to exist on Product Detail, evaluate whether it should also appear in:
+
+- Product Cards
+- Search Results
+- Business Pages
+- Dashboard Analytics
+- Recommendation Sections
+
+Examples:
+
+Verification Badge
+→ Product Card
+→ Business Page
+→ Search Results
+
+Rating Breakdown
+→ Business Profile
+→ Dashboard Analytics
+
+Installment Provider
+→ Product Card
+→ Product Detail
+→ Dashboard
+
+Social Proof Metrics
+→ Product Detail
+→ Listing Cards
+→ Dashboard
+
+# Dashboard Requirements
+
+Create complete CRUD management interfaces for all newly introduced entities.
+
+Examples:
+
+FAQ
+→ FAQ Management
+
+Benefits
+→ Benefits Management
+
+Eligible Groups
+→ Group Management
+
+Installment Plans
+→ Installment Configuration
+
+Financing Provider
+→ Financing Settings
+
+Before / After Gallery
+→ Media Manager
+
+Related Offers
+→ Related Offers Manager
+
+Social Proof
+→ Analytics Configuration
+
+Review Categories
+→ Review Configuration
+
+Verification Status
+→ Verification Management
+
+Business Contact Methods
+→ Contact Settings
+
+# Design System Requirement
+
+Create reusable shared components.
+
+Avoid page-specific duplicated implementations.
+
+Use a centralized design system for:
+
+- Product Detail
+- Business Profile
+- Home
+- Category Pages
+- Dashboard
+
+Shared components should be reused wherever possible.
+
+# Database & API
+
+Extend the existing architecture.
+
+Do NOT rebuild the system from scratch.
+
+Maintain backward compatibility with existing data.
+
+Generate:
+
+- Database migrations
+- Updated schemas
+- Updated API contracts
+- Updated TypeScript types
+
+# Final Deliverables
+
+1. Redesigned Product Detail Page
+2. Updated Admin Dashboard
+3. Updated Business Dashboard
+4. Updated Database Models
+5. Updated APIs
+6. Shared UI Components
+7. Design System Improvements
+8. Search and Listing Updates
+9. Analytics Support
+10. Migration Files
+
+The result should feel like a cohesive production-ready marketplace platform, not a single redesigned page.
+
+Maintain consistency with the existing architecture and improve it incrementally.
