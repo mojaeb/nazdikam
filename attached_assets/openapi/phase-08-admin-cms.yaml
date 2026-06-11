@@ -1,0 +1,2399 @@
+openapi: 3.1.0
+
+info:
+  title: Nazdikam API
+  version: 1.0.0
+  description: |
+    نزدیکام — Phase 8: Admin CMS
+    Persian RTL · Mobile-first · Location-based · Northern Iran
+
+    ## Coverage
+    Plan management, category management, province/city management,
+    discount code management, referral configuration, system settings,
+    moderation, user management, business management, and banner management.
+
+    ## Architecture Guardrails
+    - All business rules configurable through Admin CMS — NO hardcoded operational values
+    - Plan CRUD: plan names are arbitrary strings — NO enum for plan type/tier
+    - system_settings: all keys are managed here — NO hardcoded values in code
+    - Category depth: validated against system_settings.category_max_depth
+    - Moderation states: defined in system_settings.moderation_states_json
+    - Contact method types: defined in system_settings.contact_method_types_json
+    - Analytics windows: defined in system_settings.analytics_windows_json
+    - Payment gateway: configured via system_settings
+    - All admin endpoints require Super Admin role (BearerAuth + admin claim)
+
+    ## Authentication
+    All admin endpoints require:
+    - BearerAuth JWT with admin claim
+    - 403 ADMIN_REQUIRED if non-admin accesses these endpoints
+
+servers:
+  - url: /api
+    description: Shared proxy — all paths prefixed with /api
+
+tags:
+  - name: AdminPlans
+    description: Subscription plan CMS
+  - name: AdminCategories
+    description: Category and subcategory management
+  - name: AdminLocations
+    description: Province and city management
+  - name: AdminDiscountCodes
+    description: Discount code management
+  - name: AdminReferral
+    description: Referral program configuration
+  - name: AdminSystemSettings
+    description: System settings management
+  - name: AdminModeration
+    description: Content moderation queue
+  - name: AdminUsers
+    description: User account management
+  - name: AdminBusinesses
+    description: Business management and approval
+  - name: AdminBanners
+    description: Banner and advertisement management
+  - name: AdminAnalytics
+    description: Platform-wide analytics and reports
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT with admin claim.
+        All admin endpoints return 403 ADMIN_REQUIRED if the claim is absent.
+
+  schemas:
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      required: [page, per_page, total, total_pages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 0
+
+    AdminPlanWrite:
+      type: object
+      description: |
+        Plan creation/update payload.
+        All names are arbitrary strings — NO enum for plan tier.
+        feature_flags and usage_limits keys must match the Feature Flag Matrix
+        and Usage Limits Catalog respectively. Unknown keys are accepted and stored.
+      properties:
+        name:
+          type: string
+          description: Arbitrary plan display name (Persian). NOT an enum.
+          maxLength: 100
+        slug:
+          type: string
+          description: URL-safe slug. Must be unique. NOT an enum.
+          maxLength: 50
+        description:
+          type: string
+          nullable: true
+        short_description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          default: false
+        is_featured:
+          type: boolean
+          default: false
+        price:
+          type: object
+          required: [raw_amount]
+          properties:
+            raw_amount:
+              type: integer
+              minimum: 0
+        original_price:
+          type: object
+          nullable: true
+          properties:
+            raw_amount:
+              type: integer
+              minimum: 0
+        duration_value:
+          type: integer
+          minimum: 1
+        duration_unit:
+          type: string
+          description: |
+            NOT an enum. Valid values from system_settings.subscription_duration_units_json.
+        duration_label:
+          type: string
+        feature_flags:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: |
+            All 23 feature flag keys. Unknown keys accepted and stored.
+            Missing keys treated as false by business entitlement checks.
+        usage_limits:
+          type: object
+          additionalProperties:
+            type: integer
+          description: |
+            All usage limit keys. -1 = unlimited. Unknown keys accepted.
+            Missing keys treated as 0 by business entitlement checks.
+        highlights:
+          type: array
+          items:
+            type: string
+        sort_order:
+          type: integer
+        color:
+          type: string
+          nullable: true
+        badge_text:
+          type: string
+          nullable: true
+
+    SystemSetting:
+      type: object
+      required: [key, value, data_type, description]
+      properties:
+        key:
+          type: string
+          description: Setting key (snake_case)
+        value:
+          type: string
+          description: |
+            Raw string value. Interpreted according to data_type.
+            JSON values stored as strings (parsed by server).
+        data_type:
+          type: string
+          description: |
+            NOT an enum. Known types: "string", "integer", "float", "boolean",
+            "json_array", "json_object".
+        description:
+          type: string
+          description: Human-readable description for Admin UI
+        is_sensitive:
+          type: boolean
+          description: |
+            If true, value is masked in GET responses (only writable, not readable).
+            Example: payment_callback_secret_key.
+        group:
+          type: string
+          nullable: true
+          description: |
+            Setting group for Admin UI organisation. NOT an enum.
+            Known groups: "rate_limits", "search", "media", "subscriptions",
+            "analytics", "moderation", "platform", "referral", "payments".
+        updated_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+
+    ModerationItem:
+      type: object
+      required: [id, content_type, content_id, current_state, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        content_type:
+          type: string
+          description: |
+            NOT an enum. Known values: "business", "product", "service",
+            "video", "announcement", "verification".
+        content_id:
+          type: string
+          format: uuid
+        content_preview:
+          type: object
+          additionalProperties: true
+          description: |
+            Summary of the content for admin display.
+            Shape depends on content_type.
+        current_state:
+          type: string
+          description: NOT an enum. From system_settings.moderation_states_json.
+        priority:
+          type: string
+          description: |
+            NOT an enum. Known values: "urgent", "normal", "low".
+            Default from system_settings.moderation_default_priority.
+        assigned_to:
+          type: string
+          format: uuid
+          nullable: true
+          description: Admin user ID
+        reporter_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        report_reason:
+          type: string
+          nullable: true
+        admin_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminUserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        mobile:
+          type: string
+          description: Masked for privacy (e.g. "09123***456")
+        full_name:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        status:
+          type: string
+          description: NOT an enum. Known values: "active", "blocked", "deleted".
+        business_count:
+          type: integer
+        registered_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AdminBusinessSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        owner_name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          description: NOT an enum. Known values: "draft", "pending_review", "active", "suspended", "rejected", "deleted".
+        category_name:
+          type: string
+          nullable: true
+        city_name:
+          type: string
+          nullable: true
+        verification_status:
+          type: string
+          description: NOT an enum.
+        is_subscribed:
+          type: boolean
+        subscription_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Banner:
+      type: object
+      required: [id, title, image_url, placement, is_active]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        link_url:
+          type: string
+          format: uri
+          nullable: true
+        placement:
+          type: string
+          description: |
+            Banner placement position. NOT an enum.
+            Valid values from system_settings.banner_placement_keys_json.
+            Known initial placements: "homepage_hero", "homepage_middle",
+            "category_top", "search_results_top".
+        is_active:
+          type: boolean
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        sort_order:
+          type: integer
+        click_count:
+          type: integer
+        impression_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PerPageParam:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+
+  responses:
+    401:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    403:
+      description: Forbidden — not Super Admin
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: ADMIN_REQUIRED
+              message: دسترسی فقط برای مدیران سیستم مجاز است
+
+    404:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    422:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+
+  # ═══════════════════════════════════════════════════════
+  # PLAN MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/subscriptions/plans:
+    get:
+      tags: [AdminPlans]
+      summary: List all plans (active + inactive)
+      operationId: adminListPlans
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: All plans
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminPlanWrite'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminPlans]
+      summary: Create subscription plan
+      description: |
+        Creates a new CMS-driven subscription plan.
+        No plan tier enum — name is arbitrary.
+        Inactive by default (is_active: false) until explicitly activated.
+      operationId: adminCreatePlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPlanWrite'
+      responses:
+        '201':
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPlanWrite'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  /admin/subscriptions/plans/{plan_id}:
+    get:
+      tags: [AdminPlans]
+      summary: Get plan detail
+      operationId: adminGetPlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Plan detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPlanWrite'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    put:
+      tags: [AdminPlans]
+      summary: Update subscription plan (full replace)
+      description: |
+        Full replacement update. Changes do NOT retroactively affect active subscriptions
+        (those use plan_snapshot). Only affects new purchases.
+      operationId: adminUpdatePlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPlanWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPlanWrite'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '422':
+          $ref: '#/components/responses/422'
+
+    delete:
+      tags: [AdminPlans]
+      summary: Archive (soft-delete) a plan
+      description: |
+        Archived plans are not visible to business owners but remain
+        linked to historical subscriptions.
+      operationId: adminArchivePlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Plan archived
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /admin/subscriptions/plans/{plan_id}/activate:
+    post:
+      tags: [AdminPlans]
+      summary: Activate a plan (make visible to business owners)
+      operationId: adminActivatePlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_active:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/subscriptions/plans/{plan_id}/deactivate:
+    post:
+      tags: [AdminPlans]
+      summary: Deactivate a plan (hide from business owners, don't archive)
+      operationId: adminDeactivatePlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_active:
+                    type: boolean
+                    example: false
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # CATEGORY MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/categories:
+    get:
+      tags: [AdminCategories]
+      summary: List all categories (including inactive)
+      operationId: adminListCategories
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: parent_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+            nullable: true
+          description: Filter to children of this category. Null = root categories.
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        name_en:
+                          type: string
+                          nullable: true
+                        slug:
+                          type: string
+                          nullable: true
+                        parent_id:
+                          type: string
+                          format: uuid
+                          nullable: true
+                        depth:
+                          type: integer
+                          minimum: 0
+                          description: |
+                            Max: system_settings.category_max_depth.
+                        icon_url:
+                          type: string
+                          format: uri
+                          nullable: true
+                        color:
+                          type: string
+                          nullable: true
+                        is_active:
+                          type: boolean
+                        sort_order:
+                          type: integer
+                        business_count:
+                          type: integer
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminCategories]
+      summary: Create category
+      description: |
+        Depth validated against system_settings.category_max_depth.
+        Names are arbitrary strings — NOT hardcoded in spec.
+      operationId: adminCreateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                name_en:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                slug:
+                  type: string
+                  nullable: true
+                parent_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                icon_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                color:
+                  type: string
+                  nullable: true
+                is_active:
+                  type: boolean
+                  default: true
+                sort_order:
+                  type: integer
+                  default: 0
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          description: |
+            Validation error or depth limit exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: CATEGORY_DEPTH_EXCEEDED
+                  message: عمق دسته‌بندی از حد مجاز بیشتر است
+                  details:
+                    max_depth: 1
+                    requested_depth: 2
+
+  /admin/categories/{category_id}:
+    put:
+      tags: [AdminCategories]
+      summary: Update category
+      operationId: adminUpdateCategory
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                name_en:
+                  type: string
+                  nullable: true
+                slug:
+                  type: string
+                  nullable: true
+                icon_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                color:
+                  type: string
+                  nullable: true
+                is_active:
+                  type: boolean
+                sort_order:
+                  type: integer
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    delete:
+      tags: [AdminCategories]
+      summary: Delete category (soft-delete if businesses use it)
+      operationId: adminDeleteCategory
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted or scheduled for deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  businesses_affected:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # PROVINCE / CITY MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/locations/provinces:
+    get:
+      tags: [AdminLocations]
+      summary: List all provinces (including inactive)
+      operationId: adminListProvinces
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: Provinces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provinces:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminLocations]
+      summary: Create province
+      operationId: adminCreateProvince
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                name_en:
+                  type: string
+                  nullable: true
+                slug:
+                  type: string
+                  nullable: true
+                is_active:
+                  type: boolean
+                  default: true
+                sort_order:
+                  type: integer
+                  default: 0
+                geo_bounds:
+                  type: object
+                  nullable: true
+                  properties:
+                    north:
+                      type: number
+                    south:
+                      type: number
+                    east:
+                      type: number
+                    west:
+                      type: number
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  /admin/locations/provinces/{province_id}:
+    put:
+      tags: [AdminLocations]
+      summary: Update province
+      operationId: adminUpdateProvince
+      parameters:
+        - name: province_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    delete:
+      tags: [AdminLocations]
+      summary: Delete province (soft-delete if businesses use it)
+      operationId: adminDeleteProvince
+      parameters:
+        - name: province_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  businesses_affected:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/locations/cities:
+    get:
+      tags: [AdminLocations]
+      summary: List all cities (including inactive)
+      operationId: adminListCities
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: province_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cities:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminLocations]
+      summary: Create city
+      operationId: adminCreateCity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, province_id]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                name_en:
+                  type: string
+                  nullable: true
+                slug:
+                  type: string
+                  nullable: true
+                province_id:
+                  type: string
+                  format: uuid
+                is_active:
+                  type: boolean
+                  default: true
+                sort_order:
+                  type: integer
+                  default: 0
+                geo:
+                  type: object
+                  nullable: true
+                  properties:
+                    lat:
+                      type: number
+                      minimum: -90
+                      maximum: 90
+                    lng:
+                      type: number
+                      minimum: -180
+                      maximum: 180
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  /admin/locations/cities/{city_id}:
+    put:
+      tags: [AdminLocations]
+      summary: Update city
+      operationId: adminUpdateCity
+      parameters:
+        - name: city_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    delete:
+      tags: [AdminLocations]
+      summary: Delete city
+      operationId: adminDeleteCity
+      parameters:
+        - name: city_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # DISCOUNT CODES
+  # ═══════════════════════════════════════════════════════
+
+  /admin/discount-codes:
+    get:
+      tags: [AdminDiscountCodes]
+      summary: List all discount codes
+      operationId: adminListDiscountCodes
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Discount codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codes:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminDiscountCodes]
+      summary: Create discount code
+      description: |
+        discount_type from system_settings.discount_code_types_json.
+        applicable_plan_ids: empty = all plans.
+      operationId: adminCreateDiscountCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, discount_type, discount_value]
+              properties:
+                code:
+                  type: string
+                  maxLength: 50
+                discount_type:
+                  type: string
+                  description: NOT an enum. From system_settings.discount_code_types_json.
+                discount_value:
+                  type: number
+                max_discount_amount:
+                  type: integer
+                  nullable: true
+                applicable_plan_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                usage_limit:
+                  type: integer
+                  nullable: true
+                  description: Null = unlimited uses
+                per_user_limit:
+                  type: integer
+                  nullable: true
+                starts_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                is_active:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  /admin/discount-codes/{code_id}:
+    put:
+      tags: [AdminDiscountCodes]
+      summary: Update discount code
+      operationId: adminUpdateDiscountCode
+      parameters:
+        - name: code_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    delete:
+      tags: [AdminDiscountCodes]
+      summary: Deactivate discount code
+      operationId: adminDeactivateDiscountCode
+      parameters:
+        - name: code_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # REFERRAL CONFIGURATION
+  # ═══════════════════════════════════════════════════════
+
+  /admin/referral-settings:
+    get:
+      tags: [AdminReferral]
+      summary: Get referral program configuration
+      description: |
+        Returns the full referral_reward_config_json from system_settings.
+        All reward rules are configurable here — NOT hardcoded.
+      operationId: adminGetReferralSettings
+      responses:
+        '200':
+          description: Referral configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_enabled:
+                    type: boolean
+                  reward_type:
+                    type: string
+                    description: |
+                      NOT an enum. Known types: "discount_percent", "free_days", "fixed_amount".
+                  reward_value:
+                    type: number
+                  referrer_reward:
+                    type: object
+                    additionalProperties: true
+                  referee_reward:
+                    type: object
+                    additionalProperties: true
+                  reward_trigger:
+                    type: string
+                    description: |
+                      NOT an enum. Known values: "on_registration", "on_subscription".
+                  expiry_days:
+                    type: integer
+                    nullable: true
+                  max_referrals_per_user:
+                    type: integer
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    put:
+      tags: [AdminReferral]
+      summary: Update referral program configuration
+      description: |
+        Updates system_settings.referral_reward_config_json.
+        All fields are configurable — NO hardcoded reward logic.
+      operationId: adminUpdateReferralSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  # ═══════════════════════════════════════════════════════
+  # SYSTEM SETTINGS
+  # ═══════════════════════════════════════════════════════
+
+  /admin/settings:
+    get:
+      tags: [AdminSystemSettings]
+      summary: List all system settings
+      description: |
+        Returns all system_settings keys. Sensitive keys (is_sensitive=true) have
+        their value masked as "***".
+      operationId: adminListSettings
+      parameters:
+        - name: group
+          in: query
+          schema:
+            type: string
+          description: Filter by group. NOT an enum.
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by key name
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: System settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SystemSetting'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  groups:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique group names present
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/settings/{key}:
+    get:
+      tags: [AdminSystemSettings]
+      summary: Get single setting
+      operationId: adminGetSetting
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Setting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemSetting'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    put:
+      tags: [AdminSystemSettings]
+      summary: Update a system setting value
+      description: |
+        Updates the value of a system_settings key.
+        Server validates the value against the key's data_type.
+        Changes take effect immediately (within cache TTL).
+        Audit log entry created for every change.
+      operationId: adminUpdateSetting
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+                  description: |
+                    New value as string. Interpreted per data_type.
+                    JSON values must be valid JSON strings.
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemSetting'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '422':
+          description: Invalid value for this setting's data_type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: INVALID_SETTING_VALUE
+                  message: مقدار وارد شده برای این تنظیم معتبر نیست
+                  details:
+                    key: search_default_radius_km
+                    data_type: integer
+                    provided_value: "abc"
+
+  /admin/settings/bulk:
+    patch:
+      tags: [AdminSystemSettings]
+      summary: Bulk update multiple settings
+      description: |
+        Atomic bulk update. All or nothing — if any value is invalid,
+        no changes are applied.
+      operationId: adminBulkUpdateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [updates]
+              properties:
+                updates:
+                  type: array
+                  items:
+                    type: object
+                    required: [key, value]
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: All settings updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_count:
+                    type: integer
+                  settings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SystemSetting'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          description: One or more values invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ═══════════════════════════════════════════════════════
+  # MODERATION QUEUE
+  # ═══════════════════════════════════════════════════════
+
+  /admin/moderation:
+    get:
+      tags: [AdminModeration]
+      summary: List moderation queue
+      description: |
+        Returns content items pending moderation.
+        Filtered by content_type (NOT enum — from system_settings.moderation_states_json).
+      operationId: adminListModerationQueue
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: content_type
+          in: query
+          schema:
+            type: string
+          description: NOT an enum. Known values from system_settings.
+        - name: state
+          in: query
+          schema:
+            type: string
+          description: NOT an enum. Filter by moderation state.
+        - name: priority
+          in: query
+          schema:
+            type: string
+          description: NOT an enum.
+        - name: assigned_to_me
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Moderation queue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModerationItem'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  counts_by_state:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    description: NOT an enum — keys are state names.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/moderation/{item_id}/review:
+    post:
+      tags: [AdminModeration]
+      summary: Review a moderation item
+      description: |
+        Apply a moderation decision.
+        Target state must be a valid state from system_settings.moderation_states_json.
+      operationId: adminReviewModerationItem
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  description: |
+                    NOT an enum. Known values: "approve", "reject", "flag",
+                    "request_resubmission". Valid decisions from system_settings.moderation_decisions_json.
+                reason:
+                  type: string
+                  nullable: true
+                  description: Required when decision = "reject" or "request_resubmission"
+                note:
+                  type: string
+                  nullable: true
+                  description: Internal admin note
+      responses:
+        '200':
+          description: Decision applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationItem'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '422':
+          description: Missing reason for reject/resubmission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/businesses/{business_id}/review:
+    post:
+      tags: [AdminModeration]
+      summary: Review a business registration
+      description: |
+        Approve, reject, or request resubmission of a pending_review business.
+        Decision transitions business.status accordingly.
+      operationId: adminReviewBusiness
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  description: |
+                    NOT an enum. Known values: "approve", "reject", "suspend", "request_resubmission".
+                reason:
+                  type: string
+                  nullable: true
+                note:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Decision applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business_id:
+                    type: string
+                    format: uuid
+                  new_status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /admin/verification/{business_id}/review:
+    post:
+      tags: [AdminModeration]
+      summary: Review a business identity verification submission
+      operationId: adminReviewVerification
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  description: NOT an enum. Known values: "approve", "reject", "request_resubmission".
+                reason:
+                  type: string
+                  nullable: true
+                note:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Decision applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business_id:
+                    type: string
+                    format: uuid
+                  new_verification_status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ═══════════════════════════════════════════════════════
+  # USER MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/users:
+    get:
+      tags: [AdminUsers]
+      summary: List users
+      operationId: adminListUsers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by mobile, name, or email
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: NOT an enum.
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUserSummary'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/users/{user_id}:
+    get:
+      tags: [AdminUsers]
+      summary: Get user detail
+      operationId: adminGetUser
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /admin/users/{user_id}/block:
+    post:
+      tags: [AdminUsers]
+      summary: Block a user account
+      operationId: adminBlockUser
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: User blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: blocked
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/users/{user_id}/unblock:
+    post:
+      tags: [AdminUsers]
+      summary: Unblock a user account
+      operationId: adminUnblockUser
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User unblocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: active
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # BUSINESS MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/businesses:
+    get:
+      tags: [AdminBusinesses]
+      summary: List all businesses
+      operationId: adminListBusinesses
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by name, slug, owner mobile
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: NOT an enum.
+        - name: province_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: city_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: is_subscribed
+          in: query
+          schema:
+            type: boolean
+        - name: verification_status
+          in: query
+          schema:
+            type: string
+          description: NOT an enum.
+      responses:
+        '200':
+          description: Businesses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  businesses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminBusinessSummary'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/businesses/{business_id}:
+    get:
+      tags: [AdminBusinesses]
+      summary: Get full business detail (admin view)
+      operationId: adminGetBusiness
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Business detail (full)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+  /admin/businesses/{business_id}/suspend:
+    post:
+      tags: [AdminBusinesses]
+      summary: Suspend a business
+      operationId: adminSuspendBusiness
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                notify_owner:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Suspended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business_id:
+                    type: string
+                    format: uuid
+                  new_status:
+                    type: string
+                    example: suspended
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/businesses/{business_id}/reinstate:
+    post:
+      tags: [AdminBusinesses]
+      summary: Reinstate a suspended business
+      operationId: adminReinstateBusiness
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reinstated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business_id:
+                    type: string
+                    format: uuid
+                  new_status:
+                    type: string
+                    example: active
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # BANNER MANAGEMENT
+  # ═══════════════════════════════════════════════════════
+
+  /admin/banners:
+    get:
+      tags: [AdminBanners]
+      summary: List all banners
+      operationId: adminListBanners
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: placement
+          in: query
+          schema:
+            type: string
+          description: NOT an enum. Valid values from system_settings.banner_placement_keys_json.
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Banners
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  banners:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Banner'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  available_placements:
+                    type: array
+                    items:
+                      type: string
+                    description: |
+                      From system_settings.banner_placement_keys_json.
+                      Client uses to populate placement selector.
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+    post:
+      tags: [AdminBanners]
+      summary: Create banner
+      operationId: adminCreateBanner
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, image, placement]
+              properties:
+                title:
+                  type: string
+                image:
+                  type: string
+                  format: binary
+                link_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                placement:
+                  type: string
+                  description: NOT an enum. From system_settings.banner_placement_keys_json.
+                is_active:
+                  type: boolean
+                  default: true
+                sort_order:
+                  type: integer
+                  default: 0
+                starts_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                ends_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '422':
+          $ref: '#/components/responses/422'
+
+  /admin/banners/{banner_id}:
+    put:
+      tags: [AdminBanners]
+      summary: Update banner
+      operationId: adminUpdateBanner
+      parameters:
+        - name: banner_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                link_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                placement:
+                  type: string
+                is_active:
+                  type: boolean
+                sort_order:
+                  type: integer
+                starts_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                ends_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+
+    delete:
+      tags: [AdminBanners]
+      summary: Delete banner
+      operationId: adminDeleteBanner
+      parameters:
+        - name: banner_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  # ═══════════════════════════════════════════════════════
+  # PLATFORM ANALYTICS (ADMIN)
+  # ═══════════════════════════════════════════════════════
+
+  /admin/analytics/overview:
+    get:
+      tags: [AdminAnalytics]
+      summary: Platform-wide analytics overview
+      description: |
+        KPI dashboard for Super Admin. All metrics are extensible — NOT hardcoded.
+        Date range from system_settings.admin_analytics_default_range_days.
+      operationId: adminGetAnalyticsOverview
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Platform overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date_range:
+                    type: object
+                    properties:
+                      from:
+                        type: string
+                        format: date
+                      to:
+                        type: string
+                        format: date
+                  kpis:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        value:
+                          type: integer
+                        change_percent:
+                          type: number
+                          nullable: true
+                    description: |
+                      Keys are KPI names (NOT enum).
+                      Known KPIs: "total_users", "total_businesses", "active_subscriptions",
+                      "new_registrations", "total_revenue", "page_views".
+                  revenue:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      by_plan:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                        description: Keys are plan UUIDs (NOT plan names)
+                  subscription_stats:
+                    type: object
+                    additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+
+  /admin/analytics/subscriptions:
+    get:
+      tags: [AdminAnalytics]
+      summary: Subscription revenue report
+      description: |
+        Subscription purchase history and revenue aggregation.
+        All aggregation windows from system_settings.analytics_windows_json.
+      operationId: adminGetSubscriptionReport
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: window
+          in: query
+          schema:
+            type: string
+          description: NOT an enum.
+        - name: plan_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific plan
+      responses:
+        '200':
+          description: Subscription revenue report
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'

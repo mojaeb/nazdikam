@@ -1,0 +1,202 @@
+You are continuing an existing architecture project.
+
+The following artifacts are already completed and LOCKED:
+
+* PRD v2
+* Business Rules
+* CMS Architecture
+* Feature Flag Matrix
+* Usage Limits Catalog
+* Entitlement Architecture
+* UX Packaging Document
+* OpenAPI Phase 1 (Authentication)
+* OpenAPI Phase 2 (Location & Discovery)
+* Compliance Reports Phase 1 & 2
+
+Treat all existing documents as the source of truth.
+
+DO NOT redesign previous phases.
+DO NOT modify previous contracts unless a critical inconsistency is found.
+
+Your task is to generate OpenAPI Phases 3 through 8 in a single architecture run.
+
+====================================================
+PHASE 3 — BUSINESS MANAGEMENT
+=============================
+
+Include:
+
+* Create Business
+* Edit Business
+* Business Ownership
+* Business Registration Wizard
+* Business Verification
+* Business Status Lifecycle
+* Business Public Profile
+* Business Contact Methods
+* Business Gallery
+* Business Metadata
+
+Architecture Rules:
+
+* No hardcoded business types
+* No hardcoded verification levels
+* No hardcoded badges
+* No hardcoded statuses
+* Contact methods must be typed resources
+* Business profile sections must be extensible
+
+====================================================
+PHASE 4 — PRODUCTS & SERVICES
+=============================
+
+Include:
+
+* Product CRUD
+* Service CRUD
+* Product Media
+* Service Media
+* Product Visibility
+* Service Visibility
+* Product Categories
+* Service Categories
+
+Architecture Rules:
+
+* Feature gates via entitlements only
+* No plan-name logic
+* Limits from usage_limits only
+* Media constraints from system_settings
+
+====================================================
+PHASE 5 — VIDEOS & ANNOUNCEMENTS
+================================
+
+Include:
+
+* Video CRUD
+* Announcement CRUD
+* Moderation States
+* Publishing Lifecycle
+* Visibility Controls
+
+Architecture Rules:
+
+* Video limits from system_settings
+* Moderation workflow configurable
+* No hardcoded duration limits
+
+====================================================
+PHASE 6 — SUBSCRIPTIONS & ENTITLEMENTS
+======================================
+
+Include:
+
+* Plans
+* Subscriptions
+* Entitlements
+* Feature Flags
+* Usage Limits
+* Discount Codes
+* Referral Rewards
+
+Architecture Rules:
+
+* Plans are CMS-driven
+* No predefined plans
+* No FREE/PREMIUM/VIP enums
+* Feature access only through entitlements
+* Referral configuration from admin settings
+
+====================================================
+PHASE 7 — ANALYTICS
+===================
+
+Include:
+
+* Business Analytics
+* Product Analytics
+* Service Analytics
+* Video Analytics
+* Contact Analytics
+* Engagement Analytics
+
+Architecture Rules:
+
+* Retention periods from system_settings
+* Aggregation windows configurable
+* No hardcoded analytics windows
+
+====================================================
+PHASE 8 — ADMIN CMS
+===================
+
+Include:
+
+* Plan Management
+* Category Management
+* Province Management
+* City Management
+* Discount Management
+* Referral Configuration
+* System Settings
+* Moderation
+* User Management
+* Business Management
+
+Architecture Rules:
+
+* All business rules configurable
+* CMS-driven platform
+* No hardcoded operational values
+
+====================================================
+COMPLIANCE REQUIREMENTS
+=======================
+
+For EACH phase:
+
+1. Generate OpenAPI 3.1.0 Specification
+2. Generate Compliance Audit Report
+3. List all new system_settings keys
+4. List all new database entities
+5. List all new error codes
+6. Verify:
+
+   * No hardcoded pricing
+   * No hardcoded plans
+   * No hardcoded categories
+   * No hardcoded provinces
+   * No hardcoded cities
+   * No hardcoded limits
+   * No hardcoded ranking weights
+   * No hardcoded media constraints
+
+====================================================
+OUTPUT FORMAT
+=============
+
+Generate separate files:
+
+/openapi/phase-03-business.yaml
+/openapi/phase-04-products-services.yaml
+/openapi/phase-05-videos-announcements.yaml
+/openapi/phase-06-subscriptions-entitlements.yaml
+/openapi/phase-07-analytics.yaml
+/openapi/phase-08-admin-cms.yaml
+
+and
+
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_03.md
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_04.md
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_05.md
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_06.md
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_07.md
+/architecture/OPENAPI_COMPLIANCE_REPORT_PHASE_08.md
+
+If context becomes limited:
+
+Prioritize correctness over completeness.
+Never simplify architecture.
+Never hardcode business decisions.
+Always preserve CMS-driven design.

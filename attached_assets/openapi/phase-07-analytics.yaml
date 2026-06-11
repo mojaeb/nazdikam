@@ -1,0 +1,991 @@
+openapi: 3.1.0
+
+info:
+  title: Nazdikam API
+  version: 1.0.0
+  description: |
+    نزدیکام — Phase 7: Analytics
+    Persian RTL · Mobile-first · Location-based · Northern Iran
+
+    ## Coverage
+    Business analytics, product analytics, service analytics, video analytics,
+    contact analytics, navigation analytics, and engagement analytics.
+
+    ## Architecture Guardrails
+    - Retention periods from plan usage_limits.analytics_history_days — NOT hardcoded
+    - Aggregation windows configurable via system_settings — NOT hardcoded
+    - Analytics window labels (daily/weekly/monthly) are strings — NOT enum
+    - All feature gates via entitlements only
+    - Date range capped by analytics_history_days from plan snapshot
+    - Metric keys are extensible strings — NOT enum
+    - Breakdown keys are extensible strings — NOT enum
+
+    ## Entitlement Requirements
+    All analytics endpoints require:
+    1. BearerAuth (BUSINESS_SUBSCRIBED)
+    2. Business ownership
+    3. The specific analytics feature flag (see each endpoint)
+    If the flag is false: 403 FEATURE_FLAG_DENIED
+    If the history range exceeds plan limit: 403 ANALYTICS_HISTORY_EXCEEDED
+
+servers:
+  - url: /api
+    description: Shared proxy — all paths prefixed with /api
+
+tags:
+  - name: BusinessAnalytics
+    description: Business profile view and engagement analytics
+  - name: ProductAnalytics
+    description: Per-product view and click analytics
+  - name: ServiceAnalytics
+    description: Per-service view and click analytics
+  - name: VideoAnalytics
+    description: Per-video performance analytics
+  - name: ContactAnalytics
+    description: Contact click (call, WhatsApp, Telegram) analytics
+  - name: NavigationAnalytics
+    description: Map navigation click analytics
+  - name: EngagementAnalytics
+    description: Follow, save, and social link engagement analytics
+
+security: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+
+    AnalyticsWindow:
+      type: string
+      description: |
+        Aggregation window for time-series data.
+        NOT an enum — valid windows from system_settings.analytics_windows_json.
+        Known initial values: "hour", "day", "week", "month".
+        Clients must handle unknown window values gracefully.
+      examples:
+        - hour
+        - day
+        - week
+        - month
+
+    TimeSeriesPoint:
+      type: object
+      required: [timestamp, value]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Start of the window (UTC)
+        timestamp_jalali:
+          type: string
+          nullable: true
+          description: Jalali formatted date string for display
+        value:
+          type: integer
+          minimum: 0
+        label:
+          type: string
+          nullable: true
+          description: Pre-formatted label for the X-axis (e.g. "شنبه", "فروردین ۱۴")
+
+    MetricSummary:
+      type: object
+      description: |
+        Aggregated metrics for a given date range.
+        Metric keys are NOT an enum — they are extensible strings.
+        Clients must handle unknown metric keys gracefully.
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        change_percent:
+          type: number
+          nullable: true
+          description: |
+            Percentage change vs the previous equivalent period.
+            Null if no prior data available.
+        trend:
+          type: string
+          nullable: true
+          description: |
+            NOT an enum. Known values: "up", "down", "flat".
+        breakdown:
+          type: object
+          additionalProperties:
+            type: integer
+          description: |
+            Optional breakdown by a dimension.
+            Keys are extensible strings (e.g. device type, source, contact type).
+
+    AnalyticsDateRange:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+          description: Start date (inclusive, UTC date)
+        to:
+          type: string
+          format: date
+          description: End date (inclusive, UTC date)
+        window:
+          $ref: '#/components/schemas/AnalyticsWindow'
+          description: |
+            Aggregation window. Default: system_settings.analytics_default_window.
+
+  parameters:
+    BusinessIdPath:
+      name: business_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    FromDateParam:
+      name: from
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+      description: |
+        Start date (YYYY-MM-DD). Must not be earlier than
+        today - analytics_history_days (from plan snapshot).
+
+    ToDateParam:
+      name: to
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+      description: End date (YYYY-MM-DD). Must not be in the future.
+
+    WindowParam:
+      name: window
+      in: query
+      schema:
+        type: string
+      description: |
+        Aggregation window. NOT an enum.
+        Default: system_settings.analytics_default_window.
+        Valid values: system_settings.analytics_windows_json.
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PerPageParam:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+
+  responses:
+    401:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    403FeatureFlag:
+      description: Feature flag denied
+      headers:
+        X-Feature-Flag:
+          schema:
+            type: string
+        X-Entitlement-Status:
+          schema:
+            type: string
+            enum: [denied]
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: FEATURE_FLAG_DENIED
+              message: آمار در پلن فعلی شما در دسترس نیست
+              details:
+                flag: can_view_page_analytics
+                upgrade_path: /api/subscriptions/plans
+
+    403HistoryExceeded:
+      description: Date range exceeds plan's analytics history limit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: ANALYTICS_HISTORY_EXCEEDED
+              message: بازه زمانی درخواست شده از محدوده مجاز پلن شما خارج است
+              details:
+                max_days: 90
+                requested_days: 180
+                upgrade_path: /api/subscriptions/plans
+
+    404:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+
+  # ═══════════════════════════════════════════════════════
+  # BUSINESS ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics:
+    get:
+      tags: [BusinessAnalytics]
+      summary: Business analytics overview
+      description: |
+        Returns summary metrics + time-series for business profile page views and unique visitors.
+        Feature gate: can_view_page_analytics.
+        Date range capped by usage_limits.analytics_history_days.
+        Rate limit: system_settings.rate_limit_analytics_per_user_per_minute.
+      operationId: getBusinessAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+        - name: metrics
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated metric keys to include. NOT an enum.
+            Default: all available metrics for this plan.
+            Known initial values: "page_views", "unique_visitors", "return_visitors".
+      responses:
+        '200':
+          description: Business analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                    description: |
+                      Keys are metric names. NOT an enum.
+                      Example: { "page_views": { total: 1240, trend: "up" } }
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+                    description: |
+                      Keys are metric names. Each value is a time-series array.
+                  available_metrics:
+                    type: array
+                    items:
+                      type: string
+                    description: |
+                      Metric keys available for this business's plan.
+                      Clients use this to populate the metric selector.
+                  history_limit_days:
+                    type: integer
+                    description: From usage_limits.analytics_history_days
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          description: Feature flag denied or history exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /businesses/{business_id}/analytics/top-content:
+    get:
+      tags: [BusinessAnalytics]
+      summary: Top-performing content for this business
+      description: |
+        Returns ranked lists of top products, services, and videos by views.
+        Feature gate: can_view_page_analytics.
+        Date range capped by usage_limits.analytics_history_days.
+      operationId: getTopContent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - name: content_type
+          in: query
+          schema:
+            type: string
+          description: |
+            Filter by content type. NOT an enum.
+            Known values: "product", "service", "video".
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: |
+            Max items per content type.
+            Max: system_settings.analytics_top_content_max_items.
+      responses:
+        '200':
+          description: Top content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                      view_count:
+                        type: integer
+                      click_count:
+                        type: integer
+                      rank:
+                        type: integer
+                description: |
+                  Keys are content types (NOT enum).
+                  Example: { "product": [...], "video": [...] }
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+
+  # ═══════════════════════════════════════════════════════
+  # PRODUCT ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/products:
+    get:
+      tags: [ProductAnalytics]
+      summary: Product analytics summary list
+      description: |
+        Feature gate: can_view_product_analytics.
+        Returns view and click counts per product.
+        Date range capped by analytics_history_days.
+      operationId: listProductAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+          description: |
+            NOT an enum. Default: "view_count_desc".
+      responses:
+        '200':
+          description: Product analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        product_id:
+                          type: string
+                          format: uuid
+                        product_name:
+                          type: string
+                        view_count:
+                          type: integer
+                        click_count:
+                          type: integer
+                        save_count:
+                          type: integer
+                        click_through_rate:
+                          type: number
+                          format: float
+                          nullable: true
+                        trend:
+                          type: string
+                          nullable: true
+                          description: NOT an enum — "up", "down", "flat" or custom
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          description: Feature flag denied or history exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /businesses/{business_id}/analytics/products/{product_id}:
+    get:
+      tags: [ProductAnalytics]
+      summary: Time-series analytics for a single product
+      description: |
+        Feature gate: can_view_product_analytics.
+      operationId: getProductAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Product analytics time-series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product_id:
+                    type: string
+                    format: uuid
+                  product_name:
+                    type: string
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ═══════════════════════════════════════════════════════
+  # SERVICE ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/services:
+    get:
+      tags: [ServiceAnalytics]
+      summary: Service analytics summary list
+      description: |
+        Feature gate: can_view_service_analytics.
+        Mirrors product analytics structure.
+      operationId: listServiceAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+          description: NOT an enum. Default "view_count_desc".
+      responses:
+        '200':
+          description: Service analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        service_id:
+                          type: string
+                          format: uuid
+                        service_name:
+                          type: string
+                        view_count:
+                          type: integer
+                        click_count:
+                          type: integer
+                        save_count:
+                          type: integer
+                        click_through_rate:
+                          type: number
+                          format: float
+                          nullable: true
+                        trend:
+                          type: string
+                          nullable: true
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          description: Feature flag denied or history exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /businesses/{business_id}/analytics/services/{service_id}:
+    get:
+      tags: [ServiceAnalytics]
+      summary: Time-series analytics for a single service
+      description: Feature gate: can_view_service_analytics.
+      operationId: getServiceAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - name: service_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Service analytics time-series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service_id:
+                    type: string
+                    format: uuid
+                  service_name:
+                    type: string
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ═══════════════════════════════════════════════════════
+  # VIDEO ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/videos:
+    get:
+      tags: [VideoAnalytics]
+      summary: Video analytics summary list
+      description: Feature gate: can_view_video_analytics.
+      operationId: listVideoAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: Video analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  videos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        video_id:
+                          type: string
+                          format: uuid
+                        video_title:
+                          type: string
+                        view_count:
+                          type: integer
+                        total_watch_seconds:
+                          type: integer
+                          description: |
+                            Sum of all watch_duration_seconds reported.
+                            Only counted if system_settings.analytics_track_watch_time = true.
+                        avg_watch_seconds:
+                          type: number
+                          format: float
+                          nullable: true
+                        completion_rate:
+                          type: number
+                          format: float
+                          nullable: true
+                          description: Average watch / total duration
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          description: Feature flag denied or history exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /businesses/{business_id}/analytics/videos/{video_id}:
+    get:
+      tags: [VideoAnalytics]
+      summary: Time-series analytics for a single video
+      description: Feature gate: can_view_video_analytics.
+      operationId: getVideoAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - name: video_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Video analytics time-series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video_id:
+                    type: string
+                    format: uuid
+                  video_title:
+                    type: string
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+        '404':
+          $ref: '#/components/responses/404'
+
+  # ═══════════════════════════════════════════════════════
+  # CONTACT ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/contacts:
+    get:
+      tags: [ContactAnalytics]
+      summary: Contact click analytics
+      description: |
+        Returns click counts per contact method type.
+        Feature gate: can_view_contact_analytics.
+        Contact types are NOT an enum — they match the contact method types.
+      operationId: getContactAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Contact click analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                    description: |
+                      Keys are contact method types (NOT enum).
+                      Example: { "mobile": { total: 340 }, "whatsapp": { total: 120 } }
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+                    description: Keys are contact method types.
+                  total_contact_clicks:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+
+  # ═══════════════════════════════════════════════════════
+  # NAVIGATION ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/navigation:
+    get:
+      tags: [NavigationAnalytics]
+      summary: Navigation click analytics
+      description: |
+        Returns counts of "navigate to business" taps, broken down by map provider.
+        Feature gate: can_view_navigation_analytics.
+        Map provider keys are NOT an enum — they come from system_settings.map_provider_keys_json.
+      operationId: getNavigationAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Navigation analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  summary:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                    description: |
+                      Keys are map provider keys (NOT enum).
+                      Example: { "neshan": { total: 80 }, "google_maps": { total: 45 } }
+                  time_series:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TimeSeriesPoint'
+                  total_navigation_clicks:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+
+  # ═══════════════════════════════════════════════════════
+  # ENGAGEMENT ANALYTICS
+  # ═══════════════════════════════════════════════════════
+
+  /businesses/{business_id}/analytics/engagement:
+    get:
+      tags: [EngagementAnalytics]
+      summary: Engagement analytics (follows, saves, social clicks)
+      description: |
+        Feature gate: can_view_engagement_analytics.
+        Includes follow counts, save counts, and social link click counts.
+        Social link types are NOT an enum — they match contact method types.
+      operationId: getEngagementAnalytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - $ref: '#/components/parameters/FromDateParam'
+        - $ref: '#/components/parameters/ToDateParam'
+        - $ref: '#/components/parameters/WindowParam'
+      responses:
+        '200':
+          description: Engagement analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date_range:
+                    $ref: '#/components/schemas/AnalyticsDateRange'
+                  follows:
+                    type: object
+                    properties:
+                      total_followers:
+                        type: integer
+                      new_follows:
+                        $ref: '#/components/schemas/MetricSummary'
+                      unfollows:
+                        $ref: '#/components/schemas/MetricSummary'
+                      net_change:
+                        type: integer
+                      time_series:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TimeSeriesPoint'
+                  saves:
+                    type: object
+                    properties:
+                      total_saves:
+                        type: integer
+                      new_saves:
+                        $ref: '#/components/schemas/MetricSummary'
+                      unsaves:
+                        $ref: '#/components/schemas/MetricSummary'
+                      time_series:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TimeSeriesPoint'
+                  social_clicks:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/MetricSummary'
+                    description: |
+                      Keys are social link types (NOT enum).
+                      Example: { "instagram": { total: 230 }, "website": { total: 45 } }
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403FeatureFlag'
+
+  # ═══════════════════════════════════════════════════════
+  # ANALYTICS EVENT TRACKING (Server-Side)
+  # ═══════════════════════════════════════════════════════
+
+  /analytics/events:
+    post:
+      tags: [BusinessAnalytics]
+      summary: Record an analytics event
+      description: |
+        Internal endpoint for recording user interaction events.
+        Used by the frontend to track events that can't be captured server-side.
+        Rate limit: system_settings.rate_limit_analytics_events_per_ip_per_minute.
+        Deduplication window: system_settings.analytics_event_dedup_window_seconds.
+        Event type is NOT an enum — valid types from system_settings.analytics_event_types_json.
+        Unknown event types are accepted and stored for future processing.
+      operationId: recordAnalyticsEvent
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type, target_type, target_id]
+              properties:
+                event_type:
+                  type: string
+                  description: |
+                    NOT an enum. Known initial values:
+                    "page_view", "contact_click", "navigation_click",
+                    "product_view", "service_view", "social_click".
+                target_type:
+                  type: string
+                  description: |
+                    Content type being interacted with. NOT an enum.
+                    Known values: "business", "product", "service", "video".
+                target_id:
+                  type: string
+                  format: uuid
+                metadata:
+                  type: object
+                  additionalProperties: true
+                  description: |
+                    Event-specific metadata. Shape depends on event_type.
+                    Examples:
+                      contact_click: { contact_type: "whatsapp" }
+                      navigation_click: { provider: "neshan" }
+                      social_click: { link_type: "instagram" }
+                session_id:
+                  type: string
+                  nullable: true
+                  description: Client-side session identifier for deduplication
+      responses:
+        '204':
+          description: Event recorded
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
