@@ -18,3 +18,9 @@ id = "kYaV9Cd6Sw9aYMkHKWI1c"
 uri = "file://attached_assets/architecture/UX_COVERAGE_AUDIT.md"
 type = "text"
 title = "نزدیکام — UX Coverage Audit"
+
+[[outputs]]
+id = "ws3KMCPNFv33ks3YhHN61"
+uri = "file://attached_assets/architecture/DESIGN_GAP_REPORT.md"
+type = "text"
+title = "نزدیکام — Design Gap Report"
