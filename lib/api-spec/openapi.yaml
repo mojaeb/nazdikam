@@ -647,6 +647,28 @@ components:
           type: boolean
         followerCount:
           type: integer
+        expiresAt:
+          type: string
+          format: date-time
+          description: Deal expiry ISO timestamp
+        beforeAfterImages:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeforeAfterImage"
+        socialProof:
+          $ref: "#/components/schemas/SocialProof"
+        ratingBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingCategory"
+        ratingDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingDistribution"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductReview"
       required:
         - slug
         - name
@@ -725,6 +747,27 @@ components:
           type: boolean
         followerCount:
           type: integer
+        expiresAt:
+          type: string
+          format: date-time
+        beforeAfterImages:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeforeAfterImage"
+        socialProof:
+          $ref: "#/components/schemas/SocialProof"
+        ratingBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingCategory"
+        ratingDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatingDistribution"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductReview"
 
     ProductMeta:
       type: object

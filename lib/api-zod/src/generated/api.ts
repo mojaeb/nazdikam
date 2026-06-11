@@ -435,7 +435,37 @@ export const CreateBusinessProductBody = zod.object({
   "isFeatured": zod.boolean().optional(),
   "isNew": zod.boolean().optional(),
   "isPublished": zod.boolean().optional(),
-  "followerCount": zod.number().optional()
+  "followerCount": zod.number().optional(),
+  "expiresAt": zod.coerce.date().optional().describe('Deal expiry ISO timestamp'),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional()
 })
 
 
@@ -477,7 +507,37 @@ export const UpdateBusinessProductBody = zod.object({
   "isFeatured": zod.boolean().optional(),
   "isNew": zod.boolean().optional(),
   "isPublished": zod.boolean().optional(),
-  "followerCount": zod.number().optional()
+  "followerCount": zod.number().optional(),
+  "expiresAt": zod.coerce.date().optional(),
+  "beforeAfterImages": zod.array(zod.object({
+  "before": zod.string(),
+  "after": zod.string(),
+  "label": zod.string().optional()
+})).optional(),
+  "socialProof": zod.object({
+  "purchases": zod.number(),
+  "views": zod.number(),
+  "saves": zod.number()
+}).optional(),
+  "ratingBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "score": zod.number()
+})).optional(),
+  "ratingDistribution": zod.array(zod.object({
+  "star": zod.number(),
+  "count": zod.number(),
+  "percent": zod.number()
+})).optional(),
+  "reviews": zod.array(zod.object({
+  "id": zod.string(),
+  "userName": zod.string(),
+  "date": zod.string(),
+  "rating": zod.number(),
+  "text": zod.string(),
+  "pros": zod.array(zod.string()).optional(),
+  "cons": zod.array(zod.string()).optional(),
+  "helpful": zod.number()
+})).optional()
 }).describe('Partial update — all fields optional')
 
 export const UpdateBusinessProductResponse = zod.object({

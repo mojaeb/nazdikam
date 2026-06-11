@@ -43,6 +43,8 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
   const [, navigate] = useLocation();
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [onlyInstallment, setOnlyInstallment] = useState(false);
+  const [onlyVerified, setOnlyVerified] = useState(false);
 
   const category = findCategoryBySlug(slug);
 
@@ -93,9 +95,16 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
   const nearby = businesses.filter(b => b.distance).slice(0, 5);
   const newOnes = businesses.filter(b => !b.featured).slice(0, 4);
 
+  /* Apply installment/verified product-level filters */
+  const filteredForDisplay = products.filter(p => {
+    if (onlyInstallment && !p.isInstallmentAvailable) return false;
+    if (onlyVerified && !p.businessVerified) return false;
+    return true;
+  });
+
   /* Popular products */
-  const popular = products.filter(p => p.rating >= 4.5).slice(0, 6);
-  const featuredProducts = products.slice(0, 4);
+  const popular = filteredForDisplay.filter(p => p.rating >= 4.5).slice(0, 6);
+  const featuredProducts = filteredForDisplay.slice(0, 4);
 
   /* Related categories (siblings) */
   const related = mockCategories
@@ -245,6 +254,34 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
             </motion.button>
           ))}
         </div>
+
+        {/* Product-level filter chips — shown when products tab is active */}
+        {showProducts && (
+          <div className="flex items-center gap-2 px-4 mt-2">
+            <button
+              type="button"
+              onClick={() => setOnlyInstallment(v => !v)}
+              className={`h-7 px-3 rounded-2xl font-vazirmatn text-xs font-medium border transition-colors ${
+                onlyInstallment
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-neutral-600 border-neutral-200"
+              }`}
+            >
+              💳 دارای اقساط
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyVerified(v => !v)}
+              className={`h-7 px-3 rounded-2xl font-vazirmatn text-xs font-medium border transition-colors ${
+                onlyVerified
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-neutral-600 border-neutral-200"
+              }`}
+            >
+              ✓ تأیید شده
+            </button>
+          </div>
+        )}
 
         {/* Discovery sections */}
         <div className="mt-4">

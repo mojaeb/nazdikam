@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { cn, formatPrice, toPersianNumerals } from "@/lib/utils";
-import { EditIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, TrashIcon, VerifiedIcon } from "@/components/icons";
 import type { DashboardProduct } from "@/lib/dashboard-products-data";
 
 /* ─── Config ──────────────────────────────────────────── */
@@ -80,7 +80,7 @@ function TableView({ products, selectedIds, onSelectAll, onSelect, onEdit, onDel
                 aria-label="انتخاب همه"
               />
             </th>
-            {["محصول", "قیمت", "برچسب‌ها", "موجودی", "وضعیت", "بروزرسانی", ""].map(col => (
+            {["محصول", "قیمت", "خرید / انقضا", "برچسب‌ها", "موجودی", "وضعیت", "بروزرسانی", ""].map(col => (
               <th key={col} className="py-3 px-3 text-start font-vazirmatn text-xs font-bold text-neutral-400 whitespace-nowrap">
                 {col}
               </th>
@@ -136,6 +136,28 @@ function TableView({ products, selectedIds, onSelectAll, onSelect, onEdit, onDel
                     <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
                       اقساطی
                     </span>
+                  )}
+                </td>
+
+                {/* Social proof + Expiry */}
+                <td className="py-3 px-3 whitespace-nowrap">
+                  {(p as { socialProof?: { purchases?: number } }).socialProof?.purchases ? (
+                    <p className="font-vazirmatn text-xs text-emerald-600 font-medium">
+                      🛒 {toPersianNumerals((p as { socialProof: { purchases: number } }).socialProof.purchases)}
+                    </p>
+                  ) : (
+                    <p className="font-vazirmatn text-xs text-neutral-300">—</p>
+                  )}
+                  {(p as { expiresAt?: string }).expiresAt && (
+                    <p className="font-vazirmatn text-[10px] text-rose-500 mt-0.5">
+                      ⏰ {(p as { expiresAt: string }).expiresAt}
+                    </p>
+                  )}
+                  {(p as { businessVerified?: boolean }).businessVerified && (
+                    <div className="flex items-center gap-0.5 mt-0.5">
+                      <VerifiedIcon size={10} className="text-blue-500" />
+                      <span className="font-vazirmatn text-[10px] text-blue-500">تأیید شده</span>
+                    </div>
                   )}
                 </td>
 

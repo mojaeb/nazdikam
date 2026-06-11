@@ -158,6 +158,13 @@ export interface CreateProductBody {
   isNew?: boolean;
   isPublished?: boolean;
   followerCount?: number;
+  /** Deal expiry ISO timestamp */
+  expiresAt?: string;
+  beforeAfterImages?: BeforeAfterImage[];
+  socialProof?: SocialProof;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
 }
 
 export type UpdateProductBodyInventoryStatus = typeof UpdateProductBodyInventoryStatus[keyof typeof UpdateProductBodyInventoryStatus];
@@ -201,6 +208,12 @@ export interface UpdateProductBody {
   isNew?: boolean;
   isPublished?: boolean;
   followerCount?: number;
+  expiresAt?: string;
+  beforeAfterImages?: BeforeAfterImage[];
+  socialProof?: SocialProof;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
 }
 
 export interface ProductMeta {

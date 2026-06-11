@@ -5,7 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { BeforeAfterImage } from './beforeAfterImage';
 import type { Faq } from './faq';
+import type { ProductReview } from './productReview';
+import type { RatingCategory } from './ratingCategory';
+import type { RatingDistribution } from './ratingDistribution';
+import type { SocialProof } from './socialProof';
 import type { UpdateProductBodyInventoryStatus } from './updateProductBodyInventoryStatus';
 
 /**
@@ -39,4 +44,10 @@ export interface UpdateProductBody {
   isNew?: boolean;
   isPublished?: boolean;
   followerCount?: number;
+  expiresAt?: Date;
+  beforeAfterImages?: BeforeAfterImage[];
+  socialProof?: SocialProof;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
 }

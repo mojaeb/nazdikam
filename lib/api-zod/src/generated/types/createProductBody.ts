@@ -5,8 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { BeforeAfterImage } from './beforeAfterImage';
 import type { CreateProductBodyInventoryStatus } from './createProductBodyInventoryStatus';
 import type { Faq } from './faq';
+import type { ProductReview } from './productReview';
+import type { RatingCategory } from './ratingCategory';
+import type { RatingDistribution } from './ratingDistribution';
+import type { SocialProof } from './socialProof';
 
 export interface CreateProductBody {
   slug: string;
@@ -42,4 +47,11 @@ export interface CreateProductBody {
   isNew?: boolean;
   isPublished?: boolean;
   followerCount?: number;
+  /** Deal expiry ISO timestamp */
+  expiresAt?: Date;
+  beforeAfterImages?: BeforeAfterImage[];
+  socialProof?: SocialProof;
+  ratingBreakdown?: RatingCategory[];
+  ratingDistribution?: RatingDistribution[];
+  reviews?: ProductReview[];
 }

@@ -591,6 +591,26 @@ export default function BusinessProfilePage({ slug }: Props) {
               {toPersianNumerals(products.length)} مورد
             </span>
           </div>
+
+          {/* Social proof + installment aggregation */}
+          {(() => {
+            const totalPurchases = products.reduce((sum, p) => sum + (p.socialProof?.purchases ?? 0), 0);
+            const installmentCount = products.filter(p => p.isInstallmentAvailable).length;
+            return (totalPurchases > 0 || installmentCount > 0) ? (
+              <div className="flex items-center gap-4 px-4 mb-3">
+                {totalPurchases > 0 && (
+                  <span className="text-[11px] font-vazirmatn text-emerald-600 font-medium">
+                    🛒 {toPersianNumerals(totalPurchases)} خرید از این کسب‌وکار
+                  </span>
+                )}
+                {installmentCount > 0 && (
+                  <span className="text-[11px] font-vazirmatn text-blue-600 font-medium">
+                    💳 {toPersianNumerals(installmentCount)} محصول اقساطی
+                  </span>
+                )}
+              </div>
+            ) : null;
+          })()}
           <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-3 snap-x">
             {products.map((product, i) => (
               <motion.div
