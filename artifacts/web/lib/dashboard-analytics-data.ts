@@ -90,6 +90,56 @@ export const mockWeekComparison = {
   lastWeek: { views: 108, leads: 13, reviews: 2 },
 };
 
+/* ─── Product engagement metrics (last 7 days) ────────── */
+export interface ProductEngagementMetric {
+  id:      string;
+  label:   string;
+  value:   number;
+  unit:    string;
+  change:  number;
+  color:   string;
+  spark:   number[];
+}
+
+export const mockProductEngagement: ProductEngagementMetric[] = [
+  {
+    id: "save_rate",
+    label: "نرخ ذخیره",
+    value: 8,
+    unit: "٪",
+    change: +3,
+    color: "#7C3AED",
+    spark: [4, 5, 6, 5, 7, 8, 8],
+  },
+  {
+    id: "whatsapp_rate",
+    label: "تماس واتساپ",
+    value: 12,
+    unit: "٪",
+    change: +5,
+    color: "#25D366",
+    spark: [5, 7, 8, 9, 10, 11, 12],
+  },
+  {
+    id: "installment_rate",
+    label: "انتخاب اقساط",
+    value: 23,
+    unit: "٪",
+    change: +8,
+    color: "#1860DB",
+    spark: [10, 14, 16, 18, 20, 22, 23],
+  },
+  {
+    id: "product_view_rate",
+    label: "کلیک محصول",
+    value: 31,
+    unit: "٪",
+    change: +2,
+    color: "#0A7EA4",
+    spark: [24, 25, 27, 28, 29, 30, 31],
+  },
+];
+
 /* ─── Helpers ─────────────────────────────────────────── */
 export function funnelPct(steps: FunnelStep[]): FunnelStep[] {
   if (!steps.length) return steps;

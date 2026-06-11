@@ -107,6 +107,24 @@ export function ProductCardStandard({
           )}
         </div>
 
+        {/* City */}
+        {product.city && (
+          <p className="font-vazirmatn text-[10px] text-neutral-400 leading-tight">
+            📍 {product.city}
+          </p>
+        )}
+
+        {/* Tags — first 2 */}
+        {product.tags && product.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.tags.slice(0, 2).map(tag => (
+              <span key={tag} className="text-[9px] font-bold bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded-md">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Rating */}
         <div className="flex items-center justify-between gap-2">
           <RatingRow

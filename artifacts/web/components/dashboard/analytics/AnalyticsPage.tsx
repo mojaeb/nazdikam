@@ -5,8 +5,10 @@ import { Sparkline, LineChart } from "@/components/dashboard/analytics/MiniChart
 import {
   mockAnalyticsMetrics, mockViewTrend, mockFunnel,
   mockLeadSources, mockProvinceData, mockWeekComparison,
+  mockProductEngagement,
   funnelPct,
   type AnalyticsMetric,
+  type ProductEngagementMetric,
 } from "@/lib/dashboard-analytics-data";
 import { mockDashboardProducts } from "@/lib/dashboard-products-data";
 
@@ -327,6 +329,38 @@ function ProductStatsCard() {
   );
 }
 
+/* ─── Product Engagement Rate Card ───────────────────── */
+function EngagementRateCard({ metric, delay }: { metric: ProductEngagementMetric; delay: number }) {
+  const isUp = metric.change >= 0;
+  return (
+    <motion.div
+      className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4 flex flex-col gap-2"
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-vazirmatn text-neutral-500">{metric.label}</span>
+        <span
+          className={cn(
+            "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+            isUp ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50",
+          )}
+        >
+          {isUp ? "+" : ""}{toPersianNumerals(metric.change)}٪
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <span
+          className="text-2xl font-bold font-iranyekan"
+          style={{ color: metric.color }}
+        >
+          {toPersianNumerals(metric.value)}{metric.unit}
+        </span>
+        <Sparkline data={metric.spark} color={metric.color} />
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Main page ───────────────────────────────────────── */
 export function AnalyticsPage() {
   return (
@@ -354,9 +388,19 @@ export function AnalyticsPage() {
       </div>
 
       {/* Product analytics row */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-2 gap-4 mb-4">
         <TopProductsCard />
         <ProductStatsCard />
+      </div>
+
+      {/* Product engagement metrics */}
+      <div className="mb-1">
+        <p className="text-sm font-vazirmatn font-semibold text-neutral-700 mb-3">نرخ تعامل محصولات</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {mockProductEngagement.map((m, i) => (
+            <EngagementRateCard key={m.id} metric={m} delay={i * 0.05} />
+          ))}
+        </div>
       </div>
     </div>
   );

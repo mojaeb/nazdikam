@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface ProductMeta {
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
 }

@@ -10,11 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Product catalog operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
+      tags:
+        - health
       summary: Health check
       description: Returns server health status
       responses:
@@ -24,7 +27,231 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags:
+        - products
+      summary: List products (paginated)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Full-text search query
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: business_id
+          schema:
+            type: string
+        - in: query
+          name: featured
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum:
+              - created_at_desc
+              - price_asc
+              - price_desc
+              - rating_desc
+            default: created_at_desc
+      responses:
+        "200":
+          description: Paginated product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+
+  /products/{slug}:
+    get:
+      operationId: getProduct
+      tags:
+        - products
+      summary: Get a single product by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductSingleResponse"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /businesses/{businessId}/products:
+    get:
+      operationId: listBusinessProducts
+      tags:
+        - products
+      summary: List published products for a business (public)
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Products for the business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductListResponse"
+    post:
+      operationId: createBusinessProduct
+      tags:
+        - products
+      summary: Create a new product for a business (owner-only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductSingleResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /businesses/{businessId}/products/{productId}:
+    patch:
+      operationId: updateBusinessProduct
+      tags:
+        - products
+      summary: Update a product (owner-only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductBody"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductSingleResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteBusinessProduct
+      tags:
+        - products
+      summary: Delete a product (owner-only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: businessId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Product deleted
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +261,299 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - code
+            - message
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        businessId:
+          type: string
+        businessName:
+          type: string
+        businessVerified:
+          type: boolean
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        city:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        price:
+          type: integer
+        originalPrice:
+          type: integer
+        discountPercent:
+          type: integer
+        currency:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        isInstallmentAvailable:
+          type: boolean
+        installmentMonths:
+          type: integer
+        installmentProvider:
+          type: string
+        installmentDownPayment:
+          type: integer
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        coverGradient:
+          type: string
+        gallery:
+          type: array
+          items:
+            type: string
+        inventoryStatus:
+          type: string
+          enum:
+            - in-stock
+            - low-stock
+            - out-of-stock
+            - pre-order
+        stockCount:
+          type: integer
+        benefits:
+          type: array
+          items:
+            type: string
+        eligibleGroups:
+          type: array
+          items:
+            type: string
+        terms:
+          type: string
+        isFeatured:
+          type: boolean
+        isNew:
+          type: boolean
+        isPublished:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - slug
+        - name
+        - description
+        - businessId
+        - businessName
+        - category
+        - price
+        - currency
+        - isInstallmentAvailable
+        - rating
+        - reviewCount
+        - coverGradient
+        - inventoryStatus
+        - isFeatured
+        - isNew
+
+    CreateProductBody:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        price:
+          type: integer
+        originalPrice:
+          type: integer
+        discountPercent:
+          type: integer
+        currency:
+          type: string
+        isInstallmentAvailable:
+          type: boolean
+        installmentMonths:
+          type: integer
+        installmentProvider:
+          type: string
+        installmentDownPayment:
+          type: integer
+        inventoryStatus:
+          type: string
+          enum:
+            - in-stock
+            - low-stock
+            - out-of-stock
+            - pre-order
+        stockCount:
+          type: integer
+        benefits:
+          type: array
+          items:
+            type: string
+        eligibleGroups:
+          type: array
+          items:
+            type: string
+        terms:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        city:
+          type: string
+        coverGradient:
+          type: string
+        isFeatured:
+          type: boolean
+        isNew:
+          type: boolean
+        isPublished:
+          type: boolean
+      required:
+        - slug
+        - name
+        - category
+        - price
+
+    UpdateProductBody:
+      type: object
+      description: Partial update — all fields optional
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        price:
+          type: integer
+        originalPrice:
+          type: integer
+        discountPercent:
+          type: integer
+        isInstallmentAvailable:
+          type: boolean
+        installmentMonths:
+          type: integer
+        installmentProvider:
+          type: string
+        installmentDownPayment:
+          type: integer
+        inventoryStatus:
+          type: string
+          enum:
+            - in-stock
+            - low-stock
+            - out-of-stock
+            - pre-order
+        stockCount:
+          type: integer
+        benefits:
+          type: array
+          items:
+            type: string
+        eligibleGroups:
+          type: array
+          items:
+            type: string
+        terms:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        city:
+          type: string
+        coverGradient:
+          type: string
+        isFeatured:
+          type: boolean
+        isNew:
+          type: boolean
+        isPublished:
+          type: boolean
+
+    ProductMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+      required:
+        - page
+        - per_page
+        - total
+        - total_pages
+
+    ProductListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        meta:
+          $ref: "#/components/schemas/ProductMeta"
+      required:
+        - data
+        - meta
+
+    ProductSingleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/Product"
+      required:
+        - data
