@@ -137,6 +137,13 @@ export function ProductCardStandard({
             <InstallmentBadge months={product.installmentMonths} size="xs" />
           )}
         </div>
+
+        {/* Social proof micro-indicator */}
+        {product.socialProof && product.socialProof.purchases > 0 && (
+          <p className="text-[9px] font-vazirmatn text-emerald-600 font-medium leading-none">
+            🛒 {product.socialProof.purchases.toLocaleString()} نفر خریداری کردند
+          </p>
+        )}
       </div>
     </motion.div>
   );

@@ -29,7 +29,10 @@ router.get("/products", async (req, res) => {
   const { page, per_page, q, category, business_id, featured, sort } = parsed.data;
 
   try {
-    const conditions = [];
+    const conditions = [
+      // Public route — never expose unpublished drafts
+      eq(productsTable.isPublished, true),
+    ];
     if (category)              conditions.push(eq(productsTable.category, category));
     if (business_id)           conditions.push(eq(productsTable.businessId, business_id));
     if (featured === "true")   conditions.push(eq(productsTable.isFeatured, true));
@@ -81,7 +84,8 @@ router.get("/products/:slug", async (req, res) => {
       .where(eq(productsTable.slug, String(req.params["slug"])))
       .limit(1);
 
-    if (!product) {
+    // Public route — treat unpublished drafts as not found
+    if (!product || !product.isPublished) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Product not found" } });
       return;
     }

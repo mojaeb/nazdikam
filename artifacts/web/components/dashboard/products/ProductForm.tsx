@@ -46,6 +46,12 @@ interface ProductFormValues {
   images: GalleryImage[];
   beforeAfterPairs: BeforeAfterPair[];
 
+  /* Admin overrides */
+  socialProofPurchases: string;
+  socialProofViews: string;
+  socialProofSaves: string;
+  ratingCategories: RatingCategory[];
+
   /* Rich content */
   benefits: string[];
   eligibleGroups: string[];
@@ -88,6 +94,8 @@ const EMPTY: ProductFormValues = {
   installmentMonthlyAmount: "",
   images: [],
   beforeAfterPairs: [],
+  socialProofPurchases: "", socialProofViews: "", socialProofSaves: "",
+  ratingCategories: [],
   benefits: [], eligibleGroups: [], faqs: [], terms: "",
   phone: "", whatsapp: "", city: "",
   isPublished: false, isFeatured: false, isNew: false,
@@ -183,6 +191,51 @@ function TagInput({ tags, onAdd, onRemove, placeholder, color = "blue" }: {
         placeholder={tags.length === 0 ? placeholder : ""}
         className="flex-1 min-w-[100px] outline-none font-vazirmatn text-sm placeholder:text-neutral-400 bg-transparent"
       />
+    </div>
+  );
+}
+
+/* ─── Rating category editor ──────────────────────────── */
+interface RatingCategory { label: string; value: string }
+
+function RatingCategoryEditor({ categories, onChange }: { categories: RatingCategory[]; onChange: (v: RatingCategory[]) => void }) {
+  const add = () => onChange([...categories, { label: "", value: "" }]);
+  const remove = (i: number) => onChange(categories.filter((_, idx) => idx !== i));
+  const update = (i: number, key: keyof RatingCategory, val: string) =>
+    onChange(categories.map((c, idx) => idx === i ? { ...c, [key]: val } : c));
+
+  return (
+    <div className="space-y-2">
+      {categories.map((cat, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            value={cat.label}
+            onChange={e => update(i, "label", e.target.value)}
+            placeholder="مثال: کیفیت، قیمت، سرعت ارسال"
+            className="flex-1 h-9 px-3 font-vazirmatn text-sm bg-white border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all"
+          />
+          <input
+            value={cat.value}
+            onChange={e => update(i, "value", e.target.value)}
+            placeholder="۴.۵"
+            className="w-16 h-9 px-3 font-iran-yekan-x text-sm bg-white border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all text-center"
+            dir="ltr"
+            type="number"
+            step="0.1"
+            min="1"
+            max="5"
+          />
+          <button type="button" onClick={() => remove(i)}
+            className="w-9 h-9 rounded-xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-colors shrink-0">
+            <CloseIcon size={13} />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={add}
+        className="w-full h-10 rounded-xl border border-dashed border-blue-200 text-blue-500 text-sm font-vazirmatn font-medium flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors">
+        <PlusIcon size={14} />
+        افزودن معیار امتیازدهی
+      </button>
     </div>
   );
 }
@@ -638,6 +691,41 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                 className="w-full font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none px-3 py-2.5 resize-none focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(24,96,219,0.15)] transition-all placeholder:text-neutral-400"
               />
             </Field>
+          </Section>
+
+          {/* ⑨ Social Proof Override */}
+          <Section title="نمای اجتماعی (اختیاری)">
+            <p className="font-vazirmatn text-xs text-neutral-400 -mt-2">
+              برای نمایش تعداد خرید، بازدید و ذخیره در کارت‌ها و صفحه محصول
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="تعداد خرید">
+                <Input type="number" value={values.socialProofPurchases}
+                  onChange={e => set("socialProofPurchases", e.target.value)}
+                  placeholder="۰" dir="ltr" />
+              </Field>
+              <Field label="بازدیدها">
+                <Input type="number" value={values.socialProofViews}
+                  onChange={e => set("socialProofViews", e.target.value)}
+                  placeholder="۰" dir="ltr" />
+              </Field>
+              <Field label="ذخیره‌ها">
+                <Input type="number" value={values.socialProofSaves}
+                  onChange={e => set("socialProofSaves", e.target.value)}
+                  placeholder="۰" dir="ltr" />
+              </Field>
+            </div>
+          </Section>
+
+          {/* ⑩ Rating Categories */}
+          <Section title="معیارهای امتیازدهی">
+            <p className="font-vazirmatn text-xs text-neutral-400 -mt-2">
+              می‌توانید معیارهای سفارشی برای نظرسنجی مشتریان تعریف کنید
+            </p>
+            <RatingCategoryEditor
+              categories={values.ratingCategories}
+              onChange={v => set("ratingCategories", v)}
+            />
           </Section>
 
         </div>

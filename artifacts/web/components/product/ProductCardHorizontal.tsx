@@ -110,6 +110,13 @@ export function ProductCardHorizontal({
             className="!bg-transparent !text-neutral-400 hover:!text-rose-500 shrink-0 ms-auto"
           />
         </div>
+
+        {/* Social proof micro-indicator */}
+        {product.socialProof && product.socialProof.purchases > 0 && (
+          <p className="text-[9px] font-vazirmatn text-emerald-600 font-medium leading-none mt-0.5">
+            🛒 {product.socialProof.purchases.toLocaleString()} خرید
+          </p>
+        )}
       </div>
     </motion.div>
   );

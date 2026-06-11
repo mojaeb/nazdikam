@@ -73,6 +73,11 @@ export function ProductCardCompact({
         <p className="text-white/55 text-[9px] font-vazirmatn truncate">
           {product.city ? `📍 ${product.city}` : product.businessName}
         </p>
+        {product.socialProof && product.socialProof.purchases > 0 && (
+          <p className="text-white/50 text-[8px] font-vazirmatn">
+            🛒 {product.socialProof.purchases} خرید
+          </p>
+        )}
         <PriceDisplay
           price={product.price}
           size="sm"

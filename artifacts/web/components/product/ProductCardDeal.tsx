@@ -145,6 +145,13 @@ export function ProductCardDeal({
           <InstallmentBadge months={product.installmentMonths} size="xs" />
         )}
 
+        {/* Social proof micro-indicator */}
+        {product.socialProof && product.socialProof.purchases > 0 && (
+          <p className="text-[9px] font-vazirmatn text-emerald-600 font-medium leading-none">
+            🛒 {product.socialProof.purchases.toLocaleString()} خرید
+          </p>
+        )}
+
         {/* Tags */}
         {product.tags && product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">

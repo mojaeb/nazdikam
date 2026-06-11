@@ -5,7 +5,7 @@ import { cn, toPersianNumerals, formatPrice, avatarGradientIndex } from "@/lib/u
 import {
   ChevronStartIcon, BookmarkIcon, ShareIcon, PhoneIcon, MessageIcon,
   VerifiedIcon, StoreIcon, StarFilledIcon, MapPinIcon, CheckCircleIcon,
-  CloseIcon, TagIcon,
+  CloseIcon, TagIcon, ClockIcon,
 } from "@/components/icons";
 import { ProductCardStandard } from "@/components/product/ProductCardStandard";
 import { SocialProofStrip } from "@/components/product/SocialProofStrip";
@@ -269,6 +269,8 @@ export default function ProductDetailPage({ slug }: Props) {
   const [saved, setSaved] = useState(false);
   const [leadSheet, setLeadSheet] = useState<"consultation" | "price-inquiry" | null>(null);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [galleryView, setGalleryView] = useState<"images" | "before-after">("images");
+  const [countdown, setCountdown] = useState<string | null>(null);
 
   const product = findProductBySlug(slug);
 
@@ -277,6 +279,25 @@ export default function ProductDetailPage({ slug }: Props) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const expiresAt = product?.expiresAt;
+    if (!expiresAt) return;
+    const compute = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) { setCountdown("پیشنهاد منقضی شده"); return; }
+      const totalSecs = Math.floor(diff / 1000);
+      const days = Math.floor(totalSecs / 86400);
+      if (days > 0) { setCountdown(`${toPersianNumerals(String(days))} روز مانده`); return; }
+      const h = String(Math.floor(totalSecs / 3600)).padStart(2, "0");
+      const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, "0");
+      const s = String(totalSecs % 60).padStart(2, "0");
+      setCountdown(`${toPersianNumerals(h)}:${toPersianNumerals(m)}:${toPersianNumerals(s)} مانده`);
+    };
+    compute();
+    const id = setInterval(compute, 1000);
+    return () => clearInterval(id);
+  }, [product?.expiresAt]);
 
   if (!product) return <ProductNotFound onBack={() => navigate("/")} />;
 
@@ -346,9 +367,45 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       </div>
 
-      {/* ── 2. Gallery ──────────────────────────────────────── */}
+      {/* ── 2. Gallery + before/after hero toggle ──────────── */}
       <div className="-mt-14">
-        <Gallery images={gallery} />
+        {product.beforeAfterImages && product.beforeAfterImages.length > 0 ? (
+          <div>
+            <Gallery images={gallery} />
+            {/* Hero toggle tabs */}
+            <div className="flex gap-2 px-4 py-2 bg-white border-b border-neutral-100 justify-center">
+              {(["images", "before-after"] as const).map(view => (
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => setGalleryView(view)}
+                  className={cn(
+                    "h-8 px-4 rounded-2xl font-vazirmatn text-xs font-medium transition-colors",
+                    galleryView === view
+                      ? "bg-blue-500 text-white"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  )}
+                >
+                  {view === "images" ? "📷 تصاویر" : "✨ قبل / بعد"}
+                </button>
+              ))}
+            </div>
+            {galleryView === "before-after" && (
+              <div className="bg-white px-4 pb-4">
+                {product.beforeAfterImages.map((pair, i) => (
+                  <div key={i} className="mt-3">
+                    {pair.label && (
+                      <p className="font-vazirmatn text-xs text-neutral-600 font-medium mb-2">{pair.label}</p>
+                    )}
+                    <BeforeAfterSection images={[pair]} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Gallery images={gallery} />
+        )}
       </div>
 
       {/* ── 3. Hero — name, category chips, rating ──────────── */}
@@ -414,6 +471,23 @@ export default function ProductDetailPage({ slug }: Props) {
 
       {/* ── 5. Price block ──────────────────────────────────── */}
       <div className="px-4 pt-4 pb-4 bg-white mt-2">
+
+        {/* Expiry countdown banner */}
+        {countdown && (
+          <div className={cn(
+            "flex items-center gap-2 mb-3 px-3.5 py-2.5 rounded-2xl",
+            countdown === "پیشنهاد منقضی شده"
+              ? "bg-neutral-100 text-neutral-500"
+              : "bg-rose-50 text-rose-700"
+          )}>
+            <ClockIcon size={14} className="shrink-0" />
+            <span className="font-iran-yekan-x font-bold text-sm">{countdown}</span>
+            {countdown !== "پیشنهاد منقضی شده" && (
+              <span className="font-vazirmatn text-xs text-rose-500 ms-1">تا پایان پیشنهاد</span>
+            )}
+          </div>
+        )}
+
         <div className="bg-amber-50 rounded-2xl p-4">
           <div className="flex items-end gap-3 mb-2">
             <span className="text-2xl font-iran-yekan-x font-bold text-amber-700">
@@ -441,17 +515,36 @@ export default function ProductDetailPage({ slug }: Props) {
           )}
 
           {product.isInstallmentAvailable && product.installmentMonths && (
-            <div className="mt-2">
-              <InstallmentBadge
-                months={product.installmentMonths}
-                price={product.price}
-                size="sm"
-              />
-              {product.installmentProvider && (
-                <span className="font-vazirmatn text-xs text-neutral-500 ms-2">
-                  از طریق {product.installmentProvider}
-                </span>
-              )}
+            <div className="mt-3 bg-blue-50 rounded-2xl p-3.5">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <CheckCircleIcon size={14} className="text-blue-600 shrink-0" />
+                <span className="font-iran-yekan-x font-bold text-blue-700 text-sm">خرید اقساطی</span>
+                {product.installmentProvider && (
+                  <span className="font-vazirmatn text-[11px] text-blue-400 ms-auto">از طریق {product.installmentProvider}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <div className="bg-white rounded-xl p-2.5 text-center">
+                  <p className="font-iran-yekan-x font-bold text-sm text-blue-700">
+                    {toPersianNumerals(String(product.installmentMonths))} ماه
+                  </p>
+                  <p className="font-vazirmatn text-[9px] text-neutral-400 mt-0.5">تعداد اقساط</p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 text-center">
+                  <p className="font-iran-yekan-x font-bold text-sm text-amber-700">
+                    {formatPrice(Math.ceil(product.price / product.installmentMonths))}
+                  </p>
+                  <p className="font-vazirmatn text-[9px] text-neutral-400 mt-0.5">هر قسط / ماه</p>
+                </div>
+                <div className="bg-white rounded-xl p-2.5 text-center">
+                  <p className="font-iran-yekan-x font-bold text-sm text-neutral-700">
+                    {product.installmentDownPayment
+                      ? formatPrice(product.installmentDownPayment)
+                      : toPersianNumerals("0")}
+                  </p>
+                  <p className="font-vazirmatn text-[9px] text-neutral-400 mt-0.5">پیش‌پرداخت</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -471,13 +564,6 @@ export default function ProductDetailPage({ slug }: Props) {
           {product.description}
         </p>
       </div>
-
-      {/* ── 8. Before / After ───────────────────────────────── */}
-      {product.beforeAfterImages && product.beforeAfterImages.length > 0 && (
-        <div className="mt-2">
-          <BeforeAfterSection images={product.beforeAfterImages} />
-        </div>
-      )}
 
       {/* ── 9. Specifications ───────────────────────────────── */}
       {specs.length > 0 && (
