@@ -13,6 +13,9 @@ import { CheckIcon, PlusIcon, CloseIcon } from "@/components/icons";
 /* ─── FAQ form item ───────────────────────────────────── */
 interface FAQItem { question: string; answer: string }
 
+/* ─── Before/after pair ──────────────────────────────── */
+interface BeforeAfterPair { label: string; beforeUrl: string; afterUrl: string }
+
 /* ─── Form types ──────────────────────────────────────── */
 interface ProductFormValues {
   /* Basic */
@@ -37,9 +40,11 @@ interface ProductFormValues {
   installmentMonths: "3" | "6" | "12";
   installmentProvider: string;
   installmentDownPayment: string;
+  installmentMonthlyAmount: string;
 
   /* Media */
   images: GalleryImage[];
+  beforeAfterPairs: BeforeAfterPair[];
 
   /* Rich content */
   benefits: string[];
@@ -80,7 +85,9 @@ const EMPTY: ProductFormValues = {
   inventoryStatus: "in-stock", stockCount: "",
   isInstallmentAvailable: false, installmentMonths: "3",
   installmentProvider: "", installmentDownPayment: "",
+  installmentMonthlyAmount: "",
   images: [],
+  beforeAfterPairs: [],
   benefits: [], eligibleGroups: [], faqs: [], terms: "",
   phone: "", whatsapp: "", city: "",
   isPublished: false, isFeatured: false, isNew: false,
@@ -176,6 +183,64 @@ function TagInput({ tags, onAdd, onRemove, placeholder, color = "blue" }: {
         placeholder={tags.length === 0 ? placeholder : ""}
         className="flex-1 min-w-[100px] outline-none font-vazirmatn text-sm placeholder:text-neutral-400 bg-transparent"
       />
+    </div>
+  );
+}
+
+/* ─── Before/after editor ─────────────────────────────── */
+function BeforeAfterEditor({ pairs, onChange }: { pairs: BeforeAfterPair[]; onChange: (v: BeforeAfterPair[]) => void }) {
+  const add = () => onChange([...pairs, { label: "", beforeUrl: "", afterUrl: "" }]);
+  const remove = (i: number) => onChange(pairs.filter((_, idx) => idx !== i));
+  const update = (i: number, key: keyof BeforeAfterPair, val: string) =>
+    onChange(pairs.map((p, idx) => idx === i ? { ...p, [key]: val } : p));
+
+  return (
+    <div className="space-y-3">
+      {pairs.map((pair, i) => (
+        <div key={i} className="bg-neutral-50 rounded-xl p-4 space-y-3 relative">
+          <button type="button"
+            className="absolute top-3 end-3 w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition-colors"
+            onClick={() => remove(i)} aria-label="حذف جفت">
+            <CloseIcon size={12} />
+          </button>
+          <input
+            value={pair.label}
+            onChange={e => update(i, "label", e.target.value)}
+            placeholder={`برچسب مثال: قبل و بعد از ${toPersianNumerals(i + 1)}`}
+            className="w-full h-9 px-3 font-vazirmatn text-sm bg-white border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            {(["beforeUrl", "afterUrl"] as const).map((key) => (
+              <div key={key} className="space-y-1">
+                <p className="font-vazirmatn text-[10px] text-neutral-500">
+                  {key === "beforeUrl" ? "قبل" : "بعد"}
+                </p>
+                <div className="h-16 rounded-xl bg-neutral-200 border-2 border-dashed border-neutral-300 flex items-center justify-center overflow-hidden relative">
+                  {pair[key] ? (
+                    <div className="absolute inset-0" style={{ background: pair[key] }} />
+                  ) : (
+                    <span className="text-neutral-400 text-xs font-vazirmatn">
+                      {key === "beforeUrl" ? "📷 قبل" : "✨ بعد"}
+                    </span>
+                  )}
+                </div>
+                <input
+                  value={pair[key]}
+                  onChange={e => update(i, key, e.target.value)}
+                  placeholder="URL یا gradient..."
+                  className="w-full h-7 px-2 font-vazirmatn text-[10px] bg-white border border-neutral-200 rounded-lg outline-none focus:border-blue-500 transition-all"
+                  dir="ltr"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={add}
+        className="w-full h-10 rounded-xl border border-dashed border-purple-300 text-purple-600 text-sm font-vazirmatn font-medium flex items-center justify-center gap-2 hover:bg-purple-50 transition-colors">
+        <PlusIcon size={15} />
+        افزودن جفت قبل/بعد
+      </button>
     </div>
   );
 }
@@ -441,6 +506,27 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
                       placeholder="۰" dir="ltr" />
                   </Field>
                 </div>
+
+                <Field label="مبلغ هر قسط (تومان)" hint="می‌توانید مقدار پیش‌فرض محاسبه‌شده را ویرایش کنید">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={values.installmentMonthlyAmount}
+                      onChange={e => set("installmentMonthlyAmount", e.target.value)}
+                      placeholder={
+                        values.price && Number(values.installmentMonths) > 0
+                          ? String(Math.ceil(Number(values.price) / Number(values.installmentMonths)))
+                          : "محاسبه خودکار"
+                      }
+                      dir="ltr"
+                    />
+                    {!values.installmentMonthlyAmount && values.price && (
+                      <p className="font-iran-yekan-x text-[10px] text-blue-500 mt-1">
+                        محاسبه خودکار: {formatPrice(Math.ceil(Number(values.price) / Number(values.installmentMonths)))} تومان / ماه
+                      </p>
+                    )}
+                  </div>
+                </Field>
               </div>
             )}
           </Section>
@@ -565,6 +651,17 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
               images={values.images}
               onChange={imgs => set("images", imgs)}
               maxImages={6}
+            />
+          </Section>
+
+          {/* Before/After */}
+          <Section title="تصاویر قبل و بعد">
+            <p className="font-vazirmatn text-xs text-neutral-400 -mt-2">
+              برای محصولاتی که نتیجه قبل/بعد دارند مفید است
+            </p>
+            <BeforeAfterEditor
+              pairs={values.beforeAfterPairs}
+              onChange={v => set("beforeAfterPairs", v)}
             />
           </Section>
 

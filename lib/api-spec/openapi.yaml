@@ -576,6 +576,12 @@ components:
           type: string
         description:
           type: string
+        businessName:
+          type: string
+          description: Display name of the owning business (required for DB insert)
+        businessVerified:
+          type: boolean
+          description: Whether the business has been verified
         category:
           type: string
         subcategory:
@@ -646,6 +652,7 @@ components:
         - name
         - category
         - price
+        - businessName
 
     UpdateProductBody:
       type: object

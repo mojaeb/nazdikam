@@ -26,7 +26,14 @@ export function requireOwnerOf(businessIdParam = "businessId") {
     }
 
     const businessId = String(req.params[businessIdParam]);
-    const secret     = process.env["SESSION_SECRET"] ?? "";
+    const secret     = process.env["SESSION_SECRET"];
+
+    if (!secret) {
+      res.status(500).json({
+        error: { code: "CONFIG_ERROR", message: "Server authentication is not configured" },
+      });
+      return;
+    }
 
     const expected = createHmac("sha256", secret).update(businessId).digest("hex");
 

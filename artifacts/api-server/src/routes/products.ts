@@ -195,7 +195,10 @@ router.patch("/businesses/:businessId/products/:productId", requireOwnerOf(), as
     return;
   }
 
-  const updateSchema = insertProductSchema.partial();
+  // Ownership fields must never be changed via PATCH — strip them from the allowed schema.
+  const updateSchema = insertProductSchema
+    .omit({ businessId: true, businessName: true, businessVerified: true })
+    .partial();
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(422).json({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });

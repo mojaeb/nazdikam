@@ -128,6 +128,10 @@ export interface CreateProductBody {
   slug: string;
   name: string;
   description?: string;
+  /** Display name of the owning business (required for DB insert) */
+  businessName: string;
+  /** Whether the business has been verified */
+  businessVerified?: boolean;
   category: string;
   subcategory?: string;
   tags?: string[];

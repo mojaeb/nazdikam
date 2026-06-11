@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { cn, formatPrice, toPersianNumerals } from "@/lib/utils";
-import { StoreIcon } from "@/components/icons";
+import { StoreIcon, VerifiedIcon } from "@/components/icons";
 import { PriceDisplay } from "./PriceDisplay";
+import { InstallmentBadge } from "./InstallmentBadge";
 import { SaveButton } from "@/components/business/SaveButton";
 import type { Product } from "@/lib/product.types";
 import { getSavingsAmount } from "@/lib/product.types";
@@ -127,14 +128,22 @@ export function ProductCardDeal({
           )}
         </div>
 
-        {/* Business identity + city */}
+        {/* Business identity + city + verified */}
         <div className="flex items-center gap-1 text-neutral-400">
           <StoreIcon size={10} className="text-blue-400 shrink-0" />
           <span className="text-[10px] font-vazirmatn truncate flex-1">{product.businessName}</span>
+          {product.businessVerified && (
+            <VerifiedIcon size={10} className="text-blue-500 shrink-0" />
+          )}
           {product.city && (
             <span className="text-[9px] font-vazirmatn text-neutral-400 shrink-0">📍 {product.city}</span>
           )}
         </div>
+
+        {/* Installment */}
+        {product.isInstallmentAvailable && product.installmentMonths && (
+          <InstallmentBadge months={product.installmentMonths} size="xs" />
+        )}
 
         {/* Tags */}
         {product.tags && product.tags.length > 0 && (

@@ -405,6 +405,8 @@ export const CreateBusinessProductBody = zod.object({
   "slug": zod.string(),
   "name": zod.string(),
   "description": zod.string().optional(),
+  "businessName": zod.string().describe('Display name of the owning business (required for DB insert)'),
+  "businessVerified": zod.boolean().optional().describe('Whether the business has been verified'),
   "category": zod.string(),
   "subcategory": zod.string().optional(),
   "tags": zod.array(zod.string()).optional(),

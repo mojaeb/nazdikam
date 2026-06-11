@@ -155,6 +155,25 @@ export function ProductCardFeatured({
             size="sm"
           />
         )}
+
+        {/* Social proof micro-strip */}
+        {product.socialProof && product.socialProof.purchases > 0 && (
+          <div className="flex items-center gap-3 pt-1 border-t border-neutral-100">
+            <span className="text-[10px] font-vazirmatn text-emerald-600 font-medium">
+              🛒 {product.socialProof.purchases.toLocaleString()} خرید
+            </span>
+            {product.socialProof.saves > 0 && (
+              <span className="text-[10px] font-vazirmatn text-neutral-400">
+                🔖 {product.socialProof.saves}
+              </span>
+            )}
+            {product.followerCount && product.followerCount > 0 ? (
+              <span className="text-[10px] font-vazirmatn text-neutral-400">
+                👥 {product.followerCount}
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
     </motion.article>
   );

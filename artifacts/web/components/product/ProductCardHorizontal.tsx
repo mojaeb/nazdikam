@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { StoreIcon, VerifiedIcon } from "@/components/icons";
 import { PriceDisplay } from "./PriceDisplay";
 import { InventoryBadge } from "./InventoryBadge";
+import { InstallmentBadge } from "./InstallmentBadge";
 import { SaveButton } from "@/components/business/SaveButton";
 import { RatingRow } from "@/components/business/RatingRow";
 import type { Product } from "@/lib/product.types";
@@ -93,6 +94,9 @@ export function ProductCardHorizontal({
             size="xs"
             showStars={false}
           />
+          {product.isInstallmentAvailable && product.installmentMonths && (
+            <InstallmentBadge months={product.installmentMonths} size="xs" />
+          )}
           {product.inventoryStatus !== "in-stock" && (
             <InventoryBadge
               status={product.inventoryStatus}
