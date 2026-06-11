@@ -24,3 +24,9 @@ id = "ws3KMCPNFv33ks3YhHN61"
 uri = "file://attached_assets/architecture/DESIGN_GAP_REPORT.md"
 type = "text"
 title = "نزدیکام — Design Gap Report"
+
+[[outputs]]
+id = "qC6xe3ytogTB9YUpdbdC9"
+uri = "file://attached_assets/architecture/VISUAL_REDESIGN_SPECIFICATION.md"
+type = "text"
+title = "نزدیکام — Visual Redesign Specification"
