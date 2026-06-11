@@ -40,7 +40,7 @@ export function DesktopFeaturedProducts() {
               transition={{ delay: i * 0.06, duration: 0.35 }}
               whileHover={{ y: -4 }}
             >
-              <ProductCardStandard product={p} className="w-full" />
+              <ProductCardStandard product={p} className="w-full" onPress={() => navigate(`/products/${p.slug}`)} />
             </motion.div>
           ))}
         </div>

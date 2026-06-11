@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ProductCardStandard } from "@/components/product/ProductCardStandard";
@@ -24,6 +25,7 @@ export function PopularProductsSection({
   products,
   onViewAll,
 }: PopularProductsSectionProps) {
+  const [, navigate] = useLocation();
   if (products.length === 0) return null;
 
   return (
@@ -55,7 +57,7 @@ export function PopularProductsSection({
             viewport={{ once: true }}
             transition={{ delay: i * 0.06 }}
           >
-            <ProductCardStandard product={p} />
+            <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
           </motion.div>
         ))}
       </div>

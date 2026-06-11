@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ProductCardStandard } from "@/components/product/ProductCardStandard";
@@ -22,6 +23,7 @@ export function FeaturedProductsSection({
   onViewAll,
   actionLabel = "همه",
 }: FeaturedProductsSectionProps) {
+  const [, navigate] = useLocation();
   if (products.length === 0) return null;
 
   return (
@@ -53,7 +55,7 @@ export function FeaturedProductsSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
             >
-              <ProductCardStandard product={p} className="w-full" />
+              <ProductCardStandard product={p} className="w-full" onPress={() => navigate(`/products/${p.slug}`)} />
             </motion.div>
           ))}
         </div>
@@ -67,7 +69,7 @@ export function FeaturedProductsSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
             >
-              <ProductCardHorizontal product={p} />
+              <ProductCardHorizontal product={p} onPress={() => navigate(`/products/${p.slug}`)} />
             </motion.div>
           ))}
         </div>
@@ -82,7 +84,7 @@ export function FeaturedProductsSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.06 }}
             >
-              <ProductCardStandard product={p} />
+              <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
             </motion.div>
           ))}
         </div>

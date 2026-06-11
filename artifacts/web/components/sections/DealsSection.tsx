@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ProductCardDeal } from "@/components/product/ProductCardDeal";
@@ -17,6 +18,7 @@ function ClockCountdownIcon() {
 }
 
 export function DealsSection() {
+  const [, navigate] = useLocation();
   return (
     <motion.section
       className="pb-6"
@@ -57,6 +59,7 @@ export function DealsSection() {
             <ProductCardDeal
               product={product}
               countdown={COUNTDOWNS[i % COUNTDOWNS.length]}
+              onPress={() => navigate(`/products/${product.slug}`)}
             />
           </motion.div>
         ))}

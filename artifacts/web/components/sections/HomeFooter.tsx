@@ -1,14 +1,17 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
-const footerLinks = [
-  { label: "درباره ما", href: "#" },
-  { label: "تماس با ما", href: "#" },
-  { label: "قوانین", href: "#" },
-  { label: "راهنما", href: "#" },
-  { label: "ثبت کسب‌وکار", href: "#" },
+const FOOTER_LINKS = [
+  { label: "درباره ما", path: "/about" },
+  { label: "تماس با ما", path: "/contact" },
+  { label: "قوانین", path: "/terms" },
+  { label: "راهنما", path: "/help" },
+  { label: "ثبت کسب‌وکار", path: "/dashboard" },
 ];
 
 export function HomeFooter() {
+  const [, navigate] = useLocation();
+
   return (
     <motion.footer
       className="bg-neutral-900 text-white px-4 py-8 space-y-6"
@@ -31,21 +34,26 @@ export function HomeFooter() {
           <p className="text-sm font-iran-yekan-x font-bold text-white">کسب‌وکار دارید؟</p>
           <p className="text-[11px] font-vazirmatn text-white/70 mt-0.5">رایگان ثبت کنید</p>
         </div>
-        <button className="bg-white text-blue-700 text-xs font-vazirmatn font-bold px-4 py-2 rounded-xl">
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard")}
+          className="bg-white text-blue-700 text-xs font-vazirmatn font-bold px-4 py-2 rounded-xl"
+        >
           ثبت‌نام
         </button>
       </div>
 
       {/* Links */}
       <div className="grid grid-cols-3 gap-2">
-        {footerLinks.map(link => (
-          <a
+        {FOOTER_LINKS.map(link => (
+          <button
             key={link.label}
-            href={link.href}
-            className="text-[11px] font-vazirmatn text-neutral-400 hover:text-white transition-colors py-1"
+            type="button"
+            onClick={() => navigate(link.path)}
+            className="text-[11px] font-vazirmatn text-neutral-400 hover:text-white transition-colors py-1 text-start"
           >
             {link.label}
-          </a>
+          </button>
         ))}
       </div>
 

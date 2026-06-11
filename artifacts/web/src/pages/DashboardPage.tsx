@@ -65,6 +65,7 @@ const KPI_ICONS = [LeadsIcon, EyeIcon, PackageIcon, StarSmIcon, PercentIcon];
 
 /* ─── Welcome Section ─────────────────────────────────── */
 function WelcomeSection() {
+  const [, navigate] = useLocation();
   const biz = mockDashboardBusiness;
   const sub = mockSubscription;
 
@@ -101,17 +102,16 @@ function WelcomeSection() {
         </div>
 
         {/* View public listing CTA */}
-        <a
-          href={`/businesses/${biz.slug}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => navigate(`/businesses/${biz.slug}`)}
           className="hidden lg:flex items-center gap-1.5 shrink-0 h-9 px-4 rounded-xl border border-neutral-200 hover:bg-neutral-50 transition-colors font-vazirmatn text-sm text-neutral-600"
         >
           مشاهده صفحه عمومی
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
           </svg>
-        </a>
+        </button>
       </div>
     </motion.div>
   );

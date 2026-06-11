@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TagIcon } from "@/components/icons";
@@ -9,6 +10,7 @@ const newProds = getNewProducts().slice(0, 3);
 const allCards = [...featured, ...newProds].slice(0, 8);
 
 export function FeaturedProducts() {
+  const [, navigate] = useLocation();
   return (
     <motion.section
       className="pb-6"
@@ -37,7 +39,7 @@ export function FeaturedProducts() {
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: i * 0.06 }}
           >
-            <ProductCardStandard product={product} />
+            <ProductCardStandard product={product} onPress={() => navigate(`/products/${product.slug}`)} />
           </motion.div>
         ))}
       </div>

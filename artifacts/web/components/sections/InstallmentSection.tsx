@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ProductCardFeatured } from "@/components/product/ProductCardFeatured";
@@ -15,6 +16,7 @@ function CreditCardIcon() {
 }
 
 export function InstallmentSection() {
+  const [, navigate] = useLocation();
   return (
     <motion.section
       className="pb-6"
@@ -54,7 +56,7 @@ export function InstallmentSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: i * 0.07 }}
           >
-            <ProductCardFeatured product={product} />
+            <ProductCardFeatured product={product} onPress={() => navigate(`/products/${product.slug}`)} />
           </motion.div>
         ))}
       </div>

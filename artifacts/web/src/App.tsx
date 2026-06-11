@@ -7,6 +7,20 @@ import CategoryDetailPage from "./pages/CategoryDetailPage";
 import DesktopHomePage from "./pages/DesktopHomePage";
 import DashboardPage from "./pages/DashboardPage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import MapPage from "./pages/MapPage";
+import AccountPage from "./pages/AccountPage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import HelpPage from "./pages/HelpPage";
+import TermsPage from "./pages/TermsPage";
+
+function SmartHome() {
+  if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+    return <DesktopHomePage />;
+  }
+  return <Home />;
+}
 
 function NotFound() {
   return (
@@ -22,7 +36,7 @@ function NotFound() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={SmartHome} />
       <Route path="/search" component={SearchPage} />
       <Route path="/categories">
         {() => <CategoriesPage />}
@@ -33,6 +47,15 @@ function Router() {
       <Route path="/businesses/:slug">
         {(params) => <BusinessProfilePage slug={params?.slug ?? ""} />}
       </Route>
+      <Route path="/products/:slug">
+        {(params) => <ProductDetailPage slug={params?.slug ?? ""} />}
+      </Route>
+      <Route path="/map" component={MapPage} />
+      <Route path="/account" component={AccountPage} />
+      <Route path="/about" component={AboutPage} />
+      <Route path="/contact" component={ContactPage} />
+      <Route path="/help" component={HelpPage} />
+      <Route path="/terms" component={TermsPage} />
       <Route path="/desktop" component={DesktopHomePage} />
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/dashboard/*" component={DashboardPage} />

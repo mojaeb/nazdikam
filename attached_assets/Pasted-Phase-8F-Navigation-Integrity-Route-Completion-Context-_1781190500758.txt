@@ -1,0 +1,273 @@
+Phase 8F — Navigation Integrity & Route Completion
+
+Context
+
+The platform already has:
+
+* Home Page
+* Search Experience
+* Category System
+* Business Profile Pages
+* Desktop Homepage
+* Dashboard
+* Leads Management
+* Analytics
+* Reviews
+* Notifications
+
+A complete route audit has identified several navigation dead-ends and missing routes that prevent a complete buyer journey.
+
+This phase is NOT a redesign.
+
+This phase is focused entirely on navigation integrity, route completion, and buyer-flow continuity.
+
+==================================================
+OBJECTIVE
+=========
+
+Eliminate all major dead ends.
+
+A user must be able to complete:
+
+Discover
+→ Search
+→ Open Business
+→ Open Product
+→ Contact Business
+→ Generate Lead
+
+without encountering a non-functional screen.
+
+==================================================
+PART 1 — PRODUCT DETAIL SYSTEM
+==============================
+
+Create a complete Product Detail experience.
+
+Route:
+
+/products/:slug
+
+Requirements:
+
+Hero Gallery
+
+* main image
+* thumbnail gallery
+* image counter
+
+Trust Signals
+
+* inventory status
+* installment badge
+* discount badge
+
+Pricing Block
+
+* current price
+* original price
+* savings amount
+* discount percentage
+
+Business Strip
+
+* business identity
+* verification badge
+* rating
+* navigate to business profile
+
+Description
+
+* long description
+* features
+* tags
+
+Specifications
+
+* key/value list
+
+Actions
+
+* call seller
+* WhatsApp
+* save
+* share
+* consultation request
+* price inquiry
+
+Related Content
+
+* similar products
+* more products from same business
+
+Lead forms must reuse the existing lead architecture.
+
+==================================================
+PART 2 — PRODUCT CARD NAVIGATION
+================================
+
+Audit the entire codebase.
+
+Every product card must navigate to:
+
+/products/:slug
+
+including:
+
+* ProductCardStandard
+* ProductCardFeatured
+* ProductCardHorizontal
+* ProductCardCompact
+* ProductCardDeal
+
+Audit every location where those cards are rendered.
+
+No product card should remain a dead end.
+
+==================================================
+PART 3 — SEARCH COMPLETION
+==========================
+
+Audit SearchPage.
+
+Business search results:
+
+navigate to:
+
+/businesses/:slug
+
+Product search results:
+
+navigate to:
+
+/products/:slug
+
+Preserve:
+
+* filters
+* tabs
+* sorting
+* search state
+* animations
+
+==================================================
+PART 4 — DESKTOP COMPLETION
+===========================
+
+Audit Desktop Homepage.
+
+Fix all unwired business cards.
+
+Fix all unwired product cards.
+
+Desktop users should not be trapped in mobile-only flows.
+
+Implement a clean responsive strategy so desktop visitors can access the desktop experience.
+
+Do not break mobile behavior.
+
+==================================================
+PART 5 — MAP ROUTE
+==================
+
+Create:
+
+/map
+
+Use existing business data.
+
+Include:
+
+* search
+* province filter
+* category filter
+* map placeholder
+* nearby businesses
+
+Business cards must navigate correctly.
+
+Mobile-first.
+
+==================================================
+PART 6 — ACCOUNT ROUTE
+======================
+
+Create:
+
+/account
+
+Sections:
+
+* profile summary
+* saved businesses
+* saved products
+* recent searches
+
+Add a clear seller CTA:
+
+"ورود به پنل کسب‌وکار"
+
+which navigates to:
+
+/dashboard
+
+==================================================
+PART 7 — FOOTER COMPLETION
+==========================
+
+Create:
+
+/about
+/contact
+/help
+/terms
+
+Update HomeFooter.
+
+Remove all placeholder links.
+
+Every footer link must resolve to a real route.
+
+==================================================
+PART 8 — ROUTE AUDIT VALIDATION
+===============================
+
+Before finishing:
+
+Verify:
+
+* no broken route remains
+* no product card remains unwired
+* no business card remains unwired
+* BottomNav contains no 404 destinations
+* Desktop navigation works
+* Search navigation works
+* Footer navigation works
+
+==================================================
+TECHNICAL REQUIREMENTS
+======================
+
+* Reuse existing design system
+* Reuse existing cards
+* Reuse existing lead architecture
+* Reuse existing mock data where possible
+* RTL support
+* Responsive behavior
+* Framer Motion animations
+* TypeScript strict mode
+* Zero type errors
+
+==================================================
+DELIVERABLE
+===========
+
+Provide:
+
+1. Files created
+2. Files modified
+3. Routes added
+4. Navigation issues resolved
+5. Remaining known gaps
+6. Final TypeScript status
+7. Updated launch readiness assessment

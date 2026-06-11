@@ -49,7 +49,7 @@ export function DesktopTrendingRail() {
               transition={{ delay: i * 0.07, duration: 0.35 }}
               whileHover={{ y: -4 }}
             >
-              <BusinessCardStandard business={b} className="w-full" />
+              <BusinessCardStandard business={b} className="w-full" onPress={() => navigate(`/businesses/${b.slug}`)} />
             </motion.div>
           ))}
         </div>
@@ -66,7 +66,7 @@ export function DesktopTrendingRail() {
                 transition={{ delay: i * 0.07 + 0.15, duration: 0.35 }}
                 whileHover={{ y: -4 }}
               >
-                <BusinessCardStandard business={b} className="w-full" />
+                <BusinessCardStandard business={b} className="w-full" onPress={() => navigate(`/businesses/${b.slug}`)} />
               </motion.div>
             ))}
           </div>
