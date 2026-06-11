@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
@@ -25,6 +26,7 @@ export function TrendingBusinessesSection({
   businesses,
   onViewAll,
 }: TrendingBusinessesSectionProps) {
+  const [, navigate] = useLocation();
   if (businesses.length === 0) return null;
 
   return (
@@ -55,7 +57,7 @@ export function TrendingBusinessesSection({
             viewport={{ once: true }}
             transition={{ delay: i * 0.07 }}
           >
-            <BusinessCardHorizontal business={b} />
+            <BusinessCardHorizontal business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
           </motion.div>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StoreIcon } from "@/components/icons";
@@ -9,6 +10,8 @@ const featured = mockBusinesses.filter(b => b.featured);
 const promoted = mockBusinesses.filter(b => b.promoted && !b.featured).slice(0, 4);
 
 export function FeaturedBusinesses() {
+  const [, navigate] = useLocation();
+
   return (
     <motion.section
       className="pb-6"
@@ -37,7 +40,7 @@ export function FeaturedBusinesses() {
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: i * 0.1 }}
           >
-            <BusinessCardFeatured business={business} />
+            <BusinessCardFeatured business={business} onPress={() => navigate(`/businesses/${business.slug}`)} />
           </motion.div>
         ))}
       </div>
@@ -61,7 +64,7 @@ export function FeaturedBusinesses() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: i * 0.07 }}
               >
-                <BusinessCardStandard business={business} />
+                <BusinessCardStandard business={business} onPress={() => navigate(`/businesses/${business.slug}`)} />
               </motion.div>
             ))}
           </div>

@@ -42,7 +42,7 @@ export function DesktopFeaturedBusinesses() {
               transition={{ delay: i * 0.08, duration: 0.4 }}
               whileHover={{ y: -4 }}
             >
-              <BusinessCardFeatured business={b} />
+              <BusinessCardFeatured business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
             </motion.div>
           ))}
         </div>
@@ -59,7 +59,7 @@ export function DesktopFeaturedBusinesses() {
                 transition={{ delay: i * 0.07, duration: 0.35 }}
                 whileHover={{ y: -4 }}
               >
-                <BusinessCardFeatured business={b} />
+                <BusinessCardFeatured business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
               </motion.div>
             ))}
           </div>

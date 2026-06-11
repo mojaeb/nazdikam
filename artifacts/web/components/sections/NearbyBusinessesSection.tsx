@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { BusinessCardStandard } from "@/components/business/BusinessCardStandard";
@@ -17,6 +18,7 @@ export function NearbyBusinessesSection({
   businesses,
   onViewAll,
 }: NearbyBusinessesSectionProps) {
+  const [, navigate] = useLocation();
   if (businesses.length === 0) return null;
 
   return (
@@ -48,7 +50,7 @@ export function NearbyBusinessesSection({
             viewport={{ once: true }}
             transition={{ delay: i * 0.07 }}
           >
-            <BusinessCardStandard business={b} />
+            <BusinessCardStandard business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
           </motion.div>
         ))}
       </div>

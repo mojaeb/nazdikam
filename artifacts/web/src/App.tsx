@@ -6,6 +6,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import CategoryDetailPage from "./pages/CategoryDetailPage";
 import DesktopHomePage from "./pages/DesktopHomePage";
 import DashboardPage from "./pages/DashboardPage";
+import BusinessProfilePage from "./pages/BusinessProfilePage";
 
 function NotFound() {
   return (
@@ -28,6 +29,9 @@ function Router() {
       </Route>
       <Route path="/categories/:slug">
         {(params) => <CategoryDetailPage slug={params?.slug ?? ""} />}
+      </Route>
+      <Route path="/businesses/:slug">
+        {(params) => <BusinessProfilePage slug={params?.slug ?? ""} />}
       </Route>
       <Route path="/desktop" component={DesktopHomePage} />
       <Route path="/dashboard" component={DashboardPage} />

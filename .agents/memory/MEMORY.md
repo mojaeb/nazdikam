@@ -1,0 +1,2 @@
+- [Business profile navigation pattern](business-profile-nav.md) — all business cards have `onPress?: () => void`; wire `navigate('/businesses/${b.slug}')` inside section components using `useLocation`, not via prop-drilling from pages.
+- [TS handler hoisting in components](ts-handler-hoisting.md) — use `const` arrow functions (not `function` declarations) after a type-guard return in React components, or TypeScript cannot narrow the type inside the handlers.

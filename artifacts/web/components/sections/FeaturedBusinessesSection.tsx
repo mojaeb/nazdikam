@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { BusinessCardStandard } from "@/components/business/BusinessCardStandard";
@@ -22,6 +23,7 @@ export function FeaturedBusinessesSection({
   onViewAll,
   actionLabel = "همه",
 }: FeaturedBusinessesSectionProps) {
+  const [, navigate] = useLocation();
   if (businesses.length === 0) return null;
 
   return (
@@ -53,7 +55,7 @@ export function FeaturedBusinessesSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
             >
-              <BusinessCardFeatured business={b} />
+              <BusinessCardFeatured business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
             </motion.div>
           ))}
         </div>
@@ -68,7 +70,7 @@ export function FeaturedBusinessesSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.06 }}
             >
-              <BusinessCardStandard business={b} />
+              <BusinessCardStandard business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
             </motion.div>
           ))}
         </div>

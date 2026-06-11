@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { BusinessCardStandard } from "@/components/business/BusinessCardStandard";
@@ -26,6 +27,7 @@ export function NewBusinessesSection({
   businesses,
   onViewAll,
 }: NewBusinessesSectionProps) {
+  const [, navigate] = useLocation();
   if (businesses.length === 0) return null;
 
   return (
@@ -57,7 +59,7 @@ export function NewBusinessesSection({
             viewport={{ once: true }}
             transition={{ delay: i * 0.07 }}
           >
-            <BusinessCardStandard business={b} />
+            <BusinessCardStandard business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
             {/* "New" badge overlay */}
             <div className="absolute top-2 start-2 h-5 px-2 rounded-lg bg-emerald-500 text-white text-[10px] font-vazirmatn font-bold flex items-center">
               جدید

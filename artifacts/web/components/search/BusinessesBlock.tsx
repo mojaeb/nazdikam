@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { toPersianNumerals } from "@/lib/utils";
 import { BusinessCardStandard } from "@/components/business/BusinessCardStandard";
@@ -19,6 +20,7 @@ interface BusinessesBlockProps {
 }
 
 export function BusinessesBlock({ businesses, onTabChange }: BusinessesBlockProps) {
+  const [, navigate] = useLocation();
   if (businesses.length === 0) return null;
   const preview = businesses.slice(0, 5);
 
@@ -63,7 +65,7 @@ export function BusinessesBlock({ businesses, onTabChange }: BusinessesBlockProp
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.06 }}
           >
-            <BusinessCardStandard business={business} />
+            <BusinessCardStandard business={business} onPress={() => navigate(`/businesses/${business.slug}`)} />
           </motion.div>
         ))}
       </div>
