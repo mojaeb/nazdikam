@@ -11,6 +11,8 @@ import { ProductList } from "@/components/dashboard/products/ProductList";
 import { ProductForm } from "@/components/dashboard/products/ProductForm";
 import { ServiceList } from "@/components/dashboard/services/ServiceList";
 import { ServiceForm } from "@/components/dashboard/services/ServiceForm";
+import { ProfilePage } from "@/components/dashboard/profile/ProfilePage";
+import { SubscriptionPage } from "@/components/dashboard/subscription/SubscriptionPage";
 import {
   mockDashboardBusiness,
   mockDashboardStats,
@@ -189,6 +191,9 @@ function DashboardContent() {
   if (location === "/dashboard/services/new") return <ServiceForm mode="create" />;
   const serviceEditMatch = location.match(/^\/dashboard\/services\/([^/]+)\/edit$/);
   if (serviceEditMatch) return <ServiceForm mode="edit" serviceId={serviceEditMatch[1]} />;
+
+  if (location === "/dashboard/profile") return <ProfilePage />;
+  if (location === "/dashboard/subscription") return <SubscriptionPage />;
 
   const SECTION_LABELS: Record<string, string> = {
     "/dashboard/profile":       "پروفایل کسب‌وکار",
