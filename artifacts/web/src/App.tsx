@@ -2,6 +2,8 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import Home from "./pages/Home";
 import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
+import CategoriesPage from "./pages/CategoriesPage";
+import CategoryDetailPage from "./pages/CategoryDetailPage";
 
 function NotFound() {
   return (
@@ -19,6 +21,12 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/categories">
+        {() => <CategoriesPage />}
+      </Route>
+      <Route path="/categories/:slug">
+        {(params) => <CategoryDetailPage slug={params?.slug ?? ""} />}
+      </Route>
       <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>

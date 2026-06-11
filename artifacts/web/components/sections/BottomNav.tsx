@@ -1,22 +1,31 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { motion } from "framer-motion";
+import { useLocation } from "wouter";
 import { HomeIcon, GridIcon, MapPinIcon, UserIcon } from "@/components/icons";
 
 interface Tab {
   id: string;
   label: string;
+  path: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 const TABS: Tab[] = [
-  { id: "home", label: "خانه", Icon: HomeIcon },
-  { id: "categories", label: "دسته‌بندی‌ها", Icon: GridIcon },
-  { id: "map", label: "نقشه", Icon: MapPinIcon },
-  { id: "account", label: "حساب کاربری", Icon: UserIcon },
+  { id: "home", label: "خانه", path: "/", Icon: HomeIcon },
+  { id: "categories", label: "دسته‌بندی‌ها", path: "/categories", Icon: GridIcon },
+  { id: "map", label: "نقشه", path: "/map", Icon: MapPinIcon },
+  { id: "account", label: "حساب کاربری", path: "/account", Icon: UserIcon },
 ];
 
+function getActiveTab(location: string): string {
+  if (location.startsWith("/categories")) return "categories";
+  if (location.startsWith("/map")) return "map";
+  if (location.startsWith("/account")) return "account";
+  return "home";
+}
+
 export function BottomNav() {
-  const [active, setActive] = useState("home");
+  const [location, navigate] = useLocation();
+  const active = getActiveTab(location);
 
   return (
     <div className="fixed bottom-0 inset-x-0 z-50 pb-safe">
@@ -28,7 +37,7 @@ export function BottomNav() {
               <motion.button
                 key={tab.id}
                 className="flex-1 flex flex-col items-center justify-center gap-1 relative"
-                onClick={() => setActive(tab.id)}
+                onClick={() => navigate(tab.path)}
                 whileTap={{ scale: 0.93 }}
                 transition={{ duration: 0.12 }}
                 aria-label={tab.label}
