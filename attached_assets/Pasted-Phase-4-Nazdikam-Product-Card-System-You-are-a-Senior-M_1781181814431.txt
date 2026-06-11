@@ -1,0 +1,439 @@
+Phase 4 — Nazdikam Product Card System
+
+You are a Senior Marketplace UX Architect and Staff Frontend Engineer.
+
+Context:
+
+Phase 1 — Design System ✅
+Phase 2 — Homepage Mobile ✅
+Phase 3 — Business Card System ✅
+
+Businesses are the primary entity.
+
+Products are secondary entities.
+
+Products must visually belong to businesses.
+
+A product should never visually outrank a featured business.
+
+Use:
+
+* Existing Design Tokens
+* Existing Typography
+* Existing RTL Infrastructure
+* Existing Business Card Language
+* Existing SaveButton patterns
+* Existing RatingRow patterns
+* Primary Brand Color #1860DB
+
+==================================================
+PRODUCT CARD FAMILY
+===================
+
+Create:
+
+1. ProductCardCompact
+2. ProductCardStandard
+3. ProductCardFeatured
+4. ProductCardHorizontal
+5. ProductCardDeal
+
+All cards must share the same visual language.
+
+==================================================
+PRODUCT DATA MODEL
+==================
+
+Create Product interfaces.
+
+Product:
+
+id
+slug
+
+name
+description
+
+businessId
+businessName
+
+category
+subcategory
+
+price
+originalPrice
+
+discountPercent
+
+currency
+
+rating
+reviewCount
+
+image
+gallery
+
+inventoryStatus
+
+isInstallmentAvailable
+
+isFeatured
+
+createdAt
+
+==================================================
+VISUAL HIERARCHY
+================
+
+Priority:
+
+1. Product Image
+2. Price
+3. Product Name
+4. Business Name
+5. Trust Signals
+6. Metadata
+
+Price must be visually stronger than title.
+
+==================================================
+PHOTO-FIRST REQUIREMENT
+=======================
+
+Photo-first design mandatory.
+
+Product image should occupy:
+
+Compact:
+60%+
+
+Standard:
+55%+
+
+Featured:
+65%+
+
+No placeholder color blocks.
+
+Use realistic marketplace imagery.
+
+==================================================
+PRODUCTCARD COMPACT
+===================
+
+Usage:
+
+Homepage rails
+Recommendations
+Related products
+
+Size:
+
+Same footprint philosophy as BusinessCardCompact
+
+Elements:
+
+Image
+Name
+Price
+Business Name
+
+==================================================
+PRODUCTCARD STANDARD
+====================
+
+Usage:
+
+Search Results
+Category Pages
+
+Elements:
+
+Image
+Name
+Price
+
+Original Price
+
+Discount Badge
+
+Business Name
+
+Rating
+
+Save Action
+
+==================================================
+PRODUCTCARD FEATURED
+====================
+
+Premium product presentation.
+
+Use for:
+
+Homepage spotlight
+Promotions
+Campaigns
+
+Elements:
+
+Large image
+
+Price
+
+Original Price
+
+Discount
+
+Installment Badge
+
+Business Identity
+
+Rating
+
+Save Action
+
+Share Action
+
+==================================================
+PRODUCTCARD HORIZONTAL
+======================
+
+Usage:
+
+Search rows
+Mobile lists
+
+Layout:
+
+Image Start
+Content End
+
+Compact density
+
+==================================================
+PRODUCTCARD DEAL
+================
+
+Usage:
+
+Deals Section
+
+Visual Priority:
+
+Discount First
+
+Elements:
+
+Discount Badge
+
+Countdown Placeholder
+
+Current Price
+
+Original Price
+
+Savings Amount
+
+==================================================
+PRICE SYSTEM
+============
+
+Create reusable:
+
+PriceDisplay
+
+Features:
+
+Persian numerals
+
+Current Price
+
+Original Price
+
+Discount
+
+Savings
+
+Installment Support
+
+Sizes:
+
+sm
+md
+lg
+xl
+
+==================================================
+INVENTORY SYSTEM
+================
+
+Create reusable:
+
+InventoryBadge
+
+States:
+
+In Stock
+
+Low Stock
+
+Out of Stock
+
+Pre Order
+
+==================================================
+INSTALLMENT SYSTEM
+==================
+
+Create reusable:
+
+InstallmentBadge
+
+Examples:
+
+3 ماهه
+6 ماهه
+12 ماهه
+
+Brand-aligned styling.
+
+==================================================
+TRUST SIGNALS
+=============
+
+Products inherit trust from businesses.
+
+Display:
+
+Verified Seller
+
+Business Name
+
+Rating
+
+Review Count
+
+==================================================
+ANIMATIONS
+==========
+
+Framer Motion.
+
+Implement:
+
+Image Zoom
+
+Save Toggle
+
+Card Hover Lift
+
+Price Reveal
+
+Discount Badge Entry
+
+Smooth and subtle.
+
+==================================================
+ACCESSIBILITY
+=============
+
+Keyboard navigation
+
+ARIA labels
+
+Focus states
+
+Screen-reader support
+
+==================================================
+RTL
+===
+
+RTL only.
+
+Use logical properties.
+
+No left/right assumptions.
+
+==================================================
+HOMEPAGE INTEGRATION
+====================
+
+Replace existing homepage product placeholders.
+
+Update:
+
+Featured Products
+
+Deals Section
+
+Installment Section
+
+Use real Product Card variants.
+
+==================================================
+MOCK DATA
+=========
+
+Create rich product mock data.
+
+At least:
+
+30 products
+
+Connected to existing businesses.
+
+Mazandaran
+
+Gilan
+
+Golestan
+
+Categories:
+
+Food
+Handmade
+Fashion
+Home
+Services-related products
+
+==================================================
+DELIVERABLES
+============
+
+Generate:
+
+1. Product interfaces
+
+2. Product mock data
+
+3. PriceDisplay
+
+4. InventoryBadge
+
+5. InstallmentBadge
+
+6. ProductCardCompact
+
+7. ProductCardStandard
+
+8. ProductCardFeatured
+
+9. ProductCardHorizontal
+
+10. ProductCardDeal
+
+Integrate homepage sections.
+
+Provide:
+
+* Files created
+* Files modified
+* Reusability assessment
+* Design quality assessment
+* Readiness score for Phase 5
+
+Do NOT start Search Results.
+
+Only complete Product Card System.

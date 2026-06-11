@@ -1,8 +1,12 @@
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ProductCard } from "@/components/cards/ProductCard";
-import { featuredProducts } from "@/lib/mock-data";
 import { TagIcon } from "@/components/icons";
+import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { getFeaturedProducts, getNewProducts } from "@/lib/mock-products";
+
+const featured = getFeaturedProducts();
+const newProds = getNewProducts().slice(0, 3);
+const allCards = [...featured, ...newProds].slice(0, 8);
 
 export function FeaturedProducts() {
   return (
@@ -24,15 +28,16 @@ export function FeaturedProducts() {
       </div>
 
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x">
-        {featuredProducts.map((product, i) => (
+        {allCards.map((product, i) => (
           <motion.div
             key={product.id}
+            className="snap-start"
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.35, delay: i * 0.07 }}
+            transition={{ duration: 0.35, delay: i * 0.06 }}
           >
-            <ProductCard product={product} />
+            <ProductCardStandard product={product} />
           </motion.div>
         ))}
       </div>

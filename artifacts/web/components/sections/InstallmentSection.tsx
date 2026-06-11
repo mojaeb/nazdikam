@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Badge } from "@/components/ui/badge";
-import { installmentProducts } from "@/lib/mock-data";
+import { ProductCardFeatured } from "@/components/product/ProductCardFeatured";
+import { getInstallmentProducts } from "@/lib/mock-products";
+
+const installmentProducts = getInstallmentProducts().slice(0, 4);
 
 function CreditCardIcon() {
   return (
@@ -42,49 +44,17 @@ export function InstallmentSection() {
       </div>
 
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
-        {installmentProducts.map((item, i) => (
+        {installmentProducts.map((product, i) => (
           <motion.div
-            key={item.id}
-            className="card overflow-hidden w-48 shrink-0 cursor-pointer snap-start"
+            key={product.id}
+            className="snap-start"
+            style={{ minWidth: 280 }}
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: i * 0.07 }}
-            whileTap={{ scale: 0.97 }}
           >
-            {/* Image */}
-            <div
-              className="w-full h-32 relative flex items-center justify-center"
-              style={{ background: item.gradient }}
-            >
-              <span className="text-white/30 text-5xl font-iran-yekan-x font-black">
-                {item.brand.charAt(0)}
-              </span>
-              <div className="absolute top-2.5 start-2.5">
-                <Badge variant="purple-solid" size="xs">اقساطی</Badge>
-              </div>
-            </div>
-
-            <div className="p-3 space-y-2">
-              <p className="text-body-sm font-vazirmatn text-neutral-900 line-clamp-2 leading-snug">
-                {item.name}
-              </p>
-              <p className="text-[10px] text-neutral-400 font-vazirmatn">{item.brand} · {item.category}</p>
-
-              <div className="bg-purple-50 rounded-xl p-2.5 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-purple-600 font-vazirmatn">{item.months} قسط ماهانه</span>
-                  <Badge variant="purple" size="xs">بدون سود</Badge>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-title font-iran-yekan-x text-purple-700">{item.monthlyPrice}</span>
-                  <span className="text-[10px] text-purple-500 font-vazirmatn">تومان/ماه</span>
-                </div>
-                <p className="text-[10px] text-neutral-400 font-vazirmatn">
-                  مجموع: {item.totalPrice} تومان
-                </p>
-              </div>
-            </div>
+            <ProductCardFeatured product={product} />
           </motion.div>
         ))}
       </div>
