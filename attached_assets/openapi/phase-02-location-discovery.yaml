@@ -1,0 +1,2171 @@
+openapi: 3.1.0
+
+info:
+  title: Nazdikam API
+  version: 1.0.0
+  description: |
+    نزدیکام — Local Marketplace API (Phase 2: Location & Discovery)
+    Persian RTL · Mobile-first · Location-based · Northern Iran
+
+    ## Architecture Guardrails (Phase 2)
+
+    ### No Hardcoded Geographical or Categorical Data
+    Province names, city names, category names, and subcategory names are NEVER represented
+    as enums in this spec. All location and category resources are CMS-managed DB records
+    returned by their respective endpoints. Clients MUST use UUIDs as identifiers, never names.
+
+    ### Search Configuration Layer
+    All search behaviour — sort options, ranking weights, radius limits, page sizes, and
+    available filter types — is driven by `GET /search/config`, which reads its values from
+    `system_settings` at runtime. Clients MUST fetch `/search/config` before rendering the
+    search UI, and MUST NOT assume any fixed sort key or filter list.
+
+    ### Ranking Weights
+    All relevance ranking weights are stored in `system_settings` under the `search_weight_*`
+    namespace. No weight value is hardcoded in application code or in this specification.
+    The actual numeric weights are internal to the server; `GET /search/config` exposes only
+    the weight *key names* (not values) so the admin UI can surface them for editing.
+
+    ### Extensible Filters
+    The search filter contract uses an open-ended `filters` object. Future filter fields may be
+    added by Super Admin via the Search Configuration panel without requiring an API version bump.
+    Clients must ignore unknown filter keys returned in responses.
+
+    ### Extensible Search Results
+    `SearchResultItem.type` is a plain string, not an enum. New content types (products,
+    services, discounts, installment plans, videos) will be added in later phases and will
+    appear with new `type` values. Clients must gracefully handle unknown `type` values.
+
+    ## Rate Limiting
+    Rate limit headers are returned on every response:
+    - `X-RateLimit-Limit` — requests allowed in the window
+    - `X-RateLimit-Remaining` — requests remaining in current window
+    - `X-RateLimit-Reset` — Unix timestamp when the window resets
+    - `Retry-After` — seconds to wait (only present on 429 responses)
+
+    ## Error Format
+    All errors return a consistent envelope:
+    ```json
+    {
+      "error": {
+        "code": "SNAKE_CASE_CODE",
+        "message": "Human-readable Persian message",
+        "details": {}
+      }
+    }
+    ```
+
+    ## Cache Behaviour
+    Location and category data change rarely. Responses include `Cache-Control` headers.
+    Cache TTLs are controlled by `system_settings`:
+    - Provinces: system_settings.location_province_cache_ttl_seconds (default: 3600)
+    - Cities: system_settings.location_city_cache_ttl_seconds (default: 3600)
+    - Category tree: system_settings.category_tree_cache_ttl_seconds (default: 1800)
+    - Search config: system_settings.search_config_cache_ttl_seconds (default: 300)
+
+    ## Coordinate Format
+    Geographic coordinates use decimal degrees (WGS-84).
+    Latitude: positive = North, negative = South. Range: -90 to 90.
+    Longitude: positive = East, negative = West. Range: -180 to 180.
+
+servers:
+  - url: /api
+    description: Shared proxy — all paths prefixed with /api
+
+# ─────────────────────────────────────────────────────────
+# SECTION 1 — TAGS
+# ─────────────────────────────────────────────────────────
+tags:
+  - name: Locations
+    description: |
+      CMS-managed province and city resources.
+      All data is database-backed; no names or IDs are hardcoded in the API contract.
+  - name: Categories
+    description: |
+      CMS-managed category and subcategory tree.
+      All data is database-backed; no names or IDs are hardcoded in the API contract.
+  - name: Search
+    description: |
+      Full-text and location-based discovery.
+      All sort options, ranking weights, and filter types are configurable by Super Admin
+      via system_settings without a code deployment.
+
+# ─────────────────────────────────────────────────────────
+# SECTION 2 — COMPONENTS
+# ─────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT issued on successful OTP verification (Phase 1).
+        Pass as: `Authorization: Bearer <token>`
+
+  # ── REUSABLE SCHEMAS ───────────────────────────────────
+  schemas:
+
+    # ── Common ──────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error identifier (SCREAMING_SNAKE_CASE)
+            message:
+              type: string
+              description: Human-readable Persian error message
+            details:
+              type: object
+              additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      required: [page, per_page, total, total_pages]
+      description: Pagination metadata included in all list responses
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number (1-indexed)
+        per_page:
+          type: integer
+          description: |
+            Items per page. Upper bound: system_settings.search_max_per_page (default: 100).
+          examples:
+            - 20
+        total:
+          type: integer
+          description: Total matching records across all pages
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    GeoPoint:
+      type: object
+      required: [lat, lng]
+      description: WGS-84 decimal degree coordinate
+      properties:
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Latitude in decimal degrees
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: Longitude in decimal degrees
+
+    # ── Location Schemas ────────────────────────────────
+    # Province and City are CMS-managed DB records.
+    # NO enum values. NO hardcoded names. Always use UUIDs as identifiers.
+
+    Province:
+      type: object
+      required: [id, name, is_active]
+      description: |
+        CMS-managed province resource.
+        Names are free-form strings set by Super Admin — never use `name` as an identifier.
+        Always use `id` (UUID) for filtering and referencing.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable province identifier. Use this as the foreign key everywhere.
+        name:
+          type: string
+          description: |
+            Province name in Persian, as entered by Super Admin.
+            Display only — never use as an identifier or for filtering.
+          examples:
+            - "مازندران"
+        name_en:
+          type: string
+          nullable: true
+          description: Province name in Latin script, as entered by Super Admin (optional)
+          examples:
+            - "Mazandaran"
+        slug:
+          type: string
+          nullable: true
+          description: |
+            URL-safe identifier generated from name_en by the CMS.
+            May be null if name_en was not provided.
+            For stable URL generation, always prefer `id`.
+          examples:
+            - "mazandaran"
+        is_active:
+          type: boolean
+          description: Inactive provinces are hidden from public-facing endpoints
+          default: true
+        sort_order:
+          type: integer
+          description: Admin-configurable display order (ascending)
+          default: 0
+        city_count:
+          type: integer
+          description: Number of active cities in this province
+          examples:
+            - 28
+        center:
+          $ref: '#/components/schemas/GeoPoint'
+          description: Optional geographic centre point of the province for map rendering
+
+    City:
+      type: object
+      required: [id, name, province_id, is_active]
+      description: |
+        CMS-managed city resource.
+        Names are free-form strings set by Super Admin — never use `name` as an identifier.
+        Always use `id` (UUID) for filtering and referencing.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable city identifier. Use this as the foreign key everywhere.
+        name:
+          type: string
+          description: |
+            City name in Persian, as entered by Super Admin.
+            Display only — never use as an identifier or for filtering.
+          examples:
+            - "ساری"
+        name_en:
+          type: string
+          nullable: true
+          description: City name in Latin script, as entered by Super Admin (optional)
+          examples:
+            - "Sari"
+        slug:
+          type: string
+          nullable: true
+          description: URL-safe identifier generated from name_en. For stable URLs, prefer `id`.
+          examples:
+            - "sari"
+        province_id:
+          type: string
+          format: uuid
+          description: Parent province UUID
+        province_name:
+          type: string
+          description: Denormalised province name for display convenience. Use province_id for filtering.
+          examples:
+            - "مازندران"
+        is_active:
+          type: boolean
+          default: true
+        sort_order:
+          type: integer
+          default: 0
+        location:
+          $ref: '#/components/schemas/GeoPoint'
+          description: Optional city centre coordinate for map rendering and proximity calculations
+
+    # ── Category Schemas ────────────────────────────────
+    # Categories and subcategories are CMS-managed DB records.
+    # NO enum values. NO hardcoded names. Always use UUIDs.
+
+    Category:
+      type: object
+      required: [id, name, depth, is_active]
+      description: |
+        CMS-managed category resource. Supports two levels: root (depth 0) and
+        subcategory (depth 1). Parent–child relationship is expressed via `parent_id`.
+        Names are free-form strings set by Super Admin — never use `name` as an identifier.
+        Always use `id` (UUID) for filtering and referencing.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable category identifier. Use this for all filtering and navigation.
+        name:
+          type: string
+          description: |
+            Category name in Persian, as entered by Super Admin.
+            Display only — never use as an identifier or for filtering.
+          examples:
+            - "رستوران و کافه"
+        name_en:
+          type: string
+          nullable: true
+          description: Category name in Latin script (optional)
+          examples:
+            - "Restaurants & Cafes"
+        slug:
+          type: string
+          nullable: true
+          description: URL-safe slug. For stable routing, always prefer `id`.
+          examples:
+            - "restaurants-cafes"
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            Parent category UUID. Null for root categories (depth 0).
+            Set to a root category's UUID for subcategories (depth 1).
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 1
+          description: |
+            Tree depth. 0 = root category, 1 = subcategory.
+            Maximum depth is system_settings.category_max_depth (default: 1, range 1–5).
+            The schema constraint above reflects the current default; the server validates
+            against the live system_settings value at runtime. When category_max_depth is
+            increased, deeper nodes will appear in responses and clients that ignore unknown
+            depth values will remain forward-compatible.
+          examples:
+            - 0
+            - 1
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Icon image URL for navigation and chips (square, typically 64×64)
+        cover_image_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Hero/banner image URL for category landing pages
+        color:
+          type: string
+          nullable: true
+          description: |
+            Brand colour hex code (e.g. "#FF5722") for UI theming.
+            Set by Super Admin in the CMS.
+          examples:
+            - "#FF5722"
+        is_active:
+          type: boolean
+          default: true
+        sort_order:
+          type: integer
+          default: 0
+        children_count:
+          type: integer
+          description: Number of active subcategories directly under this category
+          examples:
+            - 8
+        business_count:
+          type: integer
+          description: Total active businesses in this category (including subcategories)
+          examples:
+            - 142
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategorySummary'
+          description: |
+            Direct subcategories. Present in `GET /categories/{id}` and `GET /categories/tree`.
+            Absent (omitted, not null) in flat list endpoints.
+
+    CategorySummary:
+      type: object
+      required: [id, name, depth, is_active]
+      description: |
+        Lightweight category representation for use in nested structures.
+        Does not include `children` to prevent infinite nesting.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Display only — never use as identifier
+        name_en:
+          type: string
+          nullable: true
+        slug:
+          type: string
+          nullable: true
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 1
+          description: |
+            Tree depth. 0 = root, 1 = subcategory.
+            Upper bound: system_settings.category_max_depth (default: 1).
+            Schema constraint reflects the current default; server validates against the live value.
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        business_count:
+          type: integer
+
+    # ── Search Schemas ──────────────────────────────────
+
+    SortOption:
+      type: object
+      required: [key, label, is_default]
+      description: |
+        A configurable sort option. The set of available options is stored in
+        system_settings and returned by GET /search/config.
+        Clients MUST NOT hardcode sort keys; always read from /search/config.
+      properties:
+        key:
+          type: string
+          description: |
+            Machine-readable sort identifier. Pass this value as the `sort_by`
+            query parameter. Valid keys are defined entirely by system_settings —
+            this spec does not enumerate them.
+          examples:
+            - "relevance"
+            - "distance"
+            - "rating"
+            - "recency"
+            - "price_asc"
+            - "price_desc"
+        label:
+          type: string
+          description: Persian display label for this sort option
+          examples:
+            - "مرتبط‌ترین"
+            - "نزدیک‌ترین"
+            - "بالاترین امتیاز"
+            - "جدیدترین"
+        label_en:
+          type: string
+          nullable: true
+          description: English display label (optional)
+        is_default:
+          type: boolean
+          description: Whether this is the default sort when none is specified
+        requires_location:
+          type: boolean
+          description: |
+            If true, this sort option only functions when lat/lng is provided.
+            If lat/lng is absent and this sort is requested, server falls back
+            to the default sort.
+          default: false
+
+    FilterDefinition:
+      type: object
+      required: [key, type, label]
+      description: |
+        Describes a single available filter field. The set of available filters is
+        fully controlled by Super Admin via system_settings and returned by
+        GET /search/config. Clients must not hardcode filter field names.
+      properties:
+        key:
+          type: string
+          description: Filter field name to use as a query parameter or in the `filters` object
+          examples:
+            - "category_id"
+            - "subcategory_id"
+            - "province_id"
+            - "city_id"
+            - "has_discount"
+            - "is_verified"
+            - "has_installment"
+        type:
+          type: string
+          description: |
+            Filter value type. Determines the UI widget.
+            NOT an enum — new types may be added via system_settings.
+          examples:
+            - "uuid"
+            - "boolean"
+            - "number_range"
+            - "string"
+        label:
+          type: string
+          description: Persian display label for this filter
+        is_required:
+          type: boolean
+          description: Whether this filter must be provided for valid search requests
+          default: false
+        is_location_scoped:
+          type: boolean
+          description: If true, filtering on this field requires lat/lng to be provided
+          default: false
+
+    RankingWeightKey:
+      type: object
+      required: [key, description]
+      description: |
+        A single ranking weight key name. The actual numeric weight value is
+        stored in system_settings and is NOT exposed to the client — it is
+        only visible in the Super Admin system_settings panel.
+      properties:
+        key:
+          type: string
+          description: The system_settings key name for this weight (e.g. search_weight_text_relevance)
+          examples:
+            - "search_weight_text_relevance"
+            - "search_weight_distance"
+            - "search_weight_rating"
+            - "search_weight_recency"
+            - "search_weight_verified_boost"
+            - "search_weight_subscribed_boost"
+        description:
+          type: string
+          description: Human-readable explanation of what this weight controls
+
+    SearchConfig:
+      type: object
+      required: [default_sort, sort_options, filter_definitions, pagination, location_config]
+      description: |
+        Complete search configuration, read at runtime from system_settings.
+        Clients MUST use this response to build the search UI — never hardcode
+        sort keys, filter names, or pagination limits.
+        Cached for system_settings.search_config_cache_ttl_seconds (default: 300s).
+      properties:
+        default_sort:
+          type: string
+          description: |
+            The sort key used when no `sort_by` is provided.
+            From system_settings.search_default_sort (default: "relevance").
+          examples:
+            - "relevance"
+        sort_options:
+          type: array
+          items:
+            $ref: '#/components/schemas/SortOption'
+          description: |
+            All available sort options, ordered by display priority.
+            Defined in system_settings — may change without an API version bump.
+        filter_definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterDefinition'
+          description: |
+            All supported filter fields for the search endpoint.
+            Defined in system_settings — new filters may be added without breaking clients.
+        pagination:
+          type: object
+          required: [default_per_page, max_per_page]
+          description: Pagination limits from system_settings
+          properties:
+            default_per_page:
+              type: integer
+              description: system_settings.search_default_per_page (default: 20)
+              examples:
+                - 20
+            max_per_page:
+              type: integer
+              description: system_settings.search_max_per_page (default: 100)
+              examples:
+                - 100
+        location_config:
+          type: object
+          required: [default_radius_km, min_radius_km, max_radius_km]
+          description: Location search radius limits from system_settings
+          properties:
+            default_radius_km:
+              type: number
+              description: system_settings.search_default_radius_km (default: 10)
+              examples:
+                - 10
+            min_radius_km:
+              type: number
+              description: system_settings.search_min_radius_km (default: 1)
+              examples:
+                - 1
+            max_radius_km:
+              type: number
+              description: system_settings.search_max_radius_km (default: 100)
+              examples:
+                - 100
+        text_config:
+          type: object
+          description: Text search constraints from system_settings
+          properties:
+            min_length:
+              type: integer
+              description: system_settings.search_text_min_length (default: 2)
+              examples:
+                - 2
+            max_length:
+              type: integer
+              description: system_settings.search_text_max_length (default: 100)
+              examples:
+                - 100
+        suggestion_config:
+          type: object
+          description: Autocomplete constraints from system_settings
+          properties:
+            min_chars:
+              type: integer
+              description: system_settings.search_suggestion_min_chars (default: 2)
+              examples:
+                - 2
+            max_results:
+              type: integer
+              description: system_settings.search_suggestion_max_results (default: 10)
+              examples:
+                - 10
+        ranking_weight_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/RankingWeightKey'
+          description: |
+            The names and descriptions of active ranking weight keys.
+            Used by the Super Admin system_settings panel to surface editable weight fields.
+            Actual weight values are intentionally NOT returned here (internal only).
+
+    SearchResultItem:
+      type: object
+      required: [id, type, title, score]
+      description: |
+        A single search result. The `type` field determines the content category.
+        `type` is a plain string, NOT an enum — new content types will be added in later
+        phases. Clients must gracefully handle unknown `type` values (e.g. render a generic card).
+        Type-specific fields live in `payload`; clients should access only known keys
+        and ignore unknown ones.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique resource identifier
+        type:
+          type: string
+          description: |
+            Content type discriminator. Current known types: "business".
+            Future types to be added in later phases: "product", "service",
+            "discount", "installment", "video". New types will never be a breaking change.
+          examples:
+            - "business"
+        title:
+          type: string
+          description: Primary display text
+        subtitle:
+          type: string
+          nullable: true
+          description: Secondary display line (e.g. city name, business category)
+        description_snippet:
+          type: string
+          nullable: true
+          description: Short excerpt from the full description (max ~160 chars)
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Card image URL
+        province_id:
+          type: string
+          format: uuid
+          nullable: true
+        city_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        subcategory_id:
+          type: string
+          format: uuid
+          nullable: true
+        distance_km:
+          type: number
+          nullable: true
+          description: |
+            Straight-line distance from the search origin point (km).
+            Present only when `lat` and `lng` were provided in the search request.
+        score:
+          type: number
+          format: float
+          description: |
+            Normalised relevance score (0.0–1.0). Computed server-side using
+            weights from system_settings.search_weight_* keys. Not for display.
+        is_verified:
+          type: boolean
+          description: Whether the underlying resource has passed identity verification
+          default: false
+        has_active_subscription:
+          type: boolean
+          description: Whether the business behind this result has an active subscription
+          default: false
+        payload:
+          type: object
+          additionalProperties: true
+          description: |
+            Type-specific fields. Shape depends on `type`.
+            Clients should access only the keys they know about and ignore unknown ones.
+            This field is intentionally open-ended to allow new content type attributes
+            without API version bumps.
+
+    SuggestionItem:
+      type: object
+      required: [id, type, label]
+      description: An autocomplete suggestion
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Resource UUID (use for the subsequent search filter)
+        type:
+          type: string
+          description: |
+            Suggestion category. NOT an enum.
+            Known initial values: "business_name", "category", "city".
+            Future values may be added without API version bumps.
+          examples:
+            - "business_name"
+            - "category"
+            - "city"
+        label:
+          type: string
+          description: Display text (the matched string with potential highlighting markers)
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional context (e.g. city name for a business suggestion)
+
+  # ── REUSABLE PARAMETERS ───────────────────────────────
+  parameters:
+
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: fa
+        enum: [fa, en]
+      description: Response language preference. Defaults to Persian (fa).
+
+    AppVersion:
+      name: X-App-Version
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: '^\d+\.\d+\.\d+$'
+        examples:
+          - "1.0.0"
+      description: |
+        Client app version (semver). See Phase 1 spec for full behaviour.
+        Server may return `426 Upgrade Required` if below minimum supported version.
+
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-indexed)
+
+    PerPageParam:
+      name: per_page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+      description: |
+        Items per page.
+        Maximum: system_settings.search_max_per_page (default: 100).
+        Default: system_settings.search_default_per_page (default: 20).
+
+    ProvinceIdQuery:
+      name: province_id
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: Filter by province UUID. Obtain valid UUIDs from GET /locations/provinces.
+
+    ProvinceIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Province UUID
+
+    CityIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: City UUID
+
+    CategoryIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Category UUID
+
+  # ── REUSABLE RESPONSES ─────────────────────────────────
+  responses:
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: "برای این عملیات باید وارد شوید"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: "مورد مورد نظر یافت نشد"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until requests are allowed again
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RATE_LIMITED
+              message: "تعداد درخواست‌ها بیش از حد مجاز است. لطفاً چند لحظه صبر کنید"
+              details:
+                retry_after_seconds: 30
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: SERVER_ERROR
+              message: "خطای سرور. لطفاً مجدد تلاش کنید"
+
+# ─────────────────────────────────────────────────────────
+# SECTION 3 — PATHS
+# ─────────────────────────────────────────────────────────
+paths:
+
+  # ══════════════════════════════════════════════════════
+  # LOCATIONS — PROVINCES
+  # ══════════════════════════════════════════════════════
+
+  # ────────────────────────────────────────────────────────
+  # GET /locations/provinces
+  # List all active provinces (CMS-managed)
+  # ────────────────────────────────────────────────────────
+  /locations/provinces:
+    get:
+      tags: [Locations]
+      operationId: listProvinces
+      summary: List active provinces
+      description: |
+        Returns all active provinces in display order (sort_order ASC, then name ASC).
+
+        **CMS Note:** Province records are managed exclusively by Super Admin.
+        No province name or ID is hardcoded in this API. The response is the
+        single source of truth for valid province identifiers.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** Response includes Cache-Control headers.
+        TTL: system_settings.location_province_cache_ttl_seconds (default: 3600s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_locations_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+        - name: include_inactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            When true, includes inactive provinces. Requires super_admin role.
+            If requested by a non-admin, returns 403.
+      responses:
+        '200':
+          description: Ordered list of active provinces
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=3600"
+            ETag:
+              schema:
+                type: string
+              description: Entity tag for conditional requests
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Province'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total active province count
+                      cached_at:
+                        type: string
+                        format: date-time
+                        description: When this list was last computed
+              example:
+                data:
+                  - id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                    name: "مازندران"
+                    name_en: "Mazandaran"
+                    slug: "mazandaran"
+                    is_active: true
+                    sort_order: 1
+                    city_count: 28
+                    center:
+                      lat: 36.56
+                      lng: 52.68
+                  - id: "b2c3d4e5-f6a7-8901-bcde-222222222222"
+                    name: "گیلان"
+                    name_en: "Gilan"
+                    slug: "gilan"
+                    is_active: true
+                    sort_order: 2
+                    city_count: 16
+                    center:
+                      lat: 37.28
+                      lng: 49.58
+                meta:
+                  total: 3
+                  cached_at: "2026-06-10T08:00:00Z"
+        '403':
+          description: include_inactive=true requested by non-admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: "دسترسی به این بخش مجاز نیست"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /locations/provinces/:id
+  # Get a single province by UUID
+  # ────────────────────────────────────────────────────────
+  /locations/provinces/{id}:
+    get:
+      tags: [Locations]
+      operationId: getProvince
+      summary: Get province by ID
+      description: |
+        Returns a single province by UUID.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.location_province_cache_ttl_seconds (default: 3600s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_locations_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProvinceIdPath'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Province record
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=3600"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Province'
+              example:
+                data:
+                  id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                  name: "مازندران"
+                  name_en: "Mazandaran"
+                  slug: "mazandaran"
+                  is_active: true
+                  sort_order: 1
+                  city_count: 28
+                  center:
+                    lat: 36.56
+                    lng: 52.68
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ══════════════════════════════════════════════════════
+  # LOCATIONS — CITIES
+  # ══════════════════════════════════════════════════════
+
+  # ────────────────────────────────────────────────────────
+  # GET /locations/cities
+  # List cities, optionally filtered by province
+  # ────────────────────────────────────────────────────────
+  /locations/cities:
+    get:
+      tags: [Locations]
+      operationId: listCities
+      summary: List active cities
+      description: |
+        Returns active cities in display order (sort_order ASC, then name ASC).
+        Strongly recommended to always pass `province_id` — returning all cities
+        without a province filter returns a large payload.
+
+        **CMS Note:** City records are managed exclusively by Super Admin.
+        No city name or ID is hardcoded in this API.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.location_city_cache_ttl_seconds (default: 3600s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_locations_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+        - $ref: '#/components/parameters/ProvinceIdQuery'
+        - name: include_inactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When true, includes inactive cities. Requires super_admin role.
+      responses:
+        '200':
+          description: Ordered list of cities
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=3600"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/City'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      province_id:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: The province_id filter applied, if any
+                      cached_at:
+                        type: string
+                        format: date-time
+              example:
+                data:
+                  - id: "c3d4e5f6-a7b8-9012-cdef-333333333333"
+                    name: "ساری"
+                    name_en: "Sari"
+                    slug: "sari"
+                    province_id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                    province_name: "مازندران"
+                    is_active: true
+                    sort_order: 1
+                    location:
+                      lat: 36.5657
+                      lng: 53.0588
+                  - id: "d4e5f6a7-b8c9-0123-defa-444444444444"
+                    name: "بابل"
+                    name_en: "Babol"
+                    slug: "babol"
+                    province_id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                    province_name: "مازندران"
+                    is_active: true
+                    sort_order: 2
+                    location:
+                      lat: 36.5559
+                      lng: 52.6782
+                meta:
+                  total: 28
+                  province_id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                  cached_at: "2026-06-10T08:00:00Z"
+        '403':
+          description: include_inactive=true requested by non-admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: "دسترسی به این بخش مجاز نیست"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /locations/cities/:id
+  # Get a single city by UUID
+  # ────────────────────────────────────────────────────────
+  /locations/cities/{id}:
+    get:
+      tags: [Locations]
+      operationId: getCity
+      summary: Get city by ID
+      description: |
+        Returns a single city by UUID.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.location_city_cache_ttl_seconds (default: 3600s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_locations_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CityIdPath'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: City record
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=3600"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/City'
+              example:
+                data:
+                  id: "c3d4e5f6-a7b8-9012-cdef-333333333333"
+                  name: "ساری"
+                  name_en: "Sari"
+                  slug: "sari"
+                  province_id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                  province_name: "مازندران"
+                  is_active: true
+                  sort_order: 1
+                  location:
+                    lat: 36.5657
+                    lng: 53.0588
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ══════════════════════════════════════════════════════
+  # CATEGORIES
+  # ══════════════════════════════════════════════════════
+
+  # ────────────────────────────────────────────────────────
+  # GET /categories
+  # List categories (root or children of a parent)
+  # ────────────────────────────────────────────────────────
+  /categories:
+    get:
+      tags: [Categories]
+      operationId: listCategories
+      summary: List categories
+      description: |
+        Returns categories in display order (sort_order ASC, then name ASC).
+
+        **Without `parent_id`:** returns root categories (depth 0) only.
+        **With `parent_id`:** returns subcategories (depth 1) of that parent.
+
+        For the full category tree in a single request, use `GET /categories/tree`.
+
+        **CMS Note:** Category records are managed exclusively by Super Admin.
+        No category name or ID is hardcoded in this API. The response is the
+        single source of truth for valid category identifiers.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.category_tree_cache_ttl_seconds (default: 1800s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_categories_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+        - name: parent_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            When provided, returns subcategories of this parent.
+            When omitted, returns root categories (depth 0).
+        - name: include_inactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: When true, includes inactive categories. Requires super_admin role.
+      responses:
+        '200':
+          description: Ordered list of categories
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=1800"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CategorySummary'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      parent_id:
+                        type: string
+                        format: uuid
+                        nullable: true
+                      cached_at:
+                        type: string
+                        format: date-time
+              example:
+                data:
+                  - id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                    name: "رستوران و کافه"
+                    name_en: "Restaurants & Cafes"
+                    slug: "restaurants-cafes"
+                    parent_id: null
+                    depth: 0
+                    icon_url: "https://cdn.nazdikam.ir/categories/restaurant-icon.svg"
+                    color: "#FF5722"
+                    is_active: true
+                    sort_order: 1
+                    business_count: 142
+                  - id: "f6a7b8c9-d0e1-2345-fabc-666666666666"
+                    name: "خدمات زیبایی"
+                    name_en: "Beauty Services"
+                    slug: "beauty-services"
+                    parent_id: null
+                    depth: 0
+                    icon_url: "https://cdn.nazdikam.ir/categories/beauty-icon.svg"
+                    color: "#E91E63"
+                    is_active: true
+                    sort_order: 2
+                    business_count: 89
+                meta:
+                  total: 12
+                  parent_id: null
+                  cached_at: "2026-06-10T08:00:00Z"
+        '400':
+          description: Invalid parent_id format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: VALIDATION_ERROR
+                  message: "شناسه دسته‌بندی معتبر نیست"
+        '403':
+          description: include_inactive=true requested by non-admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: "دسترسی به این بخش مجاز نیست"
+        '404':
+          description: parent_id provided but not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: CATEGORY_NOT_FOUND
+                  message: "دسته‌بندی یافت نشد"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /categories/tree
+  # Full category tree (root categories + all children)
+  # ────────────────────────────────────────────────────────
+  /categories/tree:
+    get:
+      tags: [Categories]
+      operationId: getCategoryTree
+      summary: Get full category tree
+      description: |
+        Returns the complete category tree: all root categories with their
+        subcategories embedded in a single response.
+        Designed for navigation menu rendering — one call, fully cached.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.category_tree_cache_ttl_seconds (default: 1800s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_categories_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Full category tree
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=1800"
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                    description: Root categories, each with `children` embedded
+                  meta:
+                    type: object
+                    properties:
+                      total_root:
+                        type: integer
+                      total_all:
+                        type: integer
+                        description: Total count including subcategories
+                      cached_at:
+                        type: string
+                        format: date-time
+              example:
+                data:
+                  - id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                    name: "رستوران و کافه"
+                    name_en: "Restaurants & Cafes"
+                    slug: "restaurants-cafes"
+                    parent_id: null
+                    depth: 0
+                    icon_url: "https://cdn.nazdikam.ir/categories/restaurant-icon.svg"
+                    color: "#FF5722"
+                    is_active: true
+                    sort_order: 1
+                    children_count: 4
+                    business_count: 142
+                    children:
+                      - id: "a7b8c9d0-e1f2-3456-abcd-777777777777"
+                        name: "رستوران سنتی"
+                        name_en: "Traditional Restaurant"
+                        slug: "traditional-restaurant"
+                        parent_id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                        depth: 1
+                        icon_url: null
+                        color: null
+                        is_active: true
+                        sort_order: 1
+                        business_count: 38
+                meta:
+                  total_root: 12
+                  total_all: 67
+                  cached_at: "2026-06-10T08:00:00Z"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /categories/:id
+  # Get a single category with its subcategories
+  # ────────────────────────────────────────────────────────
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      operationId: getCategory
+      summary: Get category by ID
+      description: |
+        Returns a single category by UUID with its direct subcategories embedded.
+        Useful for category landing pages.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.category_tree_cache_ttl_seconds (default: 1800s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_categories_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryIdPath'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Category with embedded subcategories
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=1800"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+              example:
+                data:
+                  id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                  name: "رستوران و کافه"
+                  name_en: "Restaurants & Cafes"
+                  slug: "restaurants-cafes"
+                  parent_id: null
+                  depth: 0
+                  icon_url: "https://cdn.nazdikam.ir/categories/restaurant-icon.svg"
+                  cover_image_url: "https://cdn.nazdikam.ir/categories/restaurant-cover.jpg"
+                  color: "#FF5722"
+                  is_active: true
+                  sort_order: 1
+                  children_count: 4
+                  business_count: 142
+                  children:
+                    - id: "a7b8c9d0-e1f2-3456-abcd-777777777777"
+                      name: "رستوران سنتی"
+                      name_en: "Traditional Restaurant"
+                      slug: "traditional-restaurant"
+                      parent_id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                      depth: 1
+                      icon_url: null
+                      color: null
+                      is_active: true
+                      sort_order: 1
+                      business_count: 38
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ════════════════════════════════════════════════════════
+  # SEARCH
+  # ════════════════════════════════════════════════════════
+
+  # ────────────────────────────────────────────────────────
+  # GET /search/config
+  # Runtime search configuration (read from system_settings)
+  # ────────────────────────────────────────────────────────
+  /search/config:
+    get:
+      tags: [Search]
+      operationId: getSearchConfig
+      summary: Get search configuration
+      description: |
+        Returns all runtime-configurable search parameters.
+        Clients MUST fetch this endpoint before rendering the search UI.
+        All sort options, filter definitions, pagination limits, radius limits,
+        and ranking weight key names are returned here.
+
+        **No defaults are hardcoded in this spec.** All values come from
+        system_settings at runtime and can be changed by Super Admin without
+        a code deployment.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Caching:** TTL: system_settings.search_config_cache_ttl_seconds (default: 300s).
+
+        **Rate Limit (global per IP):**
+        system_settings.rate_limit_locations_per_ip_per_minute (default: 120) per minute.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Current search configuration
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=300"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SearchConfig'
+              example:
+                data:
+                  default_sort: "relevance"
+                  sort_options:
+                    - key: "relevance"
+                      label: "مرتبط‌ترین"
+                      label_en: "Most Relevant"
+                      is_default: true
+                      requires_location: false
+                    - key: "distance"
+                      label: "نزدیک‌ترین"
+                      label_en: "Nearest"
+                      is_default: false
+                      requires_location: true
+                    - key: "rating"
+                      label: "بالاترین امتیاز"
+                      label_en: "Top Rated"
+                      is_default: false
+                      requires_location: false
+                    - key: "recency"
+                      label: "جدیدترین"
+                      label_en: "Newest"
+                      is_default: false
+                      requires_location: false
+                  filter_definitions:
+                    - key: "category_id"
+                      type: "uuid"
+                      label: "دسته‌بندی"
+                      is_required: false
+                      is_location_scoped: false
+                    - key: "subcategory_id"
+                      type: "uuid"
+                      label: "زیر دسته"
+                      is_required: false
+                      is_location_scoped: false
+                    - key: "province_id"
+                      type: "uuid"
+                      label: "استان"
+                      is_required: false
+                      is_location_scoped: false
+                    - key: "city_id"
+                      type: "uuid"
+                      label: "شهر"
+                      is_required: false
+                      is_location_scoped: false
+                    - key: "is_verified"
+                      type: "boolean"
+                      label: "تأیید شده"
+                      is_required: false
+                      is_location_scoped: false
+                    - key: "has_discount"
+                      type: "boolean"
+                      label: "دارای تخفیف"
+                      is_required: false
+                      is_location_scoped: false
+                  pagination:
+                    default_per_page: 20
+                    max_per_page: 100
+                  location_config:
+                    default_radius_km: 10
+                    min_radius_km: 1
+                    max_radius_km: 100
+                  text_config:
+                    min_length: 2
+                    max_length: 100
+                  suggestion_config:
+                    min_chars: 2
+                    max_results: 10
+                  ranking_weight_keys:
+                    - key: "search_weight_text_relevance"
+                      description: "وزن تطابق متن جستجو"
+                    - key: "search_weight_distance"
+                      description: "وزن فاصله جغرافیایی"
+                    - key: "search_weight_rating"
+                      description: "وزن امتیاز کسب‌وکار"
+                    - key: "search_weight_recency"
+                      description: "وزن تازگی محتوا"
+                    - key: "search_weight_verified_boost"
+                      description: "ضریب تقویت کسب‌وکار تأیید شده"
+                    - key: "search_weight_subscribed_boost"
+                      description: "ضریب تقویت کسب‌وکار دارای اشتراک"
+                    - key: "search_weight_category_exact_match"
+                      description: "ضریب تقویت تطابق دقیق دسته‌بندی"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /search
+  # Main discovery search endpoint
+  # ────────────────────────────────────────────────────────
+  /search:
+    get:
+      tags: [Search]
+      operationId: search
+      summary: Search and discover local businesses and content
+      description: |
+        Full-text and location-based search across all content types.
+
+        ## Filtering
+        All filter parameters use UUIDs — never names. Valid filter keys are
+        returned by `GET /search/config` and may grow over time without breaking changes.
+
+        ## Sorting
+        `sort_by` accepts any key returned in `GET /search/config` → `sort_options`.
+        The valid set is controlled by system_settings and may change.
+        If an unknown `sort_by` value is provided, the server uses `default_sort`
+        from system_settings.search_default_sort.
+
+        ## Ranking Weights
+        All relevance scoring weights are read from system_settings.search_weight_*
+        at query time. No weight is hardcoded. Super Admin can adjust rankings via
+        the system_settings panel without a code deployment.
+
+        Current weight keys (subject to change via system_settings):
+        - system_settings.search_weight_text_relevance (text match score component)
+        - system_settings.search_weight_distance (proximity score component)
+        - system_settings.search_weight_rating (business rating score component)
+        - system_settings.search_weight_recency (content recency score component)
+        - system_settings.search_weight_verified_boost (multiplier for verified businesses)
+        - system_settings.search_weight_subscribed_boost (multiplier for subscribed businesses)
+        - system_settings.search_weight_category_exact_match (multiplier for exact category match)
+
+        ## Pagination
+        - Default page size: system_settings.search_default_per_page (default: 20)
+        - Maximum page size: system_settings.search_max_per_page (default: 100)
+
+        ## Location-based Search
+        Provide `lat` and `lng` to enable:
+        - Distance calculation per result (`distance_km` field)
+        - Radius filtering (`radius_km`)
+        - Distance-based sorting (`sort_by=distance`)
+
+        Radius limits from system_settings:
+        - Minimum: system_settings.search_min_radius_km (default: 1)
+        - Maximum: system_settings.search_max_radius_km (default: 100)
+        - Default (when lat/lng provided but no radius): system_settings.search_default_radius_km (default: 10)
+
+        ## Extensible Filters
+        Beyond the named filter parameters, a `filters` JSON string may be provided
+        for advanced filtering. Unknown filter keys are silently ignored by the current
+        server version, allowing new filter fields to be added without client breaks.
+
+        **Authorization:** None required. Authenticated users get personalised ranking
+        (e.g. saved-business boost). Guest searches are ranked by general signals only.
+
+        **Text Constraints:**
+        - Min length: system_settings.search_text_min_length (default: 2)
+        - Max length: system_settings.search_text_max_length (default: 100)
+
+        **Rate Limit (per user/IP):**
+        system_settings.rate_limit_search_per_user_per_minute (default: 30) per minute.
+      security:
+        - {}
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Free-text search query.
+            Min length: system_settings.search_text_min_length (default: 2).
+            Max length: system_settings.search_text_max_length (default: 100).
+            Persian and Latin characters accepted.
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Filter by category UUID. Obtain valid UUIDs from GET /categories.
+            NEVER use category names as identifiers.
+        - name: subcategory_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Filter by subcategory UUID (depth-1 category).
+            NEVER use subcategory names as identifiers.
+            If subcategory_id is provided without category_id, the server derives
+            category_id automatically from the subcategory's parent_id.
+        - name: province_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Filter by province UUID. Obtain valid UUIDs from GET /locations/provinces.
+            NEVER use province names as identifiers.
+        - name: city_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Filter by city UUID. Obtain valid UUIDs from GET /locations/cities.
+            NEVER use city names as identifiers.
+            If city_id is provided without province_id, the server derives province_id
+            automatically from the city's province.
+        - name: content_type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Filter by content type. NOT an enum — valid values are returned in
+            GET /search/config → filter_definitions and may expand over time.
+            Current known values: "business". Future: "product", "service", "discount", etc.
+        - name: sort_by
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Sort order key. NOT an enum — valid values returned in
+            GET /search/config → sort_options. If unrecognised, falls back to
+            system_settings.search_default_sort.
+        - name: lat
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          description: |
+            Searcher's latitude (decimal degrees, WGS-84).
+            Required together with `lng` for distance-based features.
+        - name: lng
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          description: |
+            Searcher's longitude (decimal degrees, WGS-84).
+            Required together with `lat` for distance-based features.
+        - name: radius_km
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+          description: |
+            Search radius in kilometres. Only used when lat/lng is provided.
+            Min: system_settings.search_min_radius_km (default: 1).
+            Max: system_settings.search_max_radius_km (default: 100).
+            Default (when omitted): system_settings.search_default_radius_km (default: 10).
+        - name: filters
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            JSON-encoded object of additional filter key-value pairs.
+            Used for filter fields that are not yet represented as named query params.
+            Unknown keys are silently ignored by current server version.
+            Allows Super Admin to activate new filters via system_settings
+            without requiring a client update.
+            Example: `{"has_discount": true, "min_rating": 4}`
+      responses:
+        '200':
+          description: Search results with pagination metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResultItem'
+                  meta:
+                    allOf:
+                      - $ref: '#/components/schemas/PaginationMeta'
+                      - type: object
+                        properties:
+                          query:
+                            type: string
+                            nullable: true
+                            description: The normalised search query (after server-side processing)
+                          applied_filters:
+                            type: object
+                            additionalProperties: true
+                            description: The filters actually applied (after server normalisation)
+                          location_used:
+                            $ref: '#/components/schemas/GeoPoint'
+                            description: The coordinates used for distance calculations (if any)
+                          radius_km_used:
+                            type: number
+                            nullable: true
+                            description: The radius applied (null if no location was provided)
+                          sort_applied:
+                            type: string
+                            description: The sort key actually used after fallback resolution
+              example:
+                data:
+                  - id: "b8c9d0e1-f2a3-4567-bcde-888888888888"
+                    type: "business"
+                    title: "کافه باران"
+                    subtitle: "ساری، مازندران"
+                    description_snippet: "کافه‌ای دنج در مرکز شهر با منوی متنوع..."
+                    thumbnail_url: "https://cdn.nazdikam.ir/businesses/cafe-baran.jpg"
+                    province_id: "a1b2c3d4-e5f6-7890-abcd-111111111111"
+                    city_id: "c3d4e5f6-a7b8-9012-cdef-333333333333"
+                    category_id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                    subcategory_id: "a7b8c9d0-e1f2-3456-abcd-777777777777"
+                    distance_km: 1.2
+                    score: 0.87
+                    is_verified: true
+                    has_active_subscription: true
+                    payload:
+                      business_id: "b8c9d0e1-f2a3-4567-bcde-888888888888"
+                      rating: 4.6
+                      review_count: 34
+                      address_snippet: "خیابان ملت، پلاک ۱۲"
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 47
+                  total_pages: 3
+                  has_next: true
+                  has_prev: false
+                  query: "کافه"
+                  applied_filters:
+                    city_id: "c3d4e5f6-a7b8-9012-cdef-333333333333"
+                  location_used:
+                    lat: 36.5657
+                    lng: 53.0588
+                  radius_km_used: 10
+                  sort_applied: "relevance"
+        '400':
+          description: Validation error (invalid UUID format, radius out of range, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_uuid:
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: "شناسه ارسال شده معتبر نیست"
+                radius_out_of_range:
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: "محدوده جستجو خارج از بازه مجاز است"
+                      details:
+                        field: "radius_km"
+                        min: 1
+                        max: 100
+                query_too_short:
+                  value:
+                    error:
+                      code: QUERY_TOO_SHORT
+                      message: "عبارت جستجو خیلی کوتاه است"
+                      details:
+                        min_length: 2
+                lat_without_lng:
+                  value:
+                    error:
+                      code: VALIDATION_ERROR
+                      message: "lat و lng باید هر دو یا هیچ‌کدام ارسال شوند"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # ────────────────────────────────────────────────────────
+  # GET /search/suggestions
+  # Autocomplete / typeahead suggestions
+  # ────────────────────────────────────────────────────────
+  /search/suggestions:
+    get:
+      tags: [Search]
+      operationId: getSearchSuggestions
+      summary: Get search autocomplete suggestions
+      description: |
+        Returns ranked autocomplete suggestions as the user types.
+        Used for typeahead dropdowns in the search bar.
+
+        **Suggestion types** are NOT hardcoded enums — the set of types is defined
+        by system_settings and may expand. Current types include: "business_name",
+        "category", "city". Future types: "product_name", "service_name", etc.
+
+        **Minimum characters to trigger:**
+        system_settings.search_suggestion_min_chars (default: 2).
+        If `q` is below this threshold, returns an empty array (not an error).
+
+        **Maximum results:**
+        system_settings.search_suggestion_max_results (default: 10).
+
+        **Ranking:** Suggestions are ranked by relevance and popularity.
+        Ranking adjustments may be applied via system_settings.search_weight_* keys.
+
+        **Authorization:** None required. Public endpoint.
+
+        **Rate Limit (per user/IP):**
+        system_settings.rate_limit_suggestions_per_user_per_minute (default: 60) per minute.
+      security:
+        - {}
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/AppVersion'
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Partial search query. Suggestions returned when length ≥ system_settings.search_suggestion_min_chars.
+        - name: province_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Bias suggestions toward this province (UUIDs only, from GET /locations/provinces)
+        - name: city_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Bias suggestions toward this city (UUIDs only, from GET /locations/cities)
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Bias suggestions toward this category (UUIDs only, from GET /categories)
+      responses:
+        '200':
+          description: Autocomplete suggestions (empty array if below min_chars threshold)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SuggestionItem'
+                  meta:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                      total:
+                        type: integer
+              example:
+                data:
+                  - id: "b8c9d0e1-f2a3-4567-bcde-888888888888"
+                    type: "business_name"
+                    label: "کافه باران"
+                    metadata:
+                      city_name: "ساری"
+                      category_name: "رستوران و کافه"
+                  - id: "e5f6a7b8-c9d0-1234-efab-555555555555"
+                    type: "category"
+                    label: "رستوران و کافه"
+                    metadata:
+                      business_count: 142
+                  - id: "c3d4e5f6-a7b8-9012-cdef-333333333333"
+                    type: "city"
+                    label: "ساری"
+                    metadata:
+                      province_name: "مازندران"
+                meta:
+                  query: "کافه"
+                  total: 3
+        '400':
+          description: Query parameter missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: VALIDATION_ERROR
+                  message: "پارامتر q الزامی است"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+# ─────────────────────────────────────────────────────────
+# SECTION 4 — AUTHORIZATION RULES SUMMARY
+# ─────────────────────────────────────────────────────────
+# Endpoint                     | Guest | RegUser | BizOwner | Admin
+# ──────────────────────────── | ───── | ─────── | ──────── | ─────
+# GET  /locations/provinces    |  ✅   |   ✅   |    ✅    |  ✅  (admin: can request include_inactive=true)
+# GET  /locations/provinces:id |  ✅   |   ✅   |    ✅    |  ✅
+# GET  /locations/cities       |  ✅   |   ✅   |    ✅    |  ✅  (admin: can request include_inactive=true)
+# GET  /locations/cities/:id   |  ✅   |   ✅   |    ✅    |  ✅
+# GET  /categories             |  ✅   |   ✅   |    ✅    |  ✅  (admin: can request include_inactive=true)
+# GET  /categories/tree        |  ✅   |   ✅   |    ✅    |  ✅
+# GET  /categories/:id         |  ✅   |   ✅   |    ✅    |  ✅
+# GET  /search/config          |  ✅   |   ✅   |    ✅    |  ✅
+# GET  /search                 |  ✅   |   ✅   |    ✅    |  ✅  (auth: personalised ranking)
+# GET  /search/suggestions     |  ✅   |   ✅   |    ✅    |  ✅
+#
+# ─────────────────────────────────────────────────────────
+# SECTION 5 — RATE LIMIT SUMMARY
+# All limits are runtime-configurable via system_settings.
+# Values below are defaults only — no code change required to adjust.
+# ─────────────────────────────────────────────────────────
+# Endpoint                     | system_settings key (limit)                       | Default | Window | Key by
+# ──────────────────────────── | ───────────────────────────────────────────────── | ─────── | ────── | ──────────────
+# GET  /locations/provinces    | rate_limit_locations_per_ip_per_minute            | 120     | 1 min  | IP address
+# GET  /locations/provinces:id | rate_limit_locations_per_ip_per_minute            | 120     | 1 min  | IP address
+# GET  /locations/cities       | rate_limit_locations_per_ip_per_minute            | 120     | 1 min  | IP address
+# GET  /locations/cities/:id   | rate_limit_locations_per_ip_per_minute            | 120     | 1 min  | IP address
+# GET  /categories             | rate_limit_categories_per_ip_per_minute           | 120     | 1 min  | IP address
+# GET  /categories/tree        | rate_limit_categories_per_ip_per_minute           | 120     | 1 min  | IP address
+# GET  /categories/:id         | rate_limit_categories_per_ip_per_minute           | 120     | 1 min  | IP address
+# GET  /search/config          | rate_limit_locations_per_ip_per_minute            | 120     | 1 min  | IP address
+# GET  /search                 | rate_limit_search_per_user_per_minute             | 30      | 1 min  | user/IP
+# GET  /search/suggestions     | rate_limit_suggestions_per_user_per_minute        | 60      | 1 min  | user/IP
+#
+# ─────────────────────────────────────────────────────────
+# SECTION 6 — CANONICAL SYSTEM_SETTINGS KEYS FOR PHASE 2
+# All keys below must be seeded in system_settings at DB initialisation.
+# No defaults are hardcoded in application code.
+# ─────────────────────────────────────────────────────────
+# KEY                                    | DEFAULT | TYPE    | DESCRIPTION
+# ────────────────────────────────────── | ─────── | ─────── | ───────────────────────────────────────
+# location_province_cache_ttl_seconds    | 3600    | integer | Cache TTL for province list
+# location_city_cache_ttl_seconds        | 3600    | integer | Cache TTL for city list
+# category_tree_cache_ttl_seconds        | 1800    | integer | Cache TTL for category tree
+# search_config_cache_ttl_seconds        | 300     | integer | Cache TTL for /search/config
+# search_default_sort                    | relevance | string | Default sort key
+# search_default_per_page                | 20      | integer | Default page size
+# search_max_per_page                    | 100     | integer | Maximum allowed page size
+# search_default_radius_km               | 10      | number  | Default search radius (km)
+# search_min_radius_km                   | 1       | number  | Minimum allowed radius (km)
+# search_max_radius_km                   | 100     | number  | Maximum allowed radius (km)
+# search_text_min_length                 | 2       | integer | Minimum characters for text search
+# search_text_max_length                 | 100     | integer | Maximum characters for text search
+# search_suggestion_min_chars            | 2       | integer | Minimum chars to trigger suggestions
+# search_suggestion_max_results          | 10      | integer | Maximum suggestion results
+# search_weight_text_relevance           | 0.40    | decimal | Weight: text match score component
+# search_weight_distance                 | 0.30    | decimal | Weight: proximity score component
+# search_weight_rating                   | 0.20    | decimal | Weight: business rating component
+# search_weight_recency                  | 0.10    | decimal | Weight: content recency component
+# search_weight_verified_boost           | 1.20    | decimal | Multiplier for verified businesses
+# search_weight_subscribed_boost         | 1.15    | decimal | Multiplier for subscribed businesses
+# search_weight_category_exact_match     | 1.30    | decimal | Multiplier for exact category match
+# rate_limit_search_per_user_per_minute  | 30      | integer | Search rate limit per user/IP per min
+# rate_limit_suggestions_per_user_per_minute | 60  | integer | Suggestion rate limit per user/IP per min
+# rate_limit_locations_per_ip_per_minute | 120     | integer | Location endpoint rate limit per IP per min
+# rate_limit_categories_per_ip_per_minute| 120     | integer | Category endpoint rate limit per IP per min
+#
+# ─────────────────────────────────────────────────────────
+# SECTION 7 — CMS GUARDRAIL ENFORCEMENT
+# ─────────────────────────────────────────────────────────
+# PROVINCE NAMES:    Not present in any enum. Not usable as identifiers. DB-backed only.
+# CITY NAMES:        Not present in any enum. Not usable as identifiers. DB-backed only.
+# CATEGORY NAMES:    Not present in any enum. Not usable as identifiers. DB-backed only.
+# SUBCATEGORY NAMES: Not present in any enum. Not usable as identifiers. DB-backed only.
+# SORT KEYS:         Not hardcoded enum. Defined entirely by system_settings.
+# FILTER KEYS:       Not hardcoded enum. Defined entirely by system_settings.
+# CONTENT TYPES:     Not hardcoded enum. Extensible string field.
+# RANKING WEIGHTS:   Not present in API responses. system_settings namespace only.
+# PAGINATION LIMITS: system_settings.search_default_per_page / search_max_per_page.
+# RADIUS LIMITS:     system_settings.search_min/default/max_radius_km.
+# CACHE TTLs:        All per-resource system_settings keys (location/category/search_config).
