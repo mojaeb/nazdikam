@@ -13,6 +13,10 @@ import { ServiceList } from "@/components/dashboard/services/ServiceList";
 import { ServiceForm } from "@/components/dashboard/services/ServiceForm";
 import { ProfilePage } from "@/components/dashboard/profile/ProfilePage";
 import { SubscriptionPage } from "@/components/dashboard/subscription/SubscriptionPage";
+import { LeadsPage } from "@/components/dashboard/leads/LeadsPage";
+import { ReviewsPage } from "@/components/dashboard/reviews/ReviewsPage";
+import { NotificationsPage } from "@/components/dashboard/notifications/NotificationsPage";
+import { AnalyticsPage } from "@/components/dashboard/analytics/AnalyticsPage";
 import {
   mockDashboardBusiness,
   mockDashboardStats,
@@ -192,8 +196,18 @@ function DashboardContent() {
   const serviceEditMatch = location.match(/^\/dashboard\/services\/([^/]+)\/edit$/);
   if (serviceEditMatch) return <ServiceForm mode="edit" serviceId={serviceEditMatch[1]} />;
 
-  if (location === "/dashboard/profile") return <ProfilePage />;
+  if (location === "/dashboard/profile")      return <ProfilePage />;
   if (location === "/dashboard/subscription") return <SubscriptionPage />;
+
+  /* Leads */
+  if (location === "/dashboard/leads")        return <LeadsPage />;
+  const leadDetailMatch = location.match(/^\/dashboard\/leads\/([^/]+)$/);
+  if (leadDetailMatch) return <LeadsPage initialLeadId={leadDetailMatch[1]} />;
+
+  /* Growth */
+  if (location === "/dashboard/reviews")       return <ReviewsPage />;
+  if (location === "/dashboard/notifications") return <NotificationsPage />;
+  if (location === "/dashboard/analytics")     return <AnalyticsPage />;
 
   const SECTION_LABELS: Record<string, string> = {
     "/dashboard/profile":       "پروفایل کسب‌وکار",
