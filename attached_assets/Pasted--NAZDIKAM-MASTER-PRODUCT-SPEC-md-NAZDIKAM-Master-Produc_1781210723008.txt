@@ -1,0 +1,697 @@
+# NAZDIKAM_MASTER_PRODUCT_SPEC.md
+
+# NAZDIKAM
+
+## Master Product Specification
+
+Version: 1.0
+
+---
+
+# 1. Product Vision
+
+نزدیکام یک Local Discovery & Business Visibility Platform برای کسب‌وکارهای محلی ایران، با تمرکز اولیه بر استان‌های شمالی کشور است.
+
+هدف نزدیکام ایجاد بستری برای:
+
+* کشف کسب‌وکارهای محلی
+* افزایش دیده‌شدن کسب‌وکارها
+* تولید لید
+* کمک به تصمیم‌گیری کاربران
+* ایجاد حضور دیجیتال برای کسب‌وکارهای سنتی
+
+نزدیکام یک فروشگاه اینترنتی نیست.
+
+نزدیکام یک مارکت‌پلیس مبتنی بر پرداخت و سبد خرید نیست.
+
+نزدیکام بستری برای اتصال کاربران به کسب‌وکارها است.
+
+---
+
+# 2. Product Strategy
+
+## هدف اصلی کاربران
+
+کاربر بتواند:
+
+* کسب‌وکار مناسب را پیدا کند
+* آن را ارزیابی کند
+* با آن ارتباط بگیرد
+
+## هدف اصلی کسب‌وکارها
+
+کسب‌وکار بتواند:
+
+* دیده شود
+* اعتماد ایجاد کند
+* لید دریافت کند
+* مشتری جذب کند
+
+---
+
+# 3. Success Metrics
+
+## Consumer Metrics
+
+* Business Profile Views
+* Search Usage
+* Map Interactions
+* Saved Businesses
+* Followed Businesses
+* Returning Users
+
+## Business Metrics
+
+* WhatsApp Clicks
+* Phone Clicks
+* Consultation Requests
+* Quote Requests
+* Profile Visits
+* Product Views
+* Video Views
+
+---
+
+# 4. Core Entities
+
+## Business
+
+مهم‌ترین موجودیت سیستم
+
+شامل:
+
+* اطلاعات کسب‌وکار
+* آدرس
+* لوکیشن
+* ساعات کاری
+* محصولات
+* خدمات
+* ویدیوها
+* پیشنهادها
+* شرایط اقساط
+* نظرات
+
+---
+
+## Product
+
+محصولی که کسب‌وکار ارائه می‌کند.
+
+هدف:
+
+کمک به ارزیابی کسب‌وکار
+
+---
+
+## Service
+
+خدمتی که کسب‌وکار ارائه می‌کند.
+
+هدف:
+
+نمایش توانایی کسب‌وکار
+
+---
+
+## Video
+
+ابزار ایجاد اعتماد
+
+نمایش:
+
+* محیط
+* فرآیند
+* کیفیت خدمات
+* کیفیت محصولات
+
+---
+
+## Offer
+
+پیشنهاد محدود زمانی
+
+هدف:
+
+ایجاد انگیزه برای تماس
+
+---
+
+## Installment
+
+شرایط خرید اقساطی
+
+هدف:
+
+کاهش مانع مالی
+
+---
+
+## Review
+
+سیگنال اعتماد
+
+---
+
+## Lead
+
+ثبت تعامل کاربر با کسب‌وکار
+
+انواع:
+
+* WhatsApp
+* Phone
+* Consultation
+* Quote Request
+* Website Click
+* Map Direction
+
+---
+
+## Subscription
+
+پلن اشتراک کسب‌وکار
+
+---
+
+# 5. User Types
+
+## Guest User
+
+دسترسی:
+
+* مشاهده
+* جستجو
+* نقشه
+* مشاهده پروفایل کسب‌وکار
+
+عدم دسترسی:
+
+* ذخیره
+* فالو
+* ثبت نظر
+* ثبت کسب‌وکار
+
+---
+
+## Registered User
+
+دسترسی:
+
+* ذخیره
+* فالو
+* ثبت نظر
+* ثبت کسب‌وکار
+
+---
+
+## Business Owner
+
+مدیریت:
+
+* پروفایل
+* محصولات
+* خدمات
+* ویدیوها
+* پیشنهادها
+* اقساط
+* لیدها
+* آمار
+
+---
+
+## Admin
+
+مدیریت:
+
+* کاربران
+* کسب‌وکارها
+* تایید هویت
+* اشتراک‌ها
+
+---
+
+# 6. Main User Flow
+
+## Discovery Flow
+
+Home
+
+↓
+
+Search / Categories / Map
+
+↓
+
+Business Profile
+
+↓
+
+Evaluation
+
+↓
+
+Contact
+
+↓
+
+Lead
+
+---
+
+## Registration Flow
+
+Guest
+
+↓
+
+OTP Login
+
+↓
+
+User Dashboard
+
+↓
+
+Register Business
+
+↓
+
+Business Dashboard
+
+---
+
+# 7. Information Architecture
+
+## Public Application
+
+/
+
+Home
+
+/search
+
+/categories
+
+/categories/:slug
+
+/businesses/:slug
+
+/products/:slug
+
+/services/:slug
+
+/videos
+
+/offers
+
+/installments
+
+/map
+
+/account
+
+---
+
+## User Dashboard
+
+/account
+
+Profile
+
+Saved Businesses
+
+Saved Products
+
+Saved Services
+
+Following
+
+History
+
+Notifications
+
+Register Business
+
+---
+
+## Business Dashboard
+
+/dashboard
+
+Overview
+
+Profile
+
+Products
+
+Services
+
+Videos
+
+Offers
+
+Installments
+
+Leads
+
+Analytics
+
+Subscription
+
+Referral Program
+
+---
+
+# 8. Consumer Experience
+
+## Home
+
+بزرگ‌ترین سطح کشف محتوا
+
+شامل:
+
+* دسته‌بندی‌ها
+* کسب‌وکارهای ویژه
+* ویدیوها
+* پیشنهادها
+* فرصت‌های اقساطی
+* جستجو
+
+---
+
+## Search
+
+جستجو در:
+
+* کسب‌وکار
+* محصول
+* خدمت
+* ویدیو
+
+---
+
+## Categories
+
+مرور کسب‌وکارها بر اساس دسته
+
+---
+
+## Business Profile
+
+مرکز اصلی پلتفرم
+
+نمایش:
+
+* اطلاعات کسب‌وکار
+* محصولات
+* خدمات
+* ویدیوها
+* نظرات
+* راه‌های ارتباطی
+
+---
+
+## Map
+
+کشف کسب‌وکارهای نزدیک
+
+فیلترها:
+
+* استان
+* دسته‌بندی
+* باز بودن
+* اقساط
+* تایید شده
+
+---
+
+# 9. Business Dashboard
+
+## Overview
+
+نمای کلی عملکرد
+
+---
+
+## Profile
+
+مدیریت اطلاعات کسب‌وکار
+
+---
+
+## Products
+
+مدیریت محصولات
+
+---
+
+## Services
+
+مدیریت خدمات
+
+---
+
+## Videos
+
+مدیریت ویدیوها
+
+---
+
+## Offers
+
+مدیریت پیشنهادهای ویژه
+
+---
+
+## Installments
+
+مدیریت شرایط اقساطی
+
+---
+
+## Leads
+
+مشاهده لیدها
+
+---
+
+## Analytics
+
+تحلیل عملکرد
+
+---
+
+## Subscription
+
+مدیریت اشتراک
+
+---
+
+# 10. Subscription Model
+
+## Free
+
+* پروفایل پایه
+* تعداد محدود محصول
+* تعداد محدود خدمت
+
+---
+
+## Advanced
+
+* محصولات بیشتر
+* خدمات بیشتر
+* لیدها
+* آمار
+
+---
+
+## Professional
+
+* امکانات نامحدود
+* جایگاه ویژه
+* آمار پیشرفته
+* اولویت نمایش
+
+---
+
+# 11. Referral Program
+
+هر کسب‌وکار دارای:
+
+Referral Code
+
+اگر کاربر معرفی‌شده اشتراک خریداری کند:
+
+معرف پاداش دریافت می‌کند.
+
+پاداش:
+
+* تخفیف
+* اعتبار
+* تمدید اشتراک
+
+---
+
+# 12. Lead Generation System
+
+Lead زمانی ایجاد می‌شود که:
+
+* WhatsApp Click
+* Phone Click
+* Consultation Request
+* Quote Request
+* Website Click
+* Map Direction
+
+ثبت شود.
+
+تمام لیدها باید ذخیره شوند.
+
+---
+
+# 13. Analytics System
+
+ثبت و نمایش:
+
+* Profile Views
+* Product Views
+* Service Views
+* Video Views
+* Lead Events
+* Conversion Rate
+* Follower Growth
+
+---
+
+# 14. Verification System
+
+کسب‌وکار مدارک ارسال می‌کند.
+
+ادمین بررسی می‌کند.
+
+وضعیت:
+
+* Pending
+* Approved
+* Rejected
+
+---
+
+# 15. Database Core Tables
+
+users
+
+businesses
+
+products
+
+services
+
+videos
+
+offers
+
+installments
+
+reviews
+
+followers
+
+saved_businesses
+
+saved_products
+
+saved_services
+
+lead_events
+
+subscriptions
+
+notifications
+
+referrals
+
+business_verifications
+
+---
+
+# 16. Permissions
+
+Guest:
+
+Read Only
+
+User:
+
+Save + Follow + Review
+
+Business Owner:
+
+Manage Owned Business
+
+Admin:
+
+Full Access
+
+---
+
+# 17. Technical Principles
+
+Business Profile مرکز کل سیستم است.
+
+تمام موجودیت‌ها متعلق به Business هستند.
+
+تمام لیدها باید قابل اندازه‌گیری باشند.
+
+تمام محدودیت‌های اشتراک باید در Backend اعمال شوند.
+
+Backend منبع اصلی حقیقت است.
+
+هیچ قابلیت Premium نباید فقط در Frontend کنترل شود.
+
+---
+
+# 18. MVP Priorities
+
+## P0
+
+* Authentication
+* Business Registration
+* Business Profiles
+* Search
+* Map
+* Lead Tracking
+* Subscription
+
+## P1
+
+* Videos
+* Offers
+* Installments
+* Reviews
+* Following
+* Saved Items
+* Analytics
+
+## P2
+
+* Referral System
+* Notifications
+* History
+* Personalization
+
+---
+
+# 19. Golden Rule
+
+The Business Profile is the center of Nazdikam.
+
+Products, Services, Videos, Offers and Installments exist to:
+
+* increase discovery
+* increase trust
+* increase visibility
+* generate leads
+
+Success is measured by leads and business engagement, not by transactions.
