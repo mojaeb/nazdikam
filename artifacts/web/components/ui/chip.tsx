@@ -10,7 +10,7 @@ const chipVariants = cva(
     "inline-flex items-center gap-1.5 font-vazirmatn",
     "border rounded-full cursor-pointer select-none",
     "transition-all duration-150 active:scale-[0.97]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30",
   ].join(" "),
   {
     variants: {
@@ -20,14 +20,14 @@ const chipVariants = cva(
           "hover:bg-neutral-50 hover:border-neutral-300",
         ].join(" "),
         selected: [
-          "bg-teal-600 text-white border-teal-600",
-          "hover:bg-teal-700 hover:border-teal-700",
+          "bg-blue-500 text-white border-blue-500",
+          "hover:bg-blue-600 hover:border-blue-600",
           "shadow-elevation-1",
         ].join(" "),
         filter: [
           "bg-white text-neutral-600 border-neutral-200",
           "hover:bg-neutral-50 hover:border-neutral-300",
-          "data-[selected=true]:bg-teal-600 data-[selected=true]:text-white data-[selected=true]:border-teal-600",
+          "data-[selected=true]:bg-blue-500 data-[selected=true]:text-white data-[selected=true]:border-blue-500",
         ].join(" "),
       },
       size: {
@@ -161,4 +161,4 @@ function ChipSet({ children, className, label, scrollable = false }: ChipSetProp
   );
 }
 
-export { Chip, ChipSet, chipVariants };
+export { Chip, ChipSet };

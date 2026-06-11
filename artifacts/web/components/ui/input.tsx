@@ -20,7 +20,7 @@ const inputVariants = cva(
         default: [
           "border-neutral-200",
           "hover:border-neutral-300",
-          "focus:border-teal-500 focus:shadow-[0_0_0_3px_rgba(10,126,164,0.15)]",
+          "focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(24,96,219,0.15)]",
         ].join(" "),
         error: [
           "border-rose-400",

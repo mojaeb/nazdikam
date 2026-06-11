@@ -90,7 +90,7 @@ export default function DesignSystem() {
     <div className="min-h-screen bg-page-bg" dir="rtl">
 
       {/* ─── Hero Header ───────────────────────────────── */}
-      <div className="gradient-teal px-4 pt-14 pb-8">
+      <div className="gradient-brand px-4 pt-14 pb-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -112,7 +112,7 @@ export default function DesignSystem() {
               <SearchIcon size={18} className="text-neutral-400 shrink-0" />
               <span className="text-body text-neutral-400 font-vazirmatn">جستجو در نزدیکام…</span>
               <div className="flex-1" />
-              <div className="flex items-center gap-1 text-teal-600">
+              <div className="flex items-center gap-1 text-blue-600">
                 <MapPinIcon size={14} />
                 <span className="text-xs font-vazirmatn">بابل</span>
               </div>
@@ -128,10 +128,10 @@ export default function DesignSystem() {
           <SectionHeader title="رنگ‌ها" subtitle="Color Design Tokens" size="lg" divider />
           <div className="mt-5 space-y-5">
             <div>
-              <p className="text-label text-neutral-500 mb-3">Teal — Primary Brand</p>
+              <p className="text-label text-neutral-500 mb-3">Blue — Primary Brand (#1860DB)</p>
               <div className="flex gap-3 flex-wrap">
                 {[50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map(n => (
-                  <ColorSwatch key={n} name={String(n)} value={`var(--color-teal-${n})`} textDark={n < 300} />
+                  <ColorSwatch key={n} name={String(n)} value={`var(--color-blue-${n})`} textDark={n < 300} />
                 ))}
               </div>
             </div>
@@ -148,6 +148,14 @@ export default function DesignSystem() {
               <div className="flex gap-3 flex-wrap">
                 {[100, 300, 500, 600, 700].map(n => (
                   <ColorSwatch key={n} name={String(n)} value={`var(--color-emerald-${n})`} textDark={n < 300} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-label text-neutral-500 mb-3">Purple — Secondary Accents</p>
+              <div className="flex gap-3 flex-wrap">
+                {[100, 300, 500, 600, 700].map(n => (
+                  <ColorSwatch key={n} name={String(n)} value={`var(--color-purple-${n})`} textDark={n < 300} />
                 ))}
               </div>
             </div>
@@ -244,10 +252,10 @@ export default function DesignSystem() {
                 <Button disabled>غیرفعال</Button>
               </div>
             </div>
-            <div className="gradient-teal rounded-2xl p-4">
+            <div className="gradient-brand rounded-2xl p-4">
               <p className="text-label text-white/60 mb-3">روی پس‌زمینه رنگی</p>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="bg-white/90 border-white text-teal-700">ورود</Button>
+                <Button variant="outline" className="bg-white/90 border-white text-blue-700">ورود</Button>
                 <Button className="bg-white/15 hover:bg-white/25 border border-white/30 text-white">ثبت‌نام رایگان</Button>
               </div>
             </div>
@@ -264,20 +272,21 @@ export default function DesignSystem() {
                 <Badge variant="verified" icon={<VerifiedIcon size={11} />}>تأیید شده</Badge>
                 <Badge variant="premium" dot>پرمیوم</Badge>
                 <Badge variant="new" dot>جدید</Badge>
-                <Badge variant="teal-solid">فعال</Badge>
+                <Badge variant="blue-solid">فعال</Badge>
                 <Badge variant="emerald-solid">موفق</Badge>
                 <Badge variant="amber-solid">در انتظار</Badge>
                 <Badge variant="rose-solid">رد شده</Badge>
+                <Badge variant="purple-solid">ویژه</Badge>
                 <Badge variant="outline">خطی</Badge>
               </div>
             </div>
             <div>
               <p className="text-label text-neutral-400 mb-3">Sizes</p>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge size="xs" variant="teal">xs</Badge>
-                <Badge size="sm" variant="teal">sm</Badge>
-                <Badge size="md" variant="teal">md</Badge>
-                <Badge size="lg" variant="teal">lg</Badge>
+                <Badge size="xs" variant="blue">xs</Badge>
+                <Badge size="sm" variant="blue">sm</Badge>
+                <Badge size="md" variant="blue">md</Badge>
+                <Badge size="lg" variant="blue">lg</Badge>
               </div>
             </div>
           </div>
@@ -358,7 +367,7 @@ export default function DesignSystem() {
           <SectionHeader title="آواتار حروفی" subtitle="Deterministic Gradient from Name Hash" size="lg" divider />
           <div className="mt-5 bg-white rounded-2xl p-4 elevation-1">
             <p className="text-caption text-neutral-400 mb-4 font-vazirmatn">
-              هر کسب‌وکار بر اساس نامش یک گرادیان ثابت دریافت می‌کند — fallback زمانی که عکس ندارد
+              هر کسب‌وکار بر اساس نامش یک گرادیان ثابت دریافت می‌کند — gradient-0 اکنون آبی برند است
             </p>
             <div className="flex flex-wrap gap-4">
               {["رستوران دریا", "کافه شمال", "پوشاک ساحل", "مبل ایران", "خدمات خودرو",
@@ -450,7 +459,7 @@ export default function DesignSystem() {
                 [CheckCircleIcon, "Check"], [AlertCircleIcon, "Alert"],
               ] as [React.ComponentType<{ size?: number; className?: string }>, string][]).map(([Icon, name]) => (
                 <div key={name} className="flex flex-col items-center gap-1.5">
-                  <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-600 hover:bg-teal-50 hover:text-teal-600 transition-colors cursor-pointer">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-50 flex items-center justify-center text-neutral-600 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer">
                     <Icon size={20} />
                   </div>
                   <span className="text-[9px] text-neutral-400 text-center leading-tight">{name}</span>
@@ -462,10 +471,10 @@ export default function DesignSystem() {
               <div className="flex items-center gap-4">
                 <SearchIcon size={16} className="text-neutral-300" />
                 <SearchIcon size={18} className="text-neutral-500" />
-                <SearchIcon size={20} className="text-teal-600" />
+                <SearchIcon size={20} className="text-blue-600" />
                 <SearchIcon size={22} className="text-amber-500" />
                 <SearchIcon size={24} className="text-emerald-500" />
-                <SearchIcon size={28} className="text-rose-500" />
+                <SearchIcon size={28} className="text-purple-500" />
               </div>
             </div>
           </div>
@@ -475,21 +484,21 @@ export default function DesignSystem() {
         <section>
           <SectionHeader title="پشتیبانی RTL" subtitle="CSS Logical Properties Throughout" size="lg" divider />
           <div className="mt-5 bg-white rounded-2xl p-4 elevation-1 space-y-4">
-            <div className="border-s-4 border-teal-500 ps-4">
+            <div className="border-s-4 border-blue-500 ps-4">
               <p className="text-body font-vazirmatn text-neutral-800">
-                این متن از <code className="text-teal-700 bg-teal-50 px-1 rounded text-xs">border-inline-start</code> استفاده می‌کند
+                این متن از <code className="text-blue-700 bg-blue-50 px-1 rounded text-xs">border-inline-start</code> استفاده می‌کند
               </p>
               <p className="text-caption text-neutral-400 mt-1">border-s-4 + ps-4 — CSS Logical Properties</p>
             </div>
-            <div className="flex items-center gap-3 bg-teal-50 rounded-xl px-4 py-3">
-              <VerifiedIcon size={18} className="text-teal-600 shrink-0" />
-              <p className="text-body-sm font-vazirmatn text-teal-800">آیکون‌ها در RTL به‌درستی قرار می‌گیرند</p>
+            <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
+              <VerifiedIcon size={18} className="text-blue-600 shrink-0" />
+              <p className="text-body-sm font-vazirmatn text-blue-800">آیکون‌ها در RTL به‌درستی قرار می‌گیرند</p>
               <div className="flex-1" />
-              <ChevronEndIcon size={16} className="text-teal-500" />
+              <ChevronEndIcon size={16} className="text-blue-500" />
             </div>
             <div className="grid grid-cols-2 gap-3 text-center text-caption text-neutral-500 font-mono">
               <div className="bg-neutral-50 rounded-lg p-2">
-                <div className="text-teal-600 font-bold mb-1">Logical</div>
+                <div className="text-blue-600 font-bold mb-1">Logical</div>
                 ps / pe / ms / me / border-s / border-e
               </div>
               <div className="bg-neutral-50 rounded-lg p-2">
@@ -504,7 +513,7 @@ export default function DesignSystem() {
         <div className="text-center py-6">
           <div className="inline-flex items-center gap-2 bg-white rounded-full px-4 py-2 elevation-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-caption text-neutral-500 font-vazirmatn">نزدیکام Design System v1.0 — Ready</span>
+            <span className="text-caption text-neutral-500 font-vazirmatn">نزدیکام Design System v1.0 — Blue Brand #1860DB</span>
           </div>
           <p className="text-caption text-neutral-300 mt-3 font-mono">IranYekanX + Vazirmatn + Tailwind CSS v4 + RTL</p>
         </div>

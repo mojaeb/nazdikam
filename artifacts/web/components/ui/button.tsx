@@ -18,27 +18,27 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: [
-          "bg-teal-600 text-white",
-          "hover:bg-teal-700",
+          "bg-blue-500 text-white",
+          "hover:bg-blue-600",
           "shadow-elevation-1",
-          "focus-visible:ring-teal-500/40",
+          "focus-visible:ring-blue-500/40",
         ].join(" "),
         secondary: [
-          "bg-teal-50 text-teal-700",
-          "border border-teal-200",
-          "hover:bg-teal-100 hover:border-teal-300",
-          "focus-visible:ring-teal-500/40",
+          "bg-blue-50 text-blue-700",
+          "border border-blue-200",
+          "hover:bg-blue-100 hover:border-blue-300",
+          "focus-visible:ring-blue-500/40",
         ].join(" "),
         outline: [
           "bg-white text-neutral-700",
           "border border-neutral-200",
           "hover:bg-neutral-50 hover:border-neutral-300",
-          "focus-visible:ring-teal-500/30",
+          "focus-visible:ring-blue-500/30",
         ].join(" "),
         ghost: [
           "bg-transparent text-neutral-600",
           "hover:bg-neutral-100 hover:text-neutral-900",
-          "focus-visible:ring-teal-500/30",
+          "focus-visible:ring-blue-500/30",
         ].join(" "),
         destructive: [
           "bg-rose-500 text-white",
@@ -53,9 +53,9 @@ const buttonVariants = cva(
           "focus-visible:ring-amber-500/40",
         ].join(" "),
         link: [
-          "bg-transparent text-teal-600 underline-offset-4",
-          "hover:underline hover:text-teal-700",
-          "focus-visible:ring-teal-500/30",
+          "bg-transparent text-blue-600 underline-offset-4",
+          "hover:underline hover:text-blue-700",
+          "focus-visible:ring-blue-500/30",
           "h-auto! px-0! py-0!",
         ].join(" "),
       },

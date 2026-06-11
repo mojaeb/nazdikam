@@ -11,19 +11,21 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default:      "bg-neutral-100 text-neutral-700 border-neutral-200",
-        teal:         "bg-teal-50   text-teal-700   border-teal-200",
-        "teal-solid": "bg-teal-600  text-white       border-teal-600",
-        amber:        "bg-amber-50  text-amber-700   border-amber-200",
-        "amber-solid":"bg-amber-500 text-white        border-amber-500",
-        emerald:      "bg-emerald-50  text-emerald-700  border-emerald-200",
-        "emerald-solid": "bg-emerald-500 text-white    border-emerald-500",
-        rose:         "bg-rose-50   text-rose-700   border-rose-200",
-        "rose-solid": "bg-rose-500  text-white       border-rose-500",
-        verified:     "bg-emerald-50  text-emerald-700  border-emerald-200",
-        premium:      "bg-amber-50  text-amber-700   border-amber-200",
-        new:          "bg-teal-50   text-teal-700   border-teal-200",
-        outline:      "bg-transparent text-neutral-700 border-neutral-300",
+        default:        "bg-neutral-100 text-neutral-700 border-neutral-200",
+        blue:           "bg-blue-50    text-blue-700    border-blue-200",
+        "blue-solid":   "bg-blue-500   text-white        border-blue-500",
+        amber:          "bg-amber-50   text-amber-700   border-amber-200",
+        "amber-solid":  "bg-amber-500  text-white        border-amber-500",
+        emerald:        "bg-emerald-50  text-emerald-700  border-emerald-200",
+        "emerald-solid":"bg-emerald-500 text-white        border-emerald-500",
+        rose:           "bg-rose-50    text-rose-700    border-rose-200",
+        "rose-solid":   "bg-rose-500   text-white        border-rose-500",
+        purple:         "bg-purple-50  text-purple-700  border-purple-200",
+        "purple-solid": "bg-purple-500 text-white        border-purple-500",
+        verified:       "bg-emerald-50  text-emerald-700  border-emerald-200",
+        premium:        "bg-amber-50   text-amber-700   border-amber-200",
+        new:            "bg-blue-50    text-blue-700    border-blue-200",
+        outline:        "bg-transparent text-neutral-700 border-neutral-300",
       },
       size: {
         xs: "text-[10px] px-1.5 py-0.5",
@@ -62,9 +64,11 @@ function Badge({ className, variant, size, icon, dot, children, ...props }: Badg
                 ? "bg-amber-500"
                 : variant === "rose" || variant === "rose-solid"
                   ? "bg-rose-500"
-                  : variant === "teal" || variant === "new"
-                    ? "bg-teal-500"
-                    : "bg-neutral-400"
+                  : variant === "purple" || variant === "purple-solid"
+                    ? "bg-purple-500"
+                    : variant === "blue" || variant === "blue-solid" || variant === "new"
+                      ? "bg-blue-500"
+                      : "bg-neutral-400"
           )}
         />
       )}

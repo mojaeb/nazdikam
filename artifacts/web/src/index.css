@@ -31,14 +31,12 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Headings default to IranYekanX */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-iran-yekan-x);
     font-weight: 700;
     line-height: 1.35;
   }
 
-  /* Focus visible styles */
   :focus-visible {
     outline: none;
     box-shadow: var(--shadow-focus-ring);
@@ -89,12 +87,22 @@
   .elevation-3 { box-shadow: var(--shadow-elevation-3); }
   .elevation-4 { box-shadow: var(--shadow-elevation-4); }
 
+  /* Primary brand gradient — Blue */
+  .gradient-brand {
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-900) 100%);
+  }
+  .gradient-brand-subtle {
+    background: linear-gradient(135deg, var(--color-blue-50) 0%, var(--color-blue-100) 100%);
+  }
+
+  /* Legacy teal gradient — kept for backward compat, no longer primary */
   .gradient-teal {
     background: linear-gradient(135deg, var(--color-teal-600) 0%, var(--color-teal-900) 100%);
   }
   .gradient-teal-subtle {
     background: linear-gradient(135deg, var(--color-teal-50) 0%, var(--color-teal-100) 100%);
   }
+
   .gradient-amber {
     background: linear-gradient(135deg, var(--color-amber-400) 0%, var(--color-amber-600) 100%);
   }
@@ -139,10 +147,10 @@
   --color-foreground:   var(--color-text-primary);
   --color-surface:      var(--color-surface);
   --color-border:       var(--color-border-subtle);
-  --color-primary:      var(--color-teal-600);
+  --color-primary:      var(--color-blue-500);
   --color-primary-foreground: var(--color-neutral-0);
-  --color-secondary:    var(--color-teal-50);
-  --color-secondary-foreground: var(--color-teal-700);
+  --color-secondary:    var(--color-blue-50);
+  --color-secondary-foreground: var(--color-blue-700);
   --color-muted:        var(--color-neutral-100);
   --color-muted-foreground: var(--color-text-secondary);
   --color-accent:       var(--color-amber-500);
@@ -151,7 +159,7 @@
   --color-destructive-foreground: var(--color-neutral-0);
   --color-card:         var(--color-surface);
   --color-card-foreground: var(--color-text-primary);
-  --color-ring:         var(--color-teal-500);
+  --color-ring:         var(--color-blue-500);
   --font-sans:          var(--font-vazirmatn);
   --font-heading:       var(--font-iran-yekan-x);
 }

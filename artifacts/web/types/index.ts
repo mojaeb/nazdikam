@@ -29,14 +29,16 @@ export type SizeVariant = "xs" | "sm" | "md" | "lg" | "xl";
 
 export type BadgeVariant =
   | "default"
-  | "teal"
-  | "teal-solid"
+  | "blue"
+  | "blue-solid"
   | "amber"
   | "amber-solid"
   | "emerald"
   | "emerald-solid"
   | "rose"
   | "rose-solid"
+  | "purple"
+  | "purple-solid"
   | "verified"
   | "premium"
   | "new"

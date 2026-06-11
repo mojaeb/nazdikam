@@ -94,7 +94,7 @@ function SkeletonListItem({ className }: { className?: string }) {
 
 function SkeletonHero({ className }: { className?: string }) {
   return (
-    <div className={cn("w-full rounded-2xl p-5 gradient-teal flex flex-col gap-4", className)}>
+    <div className={cn("w-full rounded-2xl p-5 gradient-brand flex flex-col gap-4", className)}>
       <div className="flex flex-col gap-2">
         <Skeleton height={28} width="50%" className="bg-white/20" />
         <Skeleton height={18} width="70%" className="bg-white/15" />

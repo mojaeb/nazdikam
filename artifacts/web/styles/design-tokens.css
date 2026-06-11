@@ -1,11 +1,24 @@
 /*
  * Nazdikam Design Tokens
  * All CSS custom properties for the design system.
- * Imported by app/globals.css
+ * Primary brand: Blue #1860DB
  */
 
 @theme {
-  /* ─── Brand Colors ─────────────────────────────── */
+  /* ─── Blue — Primary Brand (#1860DB = 500) ──────── */
+  --color-blue-50:  #EEF3FE;
+  --color-blue-100: #D7E5FC;
+  --color-blue-200: #AFCAF9;
+  --color-blue-300: #7BAAF4;
+  --color-blue-400: #4884ED;
+  --color-blue-500: #1860DB;
+  --color-blue-600: #1451BE;
+  --color-blue-700: #1042A0;
+  --color-blue-800: #0D3480;
+  --color-blue-900: #0A2660;
+  --color-blue-950: #061540;
+
+  /* Teal — retained as secondary/neutral color (no longer primary brand) */
   --color-teal-50:  #E8F6FB;
   --color-teal-100: #C5E8F4;
   --color-teal-200: #9DD6EC;
@@ -18,7 +31,7 @@
   --color-teal-900: #054F67;
   --color-teal-950: #032E3B;
 
-  /* Amber — CTA, prices, premium accents */
+  /* Amber — prices, premiums, warnings */
   --color-amber-50:  #FFFBEB;
   --color-amber-100: #FEF3C7;
   --color-amber-200: #FDE68A;
@@ -30,7 +43,7 @@
   --color-amber-800: #92400E;
   --color-amber-900: #78350F;
 
-  /* Emerald — verified badges, success states */
+  /* Emerald — verified, success */
   --color-emerald-50:  #ECFDF5;
   --color-emerald-100: #D1FAE5;
   --color-emerald-200: #A7F3D0;
@@ -42,7 +55,7 @@
   --color-emerald-800: #065F46;
   --color-emerald-900: #064E3B;
 
-  /* Rose — destructive, errors */
+  /* Rose — errors, destructive */
   --color-rose-50:  #FFF1F2;
   --color-rose-100: #FFE4E6;
   --color-rose-200: #FECDD3;
@@ -53,6 +66,18 @@
   --color-rose-700: #BE123C;
   --color-rose-800: #9F1239;
   --color-rose-900: #881337;
+
+  /* Purple — secondary accents */
+  --color-purple-50:  #F3F0FF;
+  --color-purple-100: #EDE9FE;
+  --color-purple-200: #DDD6FE;
+  --color-purple-300: #C4B5FD;
+  --color-purple-400: #A78BFA;
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7C3AED;
+  --color-purple-700: #6D28D9;
+  --color-purple-800: #5B21B6;
+  --color-purple-900: #4C1D95;
 
   /* Neutrals */
   --color-neutral-0:   #FFFFFF;
@@ -81,16 +106,16 @@
   --color-text-secondary: #4B5563;
   --color-text-tertiary:  #9CA3AF;
   --color-text-inverse:   #FFFFFF;
-  --color-text-brand:     #0A7EA4;
+  --color-text-brand:     #1451BE;
   --color-text-price:     #F59E0B;
 
   --color-border-subtle:  #E5E7EB;
   --color-border-default: #D1D5DB;
   --color-border-strong:  #9CA3AF;
-  --color-border-brand:   #0A7EA4;
+  --color-border-brand:   #1860DB;
 
   --color-icon-default:   #6B7280;
-  --color-icon-brand:     #0A7EA4;
+  --color-icon-brand:     #1451BE;
   --color-icon-amber:     #F59E0B;
 
   /* ─── Elevation Shadows ─────────────────────────── */
@@ -108,8 +133,8 @@
     0 8px 32px 0 rgba(0, 0, 0, 0.12),
     0 16px 48px -8px rgba(0, 0, 0, 0.10);
 
-  /* Focus ring */
-  --shadow-focus-ring: 0 0 0 3px rgba(10, 126, 164, 0.25);
+  /* Focus ring — blue brand */
+  --shadow-focus-ring: 0 0 0 3px rgba(24, 96, 219, 0.25);
   --shadow-focus-ring-error: 0 0 0 3px rgba(244, 63, 94, 0.25);
 
   /* ─── Typography Scales ─────────────────────────── */
@@ -154,7 +179,7 @@
 
 /* ─── Letter Avatar Gradients ──────────────────────── */
 :root {
-  --avatar-gradient-0: linear-gradient(135deg, #0D8FBB 0%, #054F67 100%);
+  --avatar-gradient-0: linear-gradient(135deg, #1860DB 0%, #0A2660 100%);
   --avatar-gradient-1: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);
   --avatar-gradient-2: linear-gradient(135deg, #10B981 0%, #047857 100%);
   --avatar-gradient-3: linear-gradient(135deg, #8B5CF6 0%, #5B21B6 100%);

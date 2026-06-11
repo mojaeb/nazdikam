@@ -37,7 +37,7 @@ function SectionHeader({
         {icon && (
           <span
             className={cn(
-              "shrink-0 text-teal-600",
+              "shrink-0 text-blue-600",
               size === "sm" && "w-4 h-4",
               size === "md" && "w-5 h-5",
               size === "lg" && "w-6 h-6"
@@ -80,10 +80,10 @@ function SectionHeader({
               type="button"
               onClick={onAction}
               className={cn(
-                "font-vazirmatn text-teal-600 font-medium",
-                "hover:text-teal-700 transition-colors duration-150",
+                "font-vazirmatn text-blue-600 font-medium",
+                "hover:text-blue-700 transition-colors duration-150",
                 "flex items-center gap-1",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 rounded",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 rounded",
                 size === "sm" && "text-xs",
                 size === "md" && "text-xs",
                 size === "lg" && "text-sm"
