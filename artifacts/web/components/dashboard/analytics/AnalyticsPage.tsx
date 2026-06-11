@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { cn, toPersianNumerals } from "@/lib/utils";
+import { cn, toPersianNumerals, formatPrice } from "@/lib/utils";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
 import { Sparkline, LineChart } from "@/components/dashboard/analytics/MiniChart";
 import {
@@ -8,6 +8,7 @@ import {
   funnelPct,
   type AnalyticsMetric,
 } from "@/lib/dashboard-analytics-data";
+import { mockDashboardProducts } from "@/lib/dashboard-products-data";
 
 /* ─── Color map ───────────────────────────────────────── */
 const METRIC_COLORS: Record<string, string> = {
@@ -230,6 +231,102 @@ function WeekComparisonCard() {
   );
 }
 
+/* ─── Top products card ───────────────────────────────── */
+function TopProductsCard() {
+  const topProducts = [...mockDashboardProducts]
+    .filter(p => p.isPublished)
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 5);
+
+  const maxPrice = topProducts[0]?.price ?? 1;
+
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-iran-yekan-x font-bold text-neutral-800 text-sm">پرفروش‌ترین محصولات</h3>
+        <span className="font-vazirmatn text-xs text-neutral-400">این ماه</span>
+      </div>
+      <div className="space-y-3.5">
+        {topProducts.map((p, i) => (
+          <motion.div
+            key={p.id}
+            className="flex items-center gap-3"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.07 }}
+          >
+            <span className="font-iran-yekan-x text-xs font-bold text-neutral-400 w-4 shrink-0">
+              {toPersianNumerals(i + 1)}
+            </span>
+            <div
+              className="w-8 h-8 rounded-lg shrink-0"
+              style={{ background: p.coverGradient }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-vazirmatn text-xs font-medium text-neutral-700 truncate">{p.name}</p>
+              <div className="mt-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-teal-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(p.price / maxPrice) * 100}%` }}
+                  transition={{ delay: 0.3 + i * 0.07, duration: 0.6 }}
+                />
+              </div>
+            </div>
+            <span className="font-iran-yekan-x text-xs font-bold text-neutral-800 shrink-0">
+              {formatPrice(p.price)}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Product stats overview ──────────────────────────── */
+function ProductStatsCard() {
+  const total      = mockDashboardProducts.length;
+  const published  = mockDashboardProducts.filter(p => p.isPublished).length;
+  const featured   = mockDashboardProducts.filter(p => p.isFeatured).length;
+  const lowStock   = mockDashboardProducts.filter(p => p.inventoryStatus === "low-stock").length;
+  const outOfStock = mockDashboardProducts.filter(p => p.inventoryStatus === "out-of-stock").length;
+  const installment = mockDashboardProducts.filter(p => p.isInstallmentAvailable).length;
+
+  const stats = [
+    { label: "کل محصولات",    value: total,      color: "bg-blue-100 text-blue-700" },
+    { label: "منتشر شده",     value: published,  color: "bg-green-100 text-green-700" },
+    { label: "ویژه",          value: featured,   color: "bg-amber-100 text-amber-700" },
+    { label: "اقساطی",        value: installment,color: "bg-purple-100 text-purple-700" },
+    { label: "موجودی کم",     value: lowStock,   color: "bg-orange-100 text-orange-700" },
+    { label: "ناموجود",       value: outOfStock, color: "bg-red-100 text-red-700" },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-iran-yekan-x font-bold text-neutral-800 text-sm">وضعیت محصولات</h3>
+        <span className="font-vazirmatn text-xs text-neutral-400">همین الان</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s, i) => (
+          <motion.div
+            key={s.label}
+            className={cn("rounded-xl px-3 py-2.5 flex items-center justify-between", s.color)}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <span className="font-vazirmatn text-xs font-medium">{s.label}</span>
+            <span className="font-iran-yekan-x font-bold text-lg leading-none">
+              {toPersianNumerals(s.value)}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main page ───────────────────────────────────────── */
 export function AnalyticsPage() {
   return (
@@ -250,10 +347,16 @@ export function AnalyticsPage() {
       </div>
 
       {/* Sources + Province + Week comparison */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-3 gap-4 mb-4">
         <LeadSourcesCard />
         <ProvinceCard />
         <WeekComparisonCard />
+      </div>
+
+      {/* Product analytics row */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <TopProductsCard />
+        <ProductStatsCard />
       </div>
     </div>
   );

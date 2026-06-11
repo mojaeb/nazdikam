@@ -8,6 +8,14 @@ import {
   CloseIcon, TagIcon,
 } from "@/components/icons";
 import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { SocialProofStrip } from "@/components/product/SocialProofStrip";
+import { BenefitsList } from "@/components/product/BenefitsList";
+import { FAQSection } from "@/components/product/FAQSection";
+import { RatingBreakdown } from "@/components/product/RatingBreakdown";
+import { EligibleGroupsSection } from "@/components/product/EligibleGroupsSection";
+import { BeforeAfterSection } from "@/components/product/BeforeAfterSection";
+import { InstallmentBadge } from "@/components/product/InstallmentBadge";
+import { InventoryBadge } from "@/components/product/InventoryBadge";
 import {
   findProductBySlug,
   getProductsFromSameBusiness,
@@ -15,14 +23,14 @@ import {
   findBusinessForProduct,
   getProductGallery,
   getProductSpecs,
-  getProductFeatures,
 } from "@/lib/mock-product-detail";
 import { getSavingsAmount } from "@/lib/product.types";
+import type { ProductReview } from "@/lib/product.types";
 
 /* ─── Props ────────────────────────────────────────────── */
 interface Props { slug: string }
 
-/* ─── Avatar gradient palette (matches business profile) ── */
+/* ─── Avatar gradients ──────────────────────────────────── */
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#1860DB,#0A3FA0)",
   "linear-gradient(135deg,#0891B2,#164E63)",
@@ -60,7 +68,7 @@ function Gallery({ images }: { images: string[] }) {
       <motion.div
         key={active}
         className="w-full"
-        style={{ height: 260, background: images[active] }}
+        style={{ height: 280, background: images[active] }}
         initial={{ opacity: 0.7 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
@@ -89,7 +97,7 @@ function Gallery({ images }: { images: string[] }) {
   );
 }
 
-/* ─── Lead Form Sheet (reused pattern from BusinessProfilePage) ── */
+/* ─── Lead Form Sheet ─────────────────────────────────────── */
 interface LeadSheetProps {
   isOpen: boolean;
   type: "consultation" | "price-inquiry";
@@ -166,12 +174,101 @@ function LeadFormSheet({ isOpen, type, productName, onClose }: LeadSheetProps) {
   );
 }
 
+/* ─── Review Card ─────────────────────────────────────────── */
+function ReviewCard({ review }: { review: ProductReview }) {
+  const initials = review.userName.slice(0, 1);
+  const gradIdx = avatarGradientIndex(review.userName);
+  const grad = AVATAR_GRADIENTS[gradIdx];
+
+  return (
+    <div className="bg-neutral-50 rounded-2xl p-4 space-y-2">
+      <div className="flex items-start gap-3">
+        <div
+          className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-iran-yekan-x font-bold"
+          style={{ background: grad }}
+        >
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-vazirmatn text-sm font-medium text-neutral-800">{review.userName}</span>
+            <span className="font-vazirmatn text-[11px] text-neutral-400 shrink-0">{review.date.slice(0, 7)}</span>
+          </div>
+          <div className="flex gap-0.5 mt-0.5">
+            {[1,2,3,4,5].map(s => (
+              <span key={s} className={cn("text-xs", s <= review.rating ? "text-amber-400" : "text-neutral-200")}>
+                <StarFilledIcon size={10} />
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className="font-vazirmatn text-sm text-neutral-700 leading-relaxed">{review.text}</p>
+      {(review.pros?.length || review.cons?.length) && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {review.pros?.map((p, i) => (
+            <span key={`p${i}`} className="inline-flex items-center gap-1 text-[10px] font-vazirmatn bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg">
+              <span>+</span>{p}
+            </span>
+          ))}
+          {review.cons?.map((c, i) => (
+            <span key={`c${i}`} className="inline-flex items-center gap-1 text-[10px] font-vazirmatn bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg">
+              <span>−</span>{c}
+            </span>
+          ))}
+        </div>
+      )}
+      {review.helpful > 0 && (
+        <p className="font-vazirmatn text-[10px] text-neutral-400">
+          {toPersianNumerals(review.helpful)} نفر این نظر را مفید یافتند
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Terms block ─────────────────────────────────────────── */
+function TermsBlock({ terms }: { terms: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white px-4 py-4">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-3"
+        onClick={() => setOpen(v => !v)}
+      >
+        <span className="font-iran-yekan-x font-bold text-neutral-900 text-sm">شرایط و قوانین</span>
+        <motion.svg
+          width={16} height={16} viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}
+          className="text-neutral-400 shrink-0" aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </motion.svg>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.p
+            className="font-vazirmatn text-sm text-neutral-600 leading-relaxed mt-3 overflow-hidden"
+            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }}
+          >
+            {terms}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function ProductDetailPage({ slug }: Props) {
   const [, navigate] = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [leadSheet, setLeadSheet] = useState<"consultation" | "price-inquiry" | null>(null);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const product = findProductBySlug(slug);
 
@@ -188,29 +285,35 @@ export default function ProductDetailPage({ slug }: Props) {
   const similarProducts = getSimilarProducts(product.category, product.id).slice(0, 6);
   const businessData = findBusinessForProduct(product.businessId);
   const specs = getProductSpecs(product);
-  const features = getProductFeatures(product);
   const savings = getSavingsAmount(product);
   const avatarIdx = avatarGradientIndex(product.businessName);
 
+  const reviewsToShow = product.reviews
+    ? (showAllReviews ? product.reviews : product.reviews.slice(0, 3))
+    : [];
+
   const handlePhoneClick = () => {
-    if (businessData?.phone) window.location.href = `tel:${businessData.phone.replace(/[^0-9+]/g, "")}`;
+    const tel = product.phone ?? businessData?.phone;
+    if (tel) window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
   };
 
   const handleWhatsAppClick = () => {
-    if (businessData?.phone) {
-      const num = businessData.phone.replace(/[^0-9]/g, "").replace(/^0/, "98");
-      window.open(`https://wa.me/${num}`, "_blank");
-    }
+    const num = (product.whatsapp ?? businessData?.phone ?? "")
+      .replace(/[^0-9]/g, "")
+      .replace(/^0/, "98");
+    if (num) window.open(`https://wa.me/${num}`, "_blank");
   };
 
   const handleShare = () => {
     if (navigator.share) navigator.share({ title: product.name, url: window.location.href });
   };
 
-  return (
-    <div className="min-h-screen bg-page-bg pb-24" dir="rtl">
+  const isOutOfStock = product.inventoryStatus === "out-of-stock";
 
-      {/* ─── Sticky top bar ────────────────────────────── */}
+  return (
+    <div className="min-h-screen bg-page-bg pb-28" dir="rtl">
+
+      {/* ── 1. Sticky top bar ───────────────────────────────── */}
       <div className={cn(
         "sticky top-0 z-30 flex items-center justify-between px-4 h-14 transition-all duration-300",
         scrolled ? "bg-white shadow-sm" : "bg-transparent"
@@ -243,14 +346,13 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       </div>
 
-      {/* ─── Gallery ───────────────────────────────────── */}
+      {/* ── 2. Gallery ──────────────────────────────────────── */}
       <div className="-mt-14">
         <Gallery images={gallery} />
       </div>
 
-      {/* ─── Product Hero ───────────────────────────────── */}
-      <div className="px-4 pt-4 pb-2 bg-white">
-        {/* Category chips */}
+      {/* ── 3. Hero — name, category chips, rating ──────────── */}
+      <div className="px-4 pt-4 pb-3 bg-white">
         <div className="flex gap-2 mb-3 flex-wrap">
           <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-vazirmatn font-medium">
             {product.category}
@@ -265,185 +367,257 @@ export default function ProductDetailPage({ slug }: Props) {
           )}
         </div>
 
-        {/* Product name */}
-        <h1 className="text-lg font-iran-yekan-x font-bold text-neutral-900 leading-snug mb-3">
+        <h1 className="text-lg font-iran-yekan-x font-bold text-neutral-900 leading-snug mb-2">
           {product.name}
         </h1>
 
-        {/* Rating */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex items-center gap-1">
-            <StarFilledIcon size={14} className="text-amber-400" />
-            <span className="text-sm font-iran-yekan-x font-bold text-neutral-800">
-              {toPersianNumerals(product.rating.toFixed(1))}
-            </span>
-          </div>
+        <div className="flex items-center gap-2 mb-1">
+          <StarFilledIcon size={14} className="text-amber-400" />
+          <span className="text-sm font-iran-yekan-x font-bold text-neutral-800">
+            {toPersianNumerals(product.rating.toFixed(1))}
+          </span>
           <span className="text-xs font-vazirmatn text-neutral-400">
             ({toPersianNumerals(product.reviewCount)} نظر)
           </span>
-          {product.inventoryStatus === "low-stock" && product.stockCount && (
-            <span className="ms-auto text-[11px] font-vazirmatn text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
-              فقط {toPersianNumerals(product.stockCount)} عدد مانده
-            </span>
-          )}
-          {product.inventoryStatus === "out-of-stock" && (
-            <span className="ms-auto text-[11px] font-vazirmatn text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg">ناموجود</span>
+          {product.city && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-neutral-300" />
+              <MapPinIcon size={11} className="text-neutral-400" />
+              <span className="text-xs font-vazirmatn text-neutral-400">{product.city}</span>
+            </>
           )}
         </div>
 
-        {/* Pricing block */}
-        <div className="bg-amber-50 rounded-2xl p-4 mb-4">
-          <div className="flex items-end gap-3 mb-1">
+        {product.inventoryStatus === "low-stock" && product.stockCount && (
+          <div className="mt-2">
+            <InventoryBadge status="low-stock" stockCount={product.stockCount} size="sm" />
+          </div>
+        )}
+        {product.inventoryStatus === "out-of-stock" && (
+          <div className="mt-2">
+            <InventoryBadge status="out-of-stock" size="sm" />
+          </div>
+        )}
+        {product.inventoryStatus === "pre-order" && (
+          <div className="mt-2">
+            <InventoryBadge status="pre-order" size="sm" />
+          </div>
+        )}
+      </div>
+
+      {/* ── 4. Social Proof Strip ───────────────────────────── */}
+      {product.socialProof && (
+        <div className="px-4 py-3 bg-white border-t border-neutral-50">
+          <SocialProofStrip data={product.socialProof} variant="compact" />
+        </div>
+      )}
+
+      {/* ── 5. Price block ──────────────────────────────────── */}
+      <div className="px-4 pt-4 pb-4 bg-white mt-2">
+        <div className="bg-amber-50 rounded-2xl p-4">
+          <div className="flex items-end gap-3 mb-2">
             <span className="text-2xl font-iran-yekan-x font-bold text-amber-700">
               {formatPrice(product.price)}
             </span>
-            <span className="text-sm font-vazirmatn text-neutral-500 mb-0.5">تومان</span>
+            <span className="text-sm font-vazirmatn text-amber-600 mb-0.5">تومان</span>
             {product.discountPercent && product.discountPercent > 0 && (
-              <span className="ms-auto inline-flex items-center h-6 px-2 rounded-xl bg-rose-500 text-white text-xs font-vazirmatn font-bold">
+              <span className="ms-auto inline-flex h-6 px-2.5 items-center rounded-xl bg-rose-500 text-white text-xs font-vazirmatn font-bold">
                 {toPersianNumerals(product.discountPercent)}٪ تخفیف
               </span>
             )}
           </div>
+
           {product.originalPrice && (
-            <div className="flex items-center gap-3 text-xs font-vazirmatn text-neutral-400">
-              <span className="line-through">{formatPrice(product.originalPrice)} تومان</span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-vazirmatn text-neutral-400 line-through">
+                {formatPrice(product.originalPrice)} تومان
+              </span>
               {savings > 0 && (
-                <span className="text-emerald-600 font-medium">
-                  {formatPrice(savings)} تومان صرفه‌جویی
+                <span className="text-xs font-vazirmatn text-emerald-600 font-medium">
+                  {formatPrice(savings)} تومان سود می‌کنید
                 </span>
               )}
             </div>
           )}
+
           {product.isInstallmentAvailable && product.installmentMonths && (
-            <div className="mt-2 flex items-center gap-1.5 text-purple-600 text-[11px] font-vazirmatn">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-              اقساط {toPersianNumerals(product.installmentMonths)} ماهه — ماهی {formatPrice(Math.ceil(product.price / product.installmentMonths))} تومان
+            <div className="mt-2">
+              <InstallmentBadge
+                months={product.installmentMonths}
+                price={product.price}
+                size="sm"
+              />
+              {product.installmentProvider && (
+                <span className="font-vazirmatn text-xs text-neutral-500 ms-2">
+                  از طریق {product.installmentProvider}
+                </span>
+              )}
             </div>
           )}
         </div>
-
-        {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-2.5 mb-2">
-          <button type="button" onClick={handlePhoneClick}
-            className="h-11 rounded-xl bg-blue-600 text-white text-xs font-iran-yekan-x font-bold flex items-center justify-center gap-1.5">
-            <PhoneIcon size={14} />
-            تماس
-          </button>
-          <button type="button" onClick={handleWhatsAppClick}
-            className="h-11 rounded-xl bg-emerald-500 text-white text-xs font-iran-yekan-x font-bold flex items-center justify-center gap-1.5">
-            <MessageIcon size={14} />
-            واتساپ
-          </button>
-          <button type="button" onClick={() => setSaved(v => !v)}
-            className={cn("h-11 rounded-xl text-xs font-iran-yekan-x font-bold flex items-center justify-center gap-1.5 transition-colors",
-              saved ? "bg-blue-50 text-blue-600 border border-blue-200" : "bg-neutral-100 text-neutral-700")}>
-            <BookmarkIcon size={14} />
-            ذخیره
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 mb-1">
-          <button type="button" onClick={() => setLeadSheet("consultation")}
-            className="h-11 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-iran-yekan-x font-bold flex items-center justify-center gap-1.5">
-            درخواست مشاوره
-          </button>
-          <button type="button" onClick={() => setLeadSheet("price-inquiry")}
-            className="h-11 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-iran-yekan-x font-bold flex items-center justify-center gap-1.5">
-            استعلام قیمت
-          </button>
-        </div>
       </div>
 
-      {/* ─── Business Strip ─────────────────────────────── */}
-      {businessData && (
-        <motion.button
-          type="button"
-          className="w-full bg-white mt-2 px-4 py-3.5 flex items-center gap-3 text-start"
-          onClick={() => navigate(`/businesses/${businessData.slug}`)}
-          whileTap={{ scale: 0.98 }}
+      {/* ── 6. Benefits ─────────────────────────────────────── */}
+      {product.benefits && product.benefits.length > 0 && (
+        <div className="mt-2">
+          <BenefitsList benefits={product.benefits} />
+        </div>
+      )}
+
+      {/* ── 7. Description ──────────────────────────────────── */}
+      <div className="px-4 py-4 bg-white mt-2">
+        <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-sm mb-2">درباره محصول</h2>
+        <p className="font-vazirmatn text-sm text-neutral-700 leading-relaxed">
+          {product.description}
+        </p>
+      </div>
+
+      {/* ── 8. Before / After ───────────────────────────────── */}
+      {product.beforeAfterImages && product.beforeAfterImages.length > 0 && (
+        <div className="mt-2">
+          <BeforeAfterSection images={product.beforeAfterImages} />
+        </div>
+      )}
+
+      {/* ── 9. Specifications ───────────────────────────────── */}
+      {specs.length > 0 && (
+        <div className="px-4 py-4 bg-white mt-2">
+          <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-sm mb-3">مشخصات</h2>
+          <div className="bg-neutral-50 rounded-2xl overflow-hidden divide-y divide-neutral-100">
+            {specs.map((spec, i) => (
+              <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
+                <span className="font-vazirmatn text-xs text-neutral-500">{spec.label}</span>
+                <span className="font-vazirmatn text-xs text-neutral-800 font-medium text-end">{spec.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 10. Eligible Groups ─────────────────────────────── */}
+      {product.eligibleGroups && product.eligibleGroups.length > 0 && (
+        <div className="mt-2">
+          <EligibleGroupsSection groups={product.eligibleGroups} />
+        </div>
+      )}
+
+      {/* ── 11. Rating Breakdown ────────────────────────────── */}
+      {(product.ratingDistribution || product.ratingBreakdown) && (
+        <div className="mt-2">
+          <RatingBreakdown
+            rating={product.rating}
+            reviewCount={product.reviewCount}
+            distribution={product.ratingDistribution}
+            categories={product.ratingBreakdown}
+          />
+        </div>
+      )}
+
+      {/* ── 12. Reviews ─────────────────────────────────────── */}
+      {product.reviews && product.reviews.length > 0 && (
+        <div className="px-4 py-4 bg-white mt-2 space-y-3">
+          {reviewsToShow.map(r => (
+            <ReviewCard key={r.id} review={r} />
+          ))}
+          {product.reviews.length > 3 && (
+            <button
+              type="button"
+              className="w-full h-10 rounded-xl border border-neutral-200 text-sm font-vazirmatn text-neutral-600 font-medium hover:bg-neutral-50 transition-colors"
+              onClick={() => setShowAllReviews(v => !v)}
+            >
+              {showAllReviews
+                ? "کمتر نشان بده"
+                : `مشاهده همه ${toPersianNumerals(product.reviews.length)} نظر`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── 13. FAQ ─────────────────────────────────────────── */}
+      {product.faqs && product.faqs.length > 0 && (
+        <div className="mt-2">
+          <FAQSection faqs={product.faqs} />
+        </div>
+      )}
+
+      {/* ── 14. Terms ───────────────────────────────────────── */}
+      {product.terms && (
+        <div className="mt-2">
+          <TermsBlock terms={product.terms} />
+        </div>
+      )}
+
+      {/* ── 15. Business Card ───────────────────────────────── */}
+      <div className="px-4 py-4 bg-white mt-2">
+        <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-sm mb-3">فروشنده</h2>
+        <div
+          className="flex items-center gap-3 p-4 bg-neutral-50 rounded-2xl cursor-pointer hover:bg-neutral-100 transition-colors"
+          onClick={() => businessData && navigate(`/businesses/${businessData.slug}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && businessData && navigate(`/businesses/${businessData.slug}`)}
         >
-          <div className="w-11 h-11 rounded-xl shrink-0 flex items-center justify-center text-white text-base font-iran-yekan-x font-bold"
-            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}>
-            {product.businessName.charAt(0)}
+          <div
+            className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
+            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
+          >
+            {product.businessName.slice(0, 1)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-iran-yekan-x font-bold text-neutral-800 truncate">{product.businessName}</span>
-              {product.businessVerified && <VerifiedIcon size={13} className="text-blue-500 shrink-0" />}
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="font-vazirmatn text-sm font-bold text-neutral-900 truncate">
+                {product.businessName}
+              </span>
+              {product.businessVerified && <VerifiedIcon size={14} className="text-blue-500 shrink-0" />}
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className="flex items-center gap-0.5">
-                <StarFilledIcon size={11} className="text-amber-400" />
-                <span className="text-[11px] font-vazirmatn text-neutral-500">
-                  {toPersianNumerals(businessData.rating.toFixed(1))}
-                </span>
-              </div>
-              {businessData.city && (
-                <div className="flex items-center gap-0.5 text-neutral-400">
-                  <MapPinIcon size={10} />
-                  <span className="text-[11px] font-vazirmatn">{businessData.city}</span>
-                </div>
+            <div className="flex items-center gap-1.5">
+              <StoreIcon size={11} className="text-neutral-400" />
+              <span className="font-vazirmatn text-xs text-neutral-500">
+                {businessData?.category ?? product.category}
+              </span>
+              {product.city && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-neutral-300" />
+                  <MapPinIcon size={10} className="text-neutral-400" />
+                  <span className="font-vazirmatn text-xs text-neutral-400">{product.city}</span>
+                </>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 text-blue-500 text-[11px] font-vazirmatn shrink-0">
-            مشاهده فروشگاه
-            <span className="text-base leading-none">‹</span>
-          </div>
-        </motion.button>
-      )}
-
-      {/* ─── Description ───────────────────────────────── */}
-      <div className="mt-2 bg-white px-4 py-4 space-y-3">
-        <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">درباره محصول</h2>
-        <p className="text-sm font-vazirmatn text-neutral-600 leading-relaxed">{product.description}</p>
-      </div>
-
-      {/* ─── Features ──────────────────────────────────── */}
-      {features.length > 0 && (
-        <div className="mt-2 bg-white px-4 py-4 space-y-3">
-          <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">ویژگی‌ها</h2>
-          <div className="space-y-2">
-            {features.map((f, i) => (
-              <motion.div key={i} className="flex items-center gap-2"
-                initial={{ opacity: 0, x: 8 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }}>
-                <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                </div>
-                <span className="text-sm font-vazirmatn text-neutral-700">{f}</span>
-              </motion.div>
-            ))}
-          </div>
+          <ChevronStartIcon size={16} className="text-neutral-300 rotate-180 shrink-0" />
         </div>
-      )}
 
-      {/* ─── Specifications ────────────────────────────── */}
-      {specs.length > 0 && (
-        <div className="mt-2 bg-white px-4 py-4 space-y-3">
-          <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">مشخصات فنی</h2>
-          <div className="divide-y divide-neutral-100">
-            {specs.map((spec, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5">
-                <span className="text-xs font-vazirmatn text-neutral-500">{spec.label}</span>
-                <span className="text-xs font-vazirmatn font-medium text-neutral-800">{spec.value}</span>
+        {/* Delivery / Returns */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {[
+            { icon: "🚚", label: "ارسال سریع", desc: "تحویل ۴۸ ساعته" },
+            { icon: "✅", label: "ضمانت اصالت", desc: "تضمین محصول اصل" },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-2.5 bg-neutral-50 rounded-xl p-3">
+              <span className="text-lg">{item.icon}</span>
+              <div>
+                <p className="font-vazirmatn text-xs font-medium text-neutral-700">{item.label}</p>
+                <p className="font-vazirmatn text-[10px] text-neutral-400">{item.desc}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ─── Tags ──────────────────────────────────────── */}
-      <div className="mt-2 bg-white px-4 py-4 space-y-3">
-        <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">برچسب‌ها</h2>
-        <div className="flex flex-wrap gap-2">
-          {[product.category, product.subcategory, product.businessName, "شمال ایران"].filter(Boolean).map((t, i) => (
-            <span key={i} className="inline-flex items-center h-7 px-3 rounded-full bg-neutral-100 text-neutral-600 text-xs font-vazirmatn">
-              {t}
-            </span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ─── Related from same business ────────────────── */}
+      {/* ── 16. Tags ────────────────────────────────────────── */}
+      {product.tags && product.tags.length > 0 && (
+        <div className="px-4 py-3 bg-white mt-2">
+          <div className="flex flex-wrap gap-1.5">
+            {product.tags.map((t, i) => (
+              <span key={i} className="inline-flex items-center h-7 px-3 rounded-full bg-neutral-100 text-neutral-600 text-xs font-vazirmatn">
+                #{t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 17. Related from same business ──────────────────── */}
       {relatedFromBusiness.length > 0 && (
         <div className="mt-2 bg-white pt-4 pb-2">
           <div className="px-4 mb-3 flex items-center justify-between">
@@ -466,7 +640,7 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       )}
 
-      {/* ─── Similar products ──────────────────────────── */}
+      {/* ── 18. Similar products ────────────────────────────── */}
       {similarProducts.length > 0 && (
         <div className="mt-2 bg-white pt-4 pb-2">
           <div className="px-4 mb-3">
@@ -483,7 +657,7 @@ export default function ProductDetailPage({ slug }: Props) {
         </div>
       )}
 
-      {/* ─── Lead Form Sheet ────────────────────────────── */}
+      {/* ── Lead Form Sheet ─────────────────────────────────── */}
       <LeadFormSheet
         isOpen={leadSheet !== null}
         type={leadSheet ?? "consultation"}
@@ -491,9 +665,9 @@ export default function ProductDetailPage({ slug }: Props) {
         onClose={() => setLeadSheet(null)}
       />
 
-      {/* ─── Fixed Bottom CTA ───────────────────────────── */}
+      {/* ── Fixed Bottom CTA ────────────────────────────────── */}
       <div className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-neutral-100 px-4 py-3 pb-safe">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="flex-1">
             <p className="text-lg font-iran-yekan-x font-bold text-amber-700 leading-none">
               {formatPrice(product.price)} <span className="text-xs font-vazirmatn text-neutral-500">تومان</span>
@@ -504,11 +678,39 @@ export default function ProductDetailPage({ slug }: Props) {
               </p>
             )}
           </div>
-          <button type="button" onClick={handlePhoneClick}
-            className="h-12 px-6 rounded-2xl bg-blue-600 text-white text-sm font-iran-yekan-x font-bold flex items-center gap-2"
-            disabled={product.inventoryStatus === "out-of-stock"}>
-            <PhoneIcon size={15} />
-            {product.inventoryStatus === "out-of-stock" ? "ناموجود" : "تماس با فروشنده"}
+
+          {/* WhatsApp */}
+          {(product.whatsapp ?? businessData?.phone) && !isOutOfStock && (
+            <button
+              type="button"
+              onClick={handleWhatsAppClick}
+              className="h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0"
+              aria-label="واتساپ"
+            >
+              <MessageIcon size={18} />
+            </button>
+          )}
+
+          {/* Phone / CTA */}
+          <button
+            type="button"
+            onClick={isOutOfStock ? () => setLeadSheet("price-inquiry") : handlePhoneClick}
+            className={cn(
+              "h-12 px-5 rounded-2xl text-white text-sm font-iran-yekan-x font-bold flex items-center gap-2 flex-1",
+              isOutOfStock ? "bg-neutral-400" : "bg-blue-600"
+            )}
+          >
+            {isOutOfStock ? (
+              <>
+                <MessageIcon size={15} />
+                اطلاع‌رسانی موجودی
+              </>
+            ) : (
+              <>
+                <PhoneIcon size={15} />
+                تماس با فروشنده
+              </>
+            )}
           </button>
         </div>
       </div>

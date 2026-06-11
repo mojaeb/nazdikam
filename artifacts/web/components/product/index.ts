@@ -23,3 +23,11 @@ export { ProductCardStandard } from "./ProductCardStandard";
 export { ProductCardFeatured } from "./ProductCardFeatured";
 export { ProductCardHorizontal } from "./ProductCardHorizontal";
 export { ProductCardDeal } from "./ProductCardDeal";
+
+/* ─── Rich Content ───────────────────────────────────── */
+export { SocialProofStrip } from "./SocialProofStrip";
+export { BenefitsList } from "./BenefitsList";
+export { FAQSection } from "./FAQSection";
+export { RatingBreakdown } from "./RatingBreakdown";
+export { EligibleGroupsSection } from "./EligibleGroupsSection";
+export { BeforeAfterSection } from "./BeforeAfterSection";

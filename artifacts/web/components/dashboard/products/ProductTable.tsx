@@ -80,7 +80,7 @@ function TableView({ products, selectedIds, onSelectAll, onSelect, onEdit, onDel
                 aria-label="انتخاب همه"
               />
             </th>
-            {["محصول", "قیمت", "موجودی", "وضعیت", "بروزرسانی", ""].map(col => (
+            {["محصول", "قیمت", "برچسب‌ها", "موجودی", "وضعیت", "بروزرسانی", ""].map(col => (
               <th key={col} className="py-3 px-3 text-start font-vazirmatn text-xs font-bold text-neutral-400 whitespace-nowrap">
                 {col}
               </th>
@@ -132,6 +132,25 @@ function TableView({ products, selectedIds, onSelectAll, onSelect, onEdit, onDel
                   {p.originalPrice && (
                     <p className="font-vazirmatn text-xs text-neutral-400 line-through">{formatPrice(p.originalPrice)}</p>
                   )}
+                  {p.isInstallmentAvailable && (
+                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
+                      اقساطی
+                    </span>
+                  )}
+                </td>
+
+                {/* Tags */}
+                <td className="py-3 px-3 min-w-[120px]">
+                  <div className="flex flex-wrap gap-1">
+                    {(p.tags ?? []).slice(0, 3).map(tag => (
+                      <span key={tag} className="text-[10px] font-bold bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded-md">
+                        {tag}
+                      </span>
+                    ))}
+                    {(p.tags ?? []).length > 3 && (
+                      <span className="text-[10px] text-neutral-400">+{toPersianNumerals((p.tags ?? []).length - 3)}</span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Inventory */}

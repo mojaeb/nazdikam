@@ -10,13 +10,15 @@ import { mockDashboardProducts, type DashboardProduct } from "@/lib/dashboard-pr
 import { PlusIcon, SearchIcon, GridIcon, ListIcon } from "@/components/icons";
 
 type SortKey = "updated" | "name" | "price-asc" | "price-desc";
-type FilterStatus = "all" | "published" | "draft" | "low-stock" | "out-of-stock";
+type FilterStatus = "all" | "published" | "draft" | "low-stock" | "out-of-stock" | "featured" | "new";
 type ViewMode = "table" | "grid";
 
 const STATUS_FILTERS: { value: FilterStatus; label: string }[] = [
   { value: "all",          label: "همه" },
   { value: "published",    label: "منتشر شده" },
   { value: "draft",        label: "پیش‌نویس" },
+  { value: "featured",     label: "ویژه" },
+  { value: "new",          label: "جدید" },
   { value: "low-stock",    label: "موجودی کم" },
   { value: "out-of-stock", label: "ناموجود" },
 ];
@@ -36,6 +38,8 @@ function filterAndSort(products: DashboardProduct[], search: string, filterStatu
       if (filterStatus === "draft"     &&  p.isPublished) return false;
       if (filterStatus === "low-stock"    && p.inventoryStatus !== "low-stock")    return false;
       if (filterStatus === "out-of-stock" && p.inventoryStatus !== "out-of-stock") return false;
+      if (filterStatus === "featured"     && !p.isFeatured)  return false;
+      if (filterStatus === "new"          && !p.isNew)        return false;
       return true;
     })
     .sort((a, b) => {
