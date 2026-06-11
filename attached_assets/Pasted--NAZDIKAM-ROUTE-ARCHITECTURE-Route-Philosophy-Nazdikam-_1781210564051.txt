@@ -1,0 +1,813 @@
+# NAZDIKAM_ROUTE_ARCHITECTURE
+
+## Route Philosophy
+
+Nazdikam consists of four independent surfaces:
+
+1. Consumer Platform
+2. User Dashboard
+3. Business Dashboard
+4. Admin Panel
+
+Each surface has its own navigation structure and permissions.
+
+---
+
+# PUBLIC ROUTES
+
+Accessible without authentication.
+
+---
+
+## Home
+
+/
+
+Purpose:
+Platform entry point.
+
+Contains:
+
+* Featured Businesses
+* Categories
+* Videos
+* Offers
+* Installment Opportunities
+* Search Entry
+
+---
+
+## Search
+
+/search
+
+Purpose:
+Global discovery.
+
+Supports:
+
+* Businesses
+* Products
+* Services
+* Videos
+
+Query Example:
+
+/search?q=کافه
+
+---
+
+## Categories
+
+/categories
+
+Purpose:
+Browse all categories.
+
+---
+
+## Category Detail
+
+/categories/:slug
+
+Examples:
+
+/categories/cafes
+
+/categories/restaurants
+
+Purpose:
+
+Category-based discovery.
+
+Contains:
+
+* Businesses
+* Products
+* Services
+* Videos
+
+---
+
+## Business Profile
+
+/businesses/:slug
+
+Examples:
+
+/businesses/cafe-bahar
+
+/businesses/amir-carpet
+
+Purpose:
+
+Primary conversion destination.
+
+Contains:
+
+* About
+* Products
+* Services
+* Videos
+* Reviews
+* Contact Methods
+* Offers
+* Installments
+
+---
+
+## Product Detail
+
+/products/:slug
+
+Examples:
+
+/products/handmade-carpet
+
+Purpose:
+
+Product evaluation.
+
+---
+
+## Service Detail
+
+/services/:slug
+
+Examples:
+
+/services/barista-course
+
+Purpose:
+
+Service evaluation.
+
+---
+
+## Video Detail
+
+/videos/:id
+
+Purpose:
+
+Video viewing.
+
+Contains:
+
+* Video
+* Business Information
+* Business CTA
+
+---
+
+## Videos
+
+/videos
+
+Purpose:
+
+Browse all business videos.
+
+Filters:
+
+* Category
+* Province
+* City
+
+---
+
+## Offers
+
+/offers
+
+Purpose:
+
+Browse active offers.
+
+---
+
+## Offer Detail
+
+/offers/:id
+
+Purpose:
+
+Offer evaluation.
+
+---
+
+## Installments
+
+/installments
+
+Purpose:
+
+Browse installment opportunities.
+
+---
+
+## Map
+
+/map
+
+Purpose:
+
+Location-based discovery.
+
+Filters:
+
+* Province
+* City
+* Category
+* Open Now
+* Verified
+* Installment
+
+---
+
+## About
+
+/about
+
+---
+
+## Contact
+
+/contact
+
+---
+
+## Help
+
+/help
+
+---
+
+## Terms
+
+/terms
+
+---
+
+# AUTH ROUTES
+
+Authentication required.
+
+---
+
+## Login
+
+/auth/login
+
+OTP Entry
+
+---
+
+## Verify OTP
+
+/auth/verify
+
+---
+
+## Complete Profile
+
+/auth/profile
+
+Optional onboarding.
+
+---
+
+# USER DASHBOARD
+
+Requires Authentication.
+
+Prefix:
+
+/account
+
+---
+
+## Dashboard Home
+
+/account
+
+Purpose:
+
+Personal dashboard.
+
+---
+
+## Profile
+
+/account/profile
+
+Manage:
+
+* Name
+* Avatar
+* Settings
+
+---
+
+## Saved Businesses
+
+/account/saved/businesses
+
+---
+
+## Saved Products
+
+/account/saved/products
+
+---
+
+## Saved Services
+
+/account/saved/services
+
+---
+
+## Following
+
+/account/following
+
+Businesses user follows.
+
+---
+
+## History
+
+/account/history
+
+Recently viewed content.
+
+---
+
+## Notifications
+
+/account/notifications
+
+---
+
+## Reviews
+
+/account/reviews
+
+User reviews.
+
+---
+
+## Register Business
+
+/account/create-business
+
+Purpose:
+
+Convert User → Business Owner
+
+---
+
+# BUSINESS DASHBOARD
+
+Requires:
+
+Authenticated User
++
+Business Ownership
+
+Prefix:
+
+/business
+
+---
+
+## Business Dashboard Home
+
+/business
+
+Purpose:
+
+Overview
+
+Displays:
+
+* Leads
+* Visits
+* Subscription
+* Analytics Snapshot
+
+---
+
+## Business Profile
+
+/business/profile
+
+Manage:
+
+* Description
+* Location
+* Hours
+* Contact Methods
+* Photos
+
+---
+
+## Products
+
+/business/products
+
+List products.
+
+---
+
+## Create Product
+
+/business/products/create
+
+---
+
+## Edit Product
+
+/business/products/:id/edit
+
+---
+
+## Services
+
+/business/services
+
+---
+
+## Create Service
+
+/business/services/create
+
+---
+
+## Edit Service
+
+/business/services/:id/edit
+
+---
+
+## Videos
+
+/business/videos
+
+---
+
+## Upload Video
+
+/business/videos/create
+
+---
+
+## Edit Video
+
+/business/videos/:id/edit
+
+---
+
+## Offers
+
+/business/offers
+
+---
+
+## Create Offer
+
+/business/offers/create
+
+---
+
+## Edit Offer
+
+/business/offers/:id/edit
+
+---
+
+## Installments
+
+/business/installments
+
+---
+
+## Create Installment
+
+/business/installments/create
+
+---
+
+## Edit Installment
+
+/business/installments/:id/edit
+
+---
+
+## Leads
+
+/business/leads
+
+Purpose:
+
+Lead management.
+
+Filters:
+
+* WhatsApp
+* Phone
+* Quote
+* Consultation
+
+---
+
+## Reviews
+
+/business/reviews
+
+Manage reviews.
+
+---
+
+## Customers
+
+/business/customers
+
+Lead database.
+
+---
+
+## Analytics
+
+/business/analytics
+
+Metrics:
+
+* Visits
+* Leads
+* CTR
+* Product Views
+* Service Views
+* Video Views
+
+---
+
+## Subscription
+
+/business/subscription
+
+Manage plan.
+
+---
+
+## Referral Program
+
+/business/referrals
+
+Contains:
+
+* Referral Code
+* Referral Stats
+* Earned Discounts
+
+---
+
+## Notifications
+
+/business/notifications
+
+Business alerts.
+
+---
+
+# ADMIN PANEL
+
+Requires:
+
+Admin Role
+
+Prefix:
+
+/admin
+
+---
+
+## Dashboard
+
+/admin
+
+Platform overview.
+
+---
+
+## Users
+
+/admin/users
+
+---
+
+## Businesses
+
+/admin/businesses
+
+---
+
+## Verify Business
+
+/admin/businesses/:id
+
+Actions:
+
+* Approve
+* Reject
+
+---
+
+## Products
+
+/admin/products
+
+---
+
+## Services
+
+/admin/services
+
+---
+
+## Videos
+
+/admin/videos
+
+---
+
+## Reviews
+
+/admin/reviews
+
+Moderation.
+
+---
+
+## Leads
+
+/admin/leads
+
+Platform-wide lead monitoring.
+
+---
+
+## Subscriptions
+
+/admin/subscriptions
+
+Manage plans.
+
+---
+
+## Referrals
+
+/admin/referrals
+
+Track rewards.
+
+---
+
+## Categories
+
+/admin/categories
+
+Manage discovery structure.
+
+---
+
+## Reports
+
+/admin/reports
+
+Business intelligence.
+
+---
+
+# PERMISSION MATRIX
+
+Guest
+
+Can Access:
+
+* Public Routes
+
+Cannot Access:
+
+* Account
+* Business Dashboard
+* Admin
+
+---
+
+Registered User
+
+Can Access:
+
+* Public Routes
+* Account Routes
+
+Cannot Access:
+
+* Business Dashboard
+  (unless owns business)
+
+---
+
+Business Owner
+
+Can Access:
+
+* Public Routes
+* Account Routes
+* Business Dashboard
+
+Cannot Access:
+
+* Admin
+
+---
+
+Admin
+
+Can Access:
+
+* All Routes
+
+---
+
+# ROUTE PRIORITY
+
+P0 (Must Exist Before Launch)
+
+/
+/search
+/categories
+/categories/:slug
+/businesses/:slug
+/map
+
+/auth/login
+
+/account
+
+/account/create-business
+
+/business
+
+/business/profile
+
+/business/products
+
+/business/services
+
+/business/leads
+
+/business/subscription
+
+/admin/businesses
+
+---
+
+P1 (First Growth Phase)
+
+/videos
+/offers
+/installments
+
+/business/videos
+/business/offers
+/business/installments
+
+/business/analytics
+
+/business/referrals
+
+---
+
+P2 (Optimization)
+
+/account/history
+
+/account/following
+
+/business/customers
+
+/admin/reports
+
+---
+
+P3 (Future)
+
+Advanced CRM
+
+Advanced Marketing Tools
+
+AI Recommendations
+
+Multi-business Ownership
