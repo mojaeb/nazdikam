@@ -31,7 +31,7 @@ function Router() {
       </Route>
       <Route path="/desktop" component={DesktopHomePage} />
       <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/dashboard/:rest+" component={DashboardPage} />
+      <Route path="/dashboard/*" component={DashboardPage} />
       <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>

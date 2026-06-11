@@ -7,6 +7,10 @@ import { RecentActivityWidget } from "@/components/dashboard/widgets/RecentActiv
 import { QuickActionsWidget } from "@/components/dashboard/widgets/QuickActionsWidget";
 import { SubscriptionWidget } from "@/components/dashboard/widgets/SubscriptionWidget";
 import { AnalyticsSnapshotWidget } from "@/components/dashboard/widgets/AnalyticsSnapshotWidget";
+import { ProductList } from "@/components/dashboard/products/ProductList";
+import { ProductForm } from "@/components/dashboard/products/ProductForm";
+import { ServiceList } from "@/components/dashboard/services/ServiceList";
+import { ServiceForm } from "@/components/dashboard/services/ServiceForm";
 import {
   mockDashboardBusiness,
   mockDashboardStats,
@@ -174,21 +178,30 @@ function DashboardContent() {
     return <DashboardOverview />;
   }
 
+  /* Products */
+  if (location === "/dashboard/products") return <ProductList />;
+  if (location === "/dashboard/products/new") return <ProductForm mode="create" />;
+  const productEditMatch = location.match(/^\/dashboard\/products\/([^/]+)\/edit$/);
+  if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;
+
+  /* Services */
+  if (location === "/dashboard/services") return <ServiceList />;
+  if (location === "/dashboard/services/new") return <ServiceForm mode="create" />;
+  const serviceEditMatch = location.match(/^\/dashboard\/services\/([^/]+)\/edit$/);
+  if (serviceEditMatch) return <ServiceForm mode="edit" serviceId={serviceEditMatch[1]} />;
+
   const SECTION_LABELS: Record<string, string> = {
-    "/dashboard/profile":      "پروفایل کسب‌وکار",
-    "/dashboard/products":     "مدیریت محصولات",
-    "/dashboard/services":     "مدیریت خدمات",
-    "/dashboard/leads":        "مدیریت لیدها",
-    "/dashboard/reviews":      "نظرات و امتیازها",
-    "/dashboard/customers":    "مشتریان",
-    "/dashboard/notifications":"اعلان‌ها",
-    "/dashboard/analytics":    "آمار و تحلیل‌ها",
-    "/dashboard/promotions":   "تبلیغات",
-    "/dashboard/subscription": "اشتراک",
-    "/dashboard/settings":     "تنظیمات",
+    "/dashboard/profile":       "پروفایل کسب‌وکار",
+    "/dashboard/leads":         "مدیریت لیدها",
+    "/dashboard/reviews":       "نظرات و امتیازها",
+    "/dashboard/customers":     "مشتریان",
+    "/dashboard/notifications": "اعلان‌ها",
+    "/dashboard/analytics":     "آمار و تحلیل‌ها",
+    "/dashboard/promotions":    "تبلیغات",
+    "/dashboard/subscription":  "اشتراک",
+    "/dashboard/settings":      "تنظیمات",
   };
 
-  // Find matching section label
   const key = Object.keys(SECTION_LABELS).find(k => location.startsWith(k));
   return <ComingSoon section={key ? SECTION_LABELS[key] : "این بخش"} />;
 }
