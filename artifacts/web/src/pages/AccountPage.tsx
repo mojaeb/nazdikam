@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn, avatarGradientIndex } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { avatarGradientIndex } from "@/lib/utils";
 import {
-  MenuIcon, CloseIcon, LogOutIcon, UserIcon, StarIcon, BellIcon,
+  LogOutIcon, UserIcon, StarIcon,
   BookmarkIcon, StoreIcon, MapPinIcon, SettingsIcon,
 } from "@/components/icons";
 import { BottomNav } from "@/components/sections/BottomNav";
+import { UnifiedHeader } from "@/components/shared/UnifiedHeader";
+import { UnifiedHamburgerDrawer } from "@/components/shared/UnifiedHamburgerDrawer";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { useLoginModal } from "@/lib/login-modal-context";
 import { useCity } from "@/lib/city-context";
@@ -35,124 +37,6 @@ interface ApiBusiness {
   categoryId: number | null;
 }
 
-/* ─── Hamburger Drawer ───────────────────────────────── */
-interface UserMenuItem {
-  label: string;
-  path?: string;
-  action?: () => void;
-  icon: React.ReactNode;
-  color?: "red" | "teal" | "blue";
-}
-
-function UserHamburgerDrawer({
-  open, onClose, hasBusiness, onLogout,
-}: {
-  open: boolean; onClose: () => void; hasBusiness: boolean; onLogout: () => void;
-}) {
-  const [, navigate] = useLocation();
-  const { user } = useAuth();
-  const { selectedCity } = useCity();
-  const displayName = user?.name ?? user?.phone ?? "کاربر";
-  const displayCity = selectedCity ?? "شهر انتخاب نشده";
-  const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
-
-  const menuItems: UserMenuItem[] = [
-    { label: "پروفایل",       path: "/account",               icon: <UserIcon size={16} /> },
-    { label: "ذخیره‌شده‌ها",  path: "/account/saved",         icon: <BookmarkIcon size={16} /> },
-    { label: "دنبال‌شده‌ها",  path: "/account/following",     icon: <StarIcon size={16} /> },
-    { label: "نظرات من",      path: "/account/reviews",       icon: <StarIcon size={16} /> },
-    { label: "اعلان‌ها",      path: "/account/notifications", icon: <BellIcon size={16} /> },
-    ...(hasBusiness
-      ? [
-          { label: "کسب‌وکار من",        path: "/business",               icon: <StoreIcon size={16} />, color: "blue" as const },
-          { label: "ثبت کسب‌وکار جدید", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
-        ]
-      : [
-          { label: "ثبت کسب‌وکار", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
-        ]
-    ),
-  ];
-
-  const handleNav = (item: UserMenuItem) => {
-    onClose();
-    if (item.action) { item.action(); return; }
-    if (item.path) navigate(item.path);
-  };
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/50"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            aria-hidden="true"
-          />
-          <motion.div
-            className="fixed inset-y-0 start-0 z-50 w-[280px] bg-white overflow-hidden flex flex-col"
-            style={{ boxShadow: "0 0 40px rgba(0,0,0,0.2)" }}
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            role="dialog" aria-label="منوی حساب کاربری" aria-modal="true"
-          >
-            <div className="h-[60px] flex items-center justify-between px-4 shrink-0 bg-gradient-to-l from-blue-600 to-blue-800">
-              <span className="font-iran-yekan-x font-bold text-white text-base">حساب کاربری</span>
-              <button type="button" className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors" onClick={onClose} aria-label="بستن منو">
-                <CloseIcon size={16} className="text-white/80" />
-              </button>
-            </div>
-
-            <div className="px-4 py-4 border-b border-neutral-100 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-iran-yekan-x font-bold shadow-sm shrink-0" style={{ background: AVATAR_GRADIENTS[avatarIdx] }}>
-                {displayName.charAt(0)}
-              </div>
-              <div>
-                <p className="font-iran-yekan-x font-bold text-neutral-900 text-sm">{displayName}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <MapPinIcon size={11} className="text-neutral-400" />
-                  <span className="text-xs font-vazirmatn text-neutral-400">{displayCity}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5">
-              {menuItems.map((item, i) => (
-                <motion.button
-                  key={i} type="button" whileTap={{ scale: 0.97 }}
-                  className={cn(
-                    "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium transition-colors text-start",
-                    item.color === "teal"  ? "text-teal-700 hover:bg-teal-50"
-                    : item.color === "blue" ? "text-blue-700 hover:bg-blue-50"
-                    : "text-neutral-700 hover:bg-neutral-50"
-                  )}
-                  onClick={() => handleNav(item)}
-                >
-                  <span className={cn(item.color === "teal" ? "text-teal-500" : item.color === "blue" ? "text-blue-500" : "text-neutral-400")}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </motion.button>
-              ))}
-            </div>
-
-            <div className="px-3 py-3 border-t border-neutral-100">
-              <motion.button type="button" whileTap={{ scale: 0.97 }}
-                className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium text-red-500 hover:bg-red-50 transition-colors text-start"
-                onClick={() => { onClose(); onLogout(); }}
-              >
-                <LogOutIcon size={16} />
-                خروج از حساب
-              </motion.button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
 /* ─── Guest view ─────────────────────────────────────── */
 function GuestAccountView({ onLogin }: { onLogin: () => void }) {
   return (
@@ -167,7 +51,12 @@ function GuestAccountView({ onLogin }: { onLogin: () => void }) {
             برای مشاهده پروفایل، ذخیره‌شده‌ها و دنبال‌شده‌ها، وارد شوید.
           </p>
         </div>
-        <motion.button type="button" className="w-full h-12 rounded-2xl bg-teal-600 text-white font-vazirmatn font-bold text-[14px]" whileTap={{ scale: 0.97 }} onClick={onLogin}>
+        <motion.button
+          type="button"
+          className="w-full h-12 rounded-2xl bg-teal-600 text-white font-vazirmatn font-bold text-[14px]"
+          whileTap={{ scale: 0.97 }}
+          onClick={onLogin}
+        >
           ورود / ثبت‌نام
         </motion.button>
       </div>
@@ -176,9 +65,8 @@ function GuestAccountView({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-/* ─── Business card (in account page) ───────────────── */
+/* ─── Business card ──────────────────────────────────── */
 function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onEnter: () => void }) {
-  const initial = business.name.slice(0, 1);
   const avatarIdx = avatarGradientIndex(business.name);
   return (
     <motion.div
@@ -186,8 +74,11 @@ function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onE
       style={{ boxShadow: "var(--shadow-elevation-1)" }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-xl shrink-0" style={{ background: AVATAR_GRADIENTS[avatarIdx % 10] }}>
-        {initial}
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-xl shrink-0"
+        style={{ background: AVATAR_GRADIENTS[(avatarIdx + 3) % 10]! }}
+      >
+        {business.name.slice(0, 1)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-iran-yekan-x font-bold text-neutral-900 text-[14px] truncate">{business.name}</p>
@@ -199,13 +90,13 @@ function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onE
         whileTap={{ scale: 0.96 }}
         onClick={onEnter}
       >
-        ورود به داشبورد
+        داشبورد
       </motion.button>
     </motion.div>
   );
 }
 
-/* ─── Section row button ─────────────────────────────── */
+/* ─── Section row ────────────────────────────────────── */
 function SectionRow({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <motion.button
@@ -260,7 +151,6 @@ export default function AccountPage() {
   if (!isLoggedIn) return <GuestAccountView onLogin={showLoginModal} />;
 
   const displayName = user?.name ?? user?.phone ?? "کاربر";
-  const hasBusiness = businesses.length > 0 || (user?.businessIds?.length ?? 0) > 0;
   const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
 
   const handleLogout = async () => {
@@ -268,48 +158,24 @@ export default function AccountPage() {
     navigate("/");
   };
 
+  const bizSummaries = businesses.map(b => ({
+    id: b.id,
+    name: b.name,
+    city: b.city,
+    province: b.province,
+  }));
+
   return (
     <div dir="rtl" className="min-h-screen bg-[#F7F8FA] pb-24">
 
-      {/* ── Fixed top bar ── */}
-      <header className="fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-neutral-100 flex items-center justify-between px-4">
-        {/* Hamburger — start (right in RTL) */}
-        <motion.button
-          type="button"
-          className="w-9 h-9 rounded-xl flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 transition-colors"
-          whileTap={{ scale: 0.93 }}
-          onClick={() => setMenuOpen(true)}
-          aria-label="منوی حساب کاربری"
-        >
-          <MenuIcon size={18} className="text-neutral-600" />
-        </motion.button>
+      {/* ── Shared unified header ── */}
+      <UnifiedHeader
+        onHamburger={() => setMenuOpen(true)}
+        notificationCount={3}
+        onBellPress={() => navigate("/account/notifications")}
+      />
 
-        {/* Logo — center */}
-        <span className="font-iran-yekan-x font-bold text-neutral-900 text-base">نزدیکام</span>
-
-        {/* Bell + Avatar — end (left in RTL) */}
-        <div className="flex items-center gap-1.5">
-          <motion.button
-            type="button"
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 transition-colors"
-            whileTap={{ scale: 0.93 }}
-            onClick={() => navigate("/account/notifications")}
-            aria-label="اعلان‌ها"
-          >
-            <BellIcon size={17} className="text-neutral-600" />
-            <span className="absolute top-1.5 start-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" aria-hidden="true" />
-          </motion.button>
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
-            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
-            aria-hidden="true"
-          >
-            {displayName.charAt(0)}
-          </div>
-        </div>
-      </header>
-
-      <div className="pt-14 px-4 space-y-4 max-w-2xl mx-auto">
+      <div className="px-4 space-y-4 max-w-2xl mx-auto">
 
         {/* ── Profile section ── */}
         <motion.div
@@ -321,7 +187,7 @@ export default function AccountPage() {
         >
           <div
             className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-3xl"
-            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
+            style={{ background: AVATAR_GRADIENTS[avatarIdx % 10]! }}
           >
             {displayName.charAt(0)}
           </div>
@@ -358,7 +224,6 @@ export default function AccountPage() {
           {bizLoading ? (
             <div className="h-20 bg-white rounded-2xl animate-pulse" style={{ boxShadow: "var(--shadow-elevation-1)" }} />
           ) : businesses.length === 0 ? (
-            /* No business — register CTA */
             <motion.button
               type="button"
               className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-iran-yekan-x font-bold text-[15px] flex items-center justify-center gap-3 transition-colors"
@@ -371,7 +236,6 @@ export default function AccountPage() {
               ثبت کسب‌وکار
             </motion.button>
           ) : (
-            /* Has businesses — list them */
             <div className="space-y-3">
               <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1">کسب‌وکارهای شما</p>
               {businesses.map(biz => (
@@ -393,26 +257,19 @@ export default function AccountPage() {
           transition={{ duration: 0.35, delay: 0.1 }}
         >
           <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1">حساب شخصی</p>
+          <SectionRow icon={<BookmarkIcon size={18} />} label="ذخیره‌شده‌ها" onClick={() => navigate("/account/saved")} />
+          <SectionRow icon={<StarIcon size={18} />} label="دنبال‌شده‌ها" onClick={() => navigate("/account/following")} />
           <SectionRow
-            icon={<BookmarkIcon size={18} />}
-            label="ذخیره‌شده‌ها"
-            onClick={() => navigate("/account/saved")}
-          />
-          <SectionRow
-            icon={<StarIcon size={18} />}
-            label="دنبال‌شده‌ها"
-            onClick={() => navigate("/account/following")}
-          />
-          <SectionRow
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>}
+            icon={
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            }
             label="پسندیده‌ها"
             onClick={() => navigate("/account/liked")}
           />
-          <SectionRow
-            icon={<SettingsIcon size={18} />}
-            label="تنظیمات"
-            onClick={() => navigate("/account/settings")}
-          />
+          <SectionRow icon={<SettingsIcon size={18} />} label="تنظیمات" onClick={() => navigate("/account/settings")} />
         </motion.div>
 
         {/* ── Logout ── */}
@@ -432,10 +289,15 @@ export default function AccountPage() {
 
       <BottomNav />
 
-      <UserHamburgerDrawer
+      {/* ── Unified hamburger drawer ── */}
+      <UnifiedHamburgerDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        hasBusiness={hasBusiness}
+        businesses={bizSummaries}
+        activeBusinessId={null}
+        onSwitchToPersonal={() => setMenuOpen(false)}
+        onSwitchToBusiness={() => { navigate("/business"); setMenuOpen(false); }}
+        onAddBusiness={() => { navigate("/account/create-business"); setMenuOpen(false); }}
         onLogout={handleLogout}
       />
     </div>
