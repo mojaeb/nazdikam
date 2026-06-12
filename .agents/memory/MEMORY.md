@@ -4,3 +4,4 @@
 - [Orval hooks queryKey requirement](orval-querykey.md) — TanStack Query v5 requires queryKey in UseQueryOptions; pass it using the generated getXxxQueryKey(params) helper alongside enabled, or TypeScript errors.
 - [Category page product filtering](category-product-filtering.md) — category.name (display label) does not match products.category DB values; use getProductCategoryKeywords(slug) + client-side filter, not the API category param.
 - [connect-pg-simple esbuild incompatibility](connect-pg-simple-esbuild.md) — createTableIfMissing reads table.sql from CWD at runtime; esbuild bundles break this. Create sessions table manually via psql and omit createTableIfMissing.
+- [Expo mobile port detection workaround](expo-mobile-port-detection.md) — kind="mobile" detection permanently fails (Expo dev domain can't reach internal ports); serve Expo web build via web artifact Vite middleware at /seller-app/ instead.

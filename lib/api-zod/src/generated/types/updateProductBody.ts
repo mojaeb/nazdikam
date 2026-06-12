@@ -45,6 +45,7 @@ export interface UpdateProductBody {
   isPublished?: boolean;
   followerCount?: number;
   expiresAt?: Date;
+  gallery?: string[];
   beforeAfterImages?: BeforeAfterImage[];
   socialProof?: SocialProof;
   ratingBreakdown?: RatingCategory[];

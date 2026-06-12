@@ -49,6 +49,7 @@ export interface CreateProductBody {
   followerCount?: number;
   /** Deal expiry ISO timestamp */
   expiresAt?: Date;
+  gallery?: string[];
   beforeAfterImages?: BeforeAfterImage[];
   socialProof?: SocialProof;
   ratingBreakdown?: RatingCategory[];

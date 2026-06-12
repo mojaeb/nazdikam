@@ -160,6 +160,7 @@ export interface CreateProductBody {
   followerCount?: number;
   /** Deal expiry ISO timestamp */
   expiresAt?: string;
+  gallery?: string[];
   beforeAfterImages?: BeforeAfterImage[];
   socialProof?: SocialProof;
   ratingBreakdown?: RatingCategory[];
@@ -209,6 +210,7 @@ export interface UpdateProductBody {
   isPublished?: boolean;
   followerCount?: number;
   expiresAt?: string;
+  gallery?: string[];
   beforeAfterImages?: BeforeAfterImage[];
   socialProof?: SocialProof;
   ratingBreakdown?: RatingCategory[];

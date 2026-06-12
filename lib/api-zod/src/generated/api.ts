@@ -437,6 +437,7 @@ export const CreateBusinessProductBody = zod.object({
   "isPublished": zod.boolean().optional(),
   "followerCount": zod.number().optional(),
   "expiresAt": zod.coerce.date().optional().describe('Deal expiry ISO timestamp'),
+  "gallery": zod.array(zod.string()).optional(),
   "beforeAfterImages": zod.array(zod.object({
   "before": zod.string(),
   "after": zod.string(),
@@ -509,6 +510,7 @@ export const UpdateBusinessProductBody = zod.object({
   "isPublished": zod.boolean().optional(),
   "followerCount": zod.number().optional(),
   "expiresAt": zod.coerce.date().optional(),
+  "gallery": zod.array(zod.string()).optional(),
   "beforeAfterImages": zod.array(zod.object({
   "before": zod.string(),
   "after": zod.string(),

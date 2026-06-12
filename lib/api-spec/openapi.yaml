@@ -651,6 +651,10 @@ components:
           type: string
           format: date-time
           description: Deal expiry ISO timestamp
+        gallery:
+          type: array
+          items:
+            type: string
         beforeAfterImages:
           type: array
           items:
@@ -750,6 +754,10 @@ components:
         expiresAt:
           type: string
           format: date-time
+        gallery:
+          type: array
+          items:
+            type: string
         beforeAfterImages:
           type: array
           items:

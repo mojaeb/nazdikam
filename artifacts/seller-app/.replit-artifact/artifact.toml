@@ -1,0 +1,22 @@
+kind = "mobile"
+previewPath = "/seller-app/"
+title = "نزدیکام — Seller App"
+version = "1.0.0"
+id = "artifacts/seller-app"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+name = "expo"
+paths = []
+localPort = 25238
+router = "expo-domain"
+
+[services.development]
+run = "pnpm --filter @workspace/seller-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/seller-app", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/seller-app", "run", "serve" ]
