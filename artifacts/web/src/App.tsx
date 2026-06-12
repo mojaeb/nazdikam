@@ -9,7 +9,6 @@ import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import CategoryDetailPage from "./pages/CategoryDetailPage";
-import DesktopHomePage from "./pages/DesktopHomePage";
 import DashboardPage from "./pages/DashboardPage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -28,9 +27,6 @@ import CreateBusinessPage from "./pages/CreateBusinessPage";
 import ServiceDetailPage from "./pages/ServiceDetailPage";
 
 function SmartHome() {
-  if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-    return <DesktopHomePage />;
-  }
   return <Home />;
 }
 
@@ -87,7 +83,6 @@ function Router() {
       <Route path="/contact" component={ContactPage} />
       <Route path="/help" component={HelpPage} />
       <Route path="/terms" component={TermsPage} />
-      <Route path="/desktop" component={DesktopHomePage} />
       <Route path="/business" component={DashboardPage} />
       <Route path="/business/*" component={DashboardPage} />
       <Route path="/auth/login" component={LoginPage} />

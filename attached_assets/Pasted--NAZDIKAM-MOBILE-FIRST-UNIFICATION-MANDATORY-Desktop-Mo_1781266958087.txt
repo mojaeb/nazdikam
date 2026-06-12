@@ -1,0 +1,297 @@
+# NAZDIKAM — MOBILE FIRST UNIFICATION (MANDATORY)
+
+
+
+مشکل فعلی:
+
+
+
+نسخه Desktop و Mobile مانند دو محصول متفاوت رفتار می‌کنند.
+
+
+
+این خلاف UX Specification است.
+
+
+
+---
+
+
+
+قانون جدید:
+
+
+
+Desktop Is Not Another Product.
+
+
+
+---
+
+
+
+تمام صفحات باید:
+
+
+
+* یک Layout
+
+* یک Navigation
+
+* یک Design System
+
+* یک Information Architecture
+
+
+
+داشته باشند.
+
+
+
+---
+
+
+
+تنها تفاوت مجاز:
+
+
+
+* تعداد ستون‌ها
+
+* فاصله‌ها
+
+* اندازه کارت‌ها
+
+
+
+است.
+
+
+
+---
+
+
+
+غیرمجاز:
+
+
+
+* هدر متفاوت
+
+* سکشن‌های متفاوت
+
+* ترتیب متفاوت محتوا
+
+* ناوبری متفاوت
+
+* داشبورد متفاوت
+
+* کارت متفاوت
+
+
+
+---
+
+
+
+صفحه اصلی Desktop باید دقیقاً همان ساختار Mobile را داشته باشد:
+
+
+
+1. Search + City
+
+2. Banner
+
+3. Categories
+
+4. Hot Discounts
+
+5. Installments
+
+6. Ad Banner
+
+7. Near You
+
+8. Popular Businesses
+
+9. Videos
+
+10. Newest Products & Services
+
+11. Register Business Banner
+
+
+
+---
+
+
+
+Bottom Navigation باید در تمام دستگاه‌ها حفظ شود.
+
+
+
+---
+
+
+
+هدف:
+
+
+
+کاربر اگر بین موبایل و دسکتاپ جابجا شد نباید احساس کند وارد محصول دیگری شده است.
+
+
+
+# CRITICAL ARCHITECTURE REQUIREMENT
+
+
+
+هدف فقط یکسان کردن صفحه اصلی نیست.
+
+
+
+هدف یکسان کردن کل تجربه کاربری نزدیکام است.
+
+
+
+---
+
+
+
+نزدیکام باید فقط یک هویت بصری داشته باشد.
+
+
+
+این هویت باید در:
+
+
+
+* Home
+
+* Search
+
+* Categories
+
+* Business Profile
+
+* User Account
+
+* Business Dashboard
+
+
+
+مشاهده شود.
+
+
+
+---
+
+
+
+User Account و Business Dashboard نباید دو محصول جدا باشند.
+
+
+
+باید مانند Instagram عمل کنند:
+
+
+
+یک کاربر
+
+
+
+↓
+
+
+
+چند هویت
+
+
+
+↓
+
+
+
+Switch Account
+
+
+
+---
+
+
+
+در نتیجه:
+
+
+
+* Header مشترک
+
+* Hamburger مشترک
+
+* Bottom Navigation مشترک
+
+* Card Components مشترک
+
+* Typography مشترک
+
+* Spacing مشترک
+
+* Colors مشترک
+
+
+
+اجباری است.
+
+
+
+---
+
+
+
+قبل از شروع Foundation بعدی:
+
+
+
+یک UX Audit کامل انجام شود.
+
+
+
+تمام صفحات بررسی شوند.
+
+
+
+تمام مواردی که Design System فعلی را نقض می‌کنند اصلاح شوند.
+
+
+
+---
+
+
+
+Definition of Done:
+
+
+
+کاربر هنگام جابجایی بین:
+
+
+
+* Home
+
+* Search
+
+* Profile
+
+* User Account
+
+* Business Dashboard
+
+
+
+نباید احساس کند وارد بخش دیگری از محصول شده است.
+
+
+
+باید احساس کند در یک اپلیکیشن واحد در حال حرکت است.
+
+

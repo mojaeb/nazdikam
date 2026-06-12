@@ -49,13 +49,13 @@ export function LatestSection() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 px-4">
+        <div className="grid grid-cols-2 gap-3 px-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-56 rounded-2xl bg-neutral-100 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 px-4">
+        <div className="grid grid-cols-2 gap-3 px-4 lg:grid-cols-4">
           {items.map((product, i) => (
             <motion.div
               key={product.id}

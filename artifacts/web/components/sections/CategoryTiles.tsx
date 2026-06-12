@@ -37,7 +37,7 @@ export function CategoryTiles() {
       transition={{ duration: 0.45 }}
       viewport={{ once: true, margin: "-60px" }}
     >
-      <div className="px-4 mb-3">
+      <div className="px-4 mb-3 max-w-[1440px] mx-auto">
         <SectionHeader
           title="دسته‌بندی‌ها"
           actionLabel="همه"
@@ -46,11 +46,11 @@ export function CategoryTiles() {
         />
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x snap-mandatory">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x snap-mandatory lg:grid lg:grid-cols-4 xl:grid-cols-9 lg:overflow-visible lg:snap-none lg:pb-0 lg:gap-4">
         {categories.map((cat) => (
           <motion.button
             key={cat.id}
-            className="flex flex-col items-center gap-2 shrink-0 snap-start"
+            className="flex flex-col items-center gap-2 shrink-0 snap-start lg:shrink-0"
             whileTap={{ scale: 0.94 }}
             transition={{ duration: 0.12 }}
             onClick={() => navigate(`/categories/${cat.slug}`)}
@@ -70,7 +70,7 @@ export function CategoryTiles() {
 
         {/* "See all" tile */}
         <motion.button
-          className="flex flex-col items-center gap-2 shrink-0 snap-start"
+          className="flex flex-col items-center gap-2 shrink-0 snap-start lg:shrink-0"
           whileTap={{ scale: 0.94 }}
           transition={{ duration: 0.12 }}
           onClick={() => navigate("/categories")}

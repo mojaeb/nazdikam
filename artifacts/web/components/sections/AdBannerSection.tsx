@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 export function AdBannerSection() {
   return (
     <motion.section
-      className="px-4 pb-6"
+      className="px-4 pb-6 max-w-[1440px] mx-auto"
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}

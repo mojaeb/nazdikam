@@ -30,8 +30,8 @@ export function FeaturedBusinesses() {
         />
       </div>
 
-      {/* Featured cards — full width, stacked */}
-      <div className="px-4 space-y-4">
+      {/* Featured cards — stacked on mobile, 2-col grid on desktop */}
+      <div className="px-4 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
         {featured.map((business, i) => (
           <motion.div
             key={business.id}
@@ -55,10 +55,11 @@ export function FeaturedBusinesses() {
               size="sm"
             />
           </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x lg:grid lg:grid-cols-3 lg:overflow-visible lg:snap-none lg:pb-0">
             {promoted.map((business, i) => (
               <motion.div
                 key={business.id}
+                className="shrink-0 lg:shrink-0"
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}

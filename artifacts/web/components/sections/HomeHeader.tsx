@@ -38,7 +38,7 @@ export function HomeHeader() {
       className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm transition-shadow duration-200"
       animate={{ boxShadow: scrolled ? "0 1px 12px rgba(0,0,0,0.07)" : "none" }}
     >
-      <div className="relative flex items-center justify-center h-14 px-4">
+      <div className="relative flex items-center justify-center h-14 px-4 max-w-[1440px] mx-auto">
         {/* Logo — centered */}
         <button
           type="button"

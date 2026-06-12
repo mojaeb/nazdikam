@@ -33,11 +33,11 @@ export function VideoDiscoveryRow() {
           />
         </div>
 
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x lg:grid lg:grid-cols-4 lg:overflow-visible lg:snap-none lg:pb-0">
           {videoItems.map((item, i) => (
             <motion.div
               key={item.id}
-              className="snap-start"
+              className="snap-start shrink-0 lg:shrink-0"
               initial={{ opacity: 0, scale: 0.92 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}

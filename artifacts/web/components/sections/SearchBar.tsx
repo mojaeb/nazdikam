@@ -13,7 +13,7 @@ export function SearchBar() {
   return (
     <>
       <motion.div
-        className="px-4 pt-3 pb-4"
+        className="px-4 pt-3 pb-4 max-w-[1440px] mx-auto"
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05 }}

@@ -55,17 +55,17 @@ export function HotDiscountsSection() {
       </div>
 
       {isLoading ? (
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 lg:grid lg:grid-cols-4 lg:overflow-visible">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-44 h-52 rounded-2xl bg-amber-100 animate-pulse" />
+            <div key={i} className="shrink-0 w-44 h-52 rounded-2xl bg-amber-100 animate-pulse lg:w-auto" />
           ))}
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4 snap-x lg:grid lg:grid-cols-4 lg:overflow-visible lg:snap-none lg:pb-0">
           {items.map((product, i) => (
             <motion.div
               key={product.id}
-              className="snap-start"
+              className="snap-start shrink-0 lg:shrink-0"
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}

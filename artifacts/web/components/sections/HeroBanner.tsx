@@ -31,7 +31,7 @@ export function HeroBanner() {
   }, [paused]);
 
   return (
-    <div className="px-4 pb-4">
+    <div className="px-4 pb-4 max-w-[1440px] mx-auto">
       <div
         className="relative rounded-3xl overflow-hidden"
         style={{ height: 196 }}
