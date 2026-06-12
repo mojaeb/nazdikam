@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { HomeIcon, GridIcon, SearchIcon, MapPinIcon, UserIcon } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useLoginModal } from "@/lib/login-modal-context";
 import { avatarGradientIndex } from "@/lib/utils";
 
 const AVATAR_GRADIENTS = [
@@ -43,14 +44,22 @@ function getActiveTab(location: string): string {
 export function BottomNav() {
   const [location, navigate] = useLocation();
   const { user, isLoggedIn } = useAuth();
+  const { show: showLoginModal } = useLoginModal();
   const active = getActiveTab(location);
 
   const gradIdx = user?.name ? avatarGradientIndex(user.name) : 0;
   const avatarGradient = AVATAR_GRADIENTS[gradIdx]!;
   const initial = user?.name?.slice(0, 1) ?? "ک";
 
+  const handleTabPress = (tab: Tab) => {
+    if (tab.id === "account" && !isLoggedIn) {
+      showLoginModal();
+      return;
+    }
+    navigate(tab.path);
+  };
+
   return (
-    /* Floating pill — sits above the safe area */
     <div className="fixed bottom-0 inset-x-0 z-50 px-3 pb-3 pb-safe pointer-events-none">
       <div
         className="pointer-events-auto flex items-stretch h-[62px] rounded-[22px] border border-neutral-200/70 px-1 gap-0.5"
@@ -72,13 +81,12 @@ export function BottomNav() {
               key={tab.id}
               type="button"
               className="flex-1 flex flex-col items-center justify-center gap-[3px] rounded-[18px] relative overflow-hidden"
-              onClick={() => navigate(tab.path)}
+              onClick={() => handleTabPress(tab)}
               whileTap={{ scale: 0.91 }}
               transition={{ duration: 0.1 }}
               aria-label={tab.label}
               aria-current={isActive ? "page" : undefined}
             >
-              {/* Active background pill */}
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-pill"
@@ -87,7 +95,6 @@ export function BottomNav() {
                 />
               )}
 
-              {/* Icon */}
               <div className="relative z-10">
                 {isAccountTab && isLoggedIn ? (
                   <motion.div
@@ -111,7 +118,6 @@ export function BottomNav() {
                 )}
               </div>
 
-              {/* Label */}
               <motion.span
                 className="relative z-10 text-[10px] font-vazirmatn font-medium leading-none"
                 animate={{ color: isActive ? "#1860DB" : "#9CA3AF" }}

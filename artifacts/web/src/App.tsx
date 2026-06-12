@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { AuthProvider } from "@/src/contexts/AuthContext";
 import { CityProvider } from "@/lib/city-context";
+import { LoginModalProvider } from "@/lib/login-modal-context";
+import { LoginModal } from "@/components/ui/LoginModal";
 import Home from "./pages/Home";
 import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
@@ -39,7 +41,6 @@ function NotFound() {
   );
 }
 
-/* Redirect /dashboard/* → /business/* */
 function RedirectToBusiness() {
   const [location, navigate] = useLocation();
   useEffect(() => {
@@ -76,21 +77,12 @@ function Router() {
       <Route path="/help" component={HelpPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/desktop" component={DesktopHomePage} />
-
-      {/* Business owner dashboard */}
       <Route path="/business" component={DashboardPage} />
       <Route path="/business/*" component={DashboardPage} />
-
-      {/* Auth */}
       <Route path="/auth/login" component={LoginPage} />
-
-      {/* Account actions */}
       <Route path="/account/create-business" component={CreateBusinessPage} />
-
-      {/* Legacy redirect */}
       <Route path="/dashboard" component={RedirectToBusiness} />
       <Route path="/dashboard/*" component={RedirectToBusiness} />
-
       <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>
@@ -102,7 +94,10 @@ export default function App() {
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <AuthProvider>
         <CityProvider>
-          <Router />
+          <LoginModalProvider>
+            <Router />
+            <LoginModal />
+          </LoginModalProvider>
         </CityProvider>
       </AuthProvider>
     </WouterRouter>
