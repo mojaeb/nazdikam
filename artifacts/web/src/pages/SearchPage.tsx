@@ -11,8 +11,7 @@ import { SortSheet } from "@/components/search/SortSheet";
 import { VoiceSearchOverlay } from "@/components/search/VoiceSearchOverlay";
 import { EmptySearch } from "@/components/search/EmptySearch";
 import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
-import { ProductCardHorizontal } from "@/components/product/ProductCardHorizontal";
-import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { ItemCard } from "@/components/cards/ItemCard";
 
 export default function SearchPage() {
   const [, navigate] = useLocation();
@@ -167,7 +166,7 @@ export default function SearchPage() {
                 </div>
               ) : search.productResults.length === 0 ? (
                 <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
-              ) : search.viewMode === "grid" ? (
+              ) : (
                 <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">
                   {search.productResults.map((p, i) => (
                     <motion.div
@@ -176,20 +175,16 @@ export default function SearchPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
                     >
-                      <ProductCardStandard product={p} className="w-full" onPress={() => navigate(`/products/${p.slug}`)} />
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-4 pt-3 pb-24 space-y-3">
-                  {search.productResults.map((p, i) => (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                    >
-                      <ProductCardHorizontal product={p} onPress={() => navigate(`/products/${p.slug}`)} />
+                      <ItemCard
+                        name={p.name}
+                        image={p.coverGradient}
+                        discountPercent={p.discountPercent}
+                        installmentMonths={p.installmentMonths}
+                        price={p.price}
+                        originalPrice={p.originalPrice}
+                        className="w-full"
+                        onPress={() => navigate(`/products/${p.slug}`)}
+                      />
                     </motion.div>
                   ))}
                 </div>

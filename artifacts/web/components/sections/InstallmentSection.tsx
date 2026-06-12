@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ProductCardFeatured } from "@/components/product/ProductCardFeatured";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { getInstallmentProducts } from "@/lib/mock-products";
 
 const installmentProducts = getInstallmentProducts().slice(0, 4);
@@ -50,13 +50,20 @@ export function InstallmentSection() {
           <motion.div
             key={product.id}
             className="snap-start"
-            style={{ minWidth: 280 }}
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: i * 0.07 }}
           >
-            <ProductCardFeatured product={product} onPress={() => navigate(`/products/${product.slug}`)} />
+            <ItemCard
+              name={product.name}
+              image={product.coverGradient}
+              discountPercent={product.discountPercent}
+              installmentMonths={product.installmentMonths}
+              price={product.price}
+              originalPrice={product.originalPrice}
+              onPress={() => navigate(`/products/${product.slug}`)}
+            />
           </motion.div>
         ))}
       </div>

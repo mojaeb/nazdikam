@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { ItemCard } from "@/components/cards/ItemCard";
 import type { Product } from "@/lib/product.types";
 
 function FireIcon() {
@@ -57,7 +57,15 @@ export function PopularProductsSection({
             viewport={{ once: true }}
             transition={{ delay: i * 0.06 }}
           >
-            <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
+            <ItemCard
+              name={p.name}
+              image={p.coverGradient}
+              discountPercent={p.discountPercent}
+              installmentMonths={p.installmentMonths}
+              price={p.price}
+              originalPrice={p.originalPrice}
+              onPress={() => navigate(`/products/${p.slug}`)}
+            />
           </motion.div>
         ))}
       </div>

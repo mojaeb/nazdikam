@@ -2,12 +2,11 @@ import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ProductCardDeal } from "@/components/product/ProductCardDeal";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
 
 const PARAMS = { per_page: 50, sort: "created_at_desc" as const };
-const COUNTDOWNS = ["۴ ساعت", "۱۲ ساعت", "۲ ساعت", "۸ ساعت", "۵ ساعت", "۳ ساعت"];
 
 function ClockCountdownIcon() {
   return (
@@ -65,7 +64,7 @@ export function DealsSection() {
       {isLoading ? (
         <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-44 h-60 rounded-2xl bg-amber-100 animate-pulse" />
+            <div key={i} className="shrink-0 w-44 h-52 rounded-2xl bg-amber-100 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -79,9 +78,13 @@ export function DealsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.07 }}
             >
-              <ProductCardDeal
-                product={product}
-                countdown={COUNTDOWNS[i % COUNTDOWNS.length]}
+              <ItemCard
+                name={product.name}
+                image={product.coverGradient}
+                discountPercent={product.discountPercent}
+                installmentMonths={product.installmentMonths}
+                price={product.price}
+                originalPrice={product.originalPrice}
                 onPress={() => navigate(`/products/${product.slug}`)}
               />
             </motion.div>

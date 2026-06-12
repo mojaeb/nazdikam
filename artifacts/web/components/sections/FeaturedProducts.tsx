@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TagIcon } from "@/components/icons";
-import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
 
@@ -44,7 +44,7 @@ export function FeaturedProducts() {
       {isLoading ? (
         <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-40 h-52 rounded-2xl bg-neutral-100 animate-pulse" />
+            <div key={i} className="shrink-0 w-44 h-52 rounded-2xl bg-neutral-100 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -58,7 +58,15 @@ export function FeaturedProducts() {
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.06 }}
             >
-              <ProductCardStandard product={product} onPress={() => navigate(`/products/${product.slug}`)} />
+              <ItemCard
+                name={product.name}
+                image={product.coverGradient}
+                discountPercent={product.discountPercent}
+                installmentMonths={product.installmentMonths}
+                price={product.price}
+                originalPrice={product.originalPrice}
+                onPress={() => navigate(`/products/${product.slug}`)}
+              />
             </motion.div>
           ))}
         </div>

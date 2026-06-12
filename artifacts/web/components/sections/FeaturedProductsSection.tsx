@@ -1,8 +1,7 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ProductCardStandard } from "@/components/product/ProductCardStandard";
-import { ProductCardHorizontal } from "@/components/product/ProductCardHorizontal";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { TagIcon } from "@/components/icons";
 import type { Product } from "@/lib/product.types";
 
@@ -10,7 +9,7 @@ interface FeaturedProductsSectionProps {
   title?: string;
   subtitle?: string;
   products: Product[];
-  layout?: "scroll" | "grid" | "list";
+  layout?: "scroll" | "grid";
   onViewAll?: () => void;
   actionLabel?: string;
 }
@@ -55,21 +54,16 @@ export function FeaturedProductsSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
             >
-              <ProductCardStandard product={p} className="w-full" onPress={() => navigate(`/products/${p.slug}`)} />
-            </motion.div>
-          ))}
-        </div>
-      ) : layout === "list" ? (
-        <div className="px-4 space-y-3">
-          {products.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <ProductCardHorizontal product={p} onPress={() => navigate(`/products/${p.slug}`)} />
+              <ItemCard
+                name={p.name}
+                image={p.coverGradient}
+                discountPercent={p.discountPercent}
+                installmentMonths={p.installmentMonths}
+                price={p.price}
+                originalPrice={p.originalPrice}
+                className="w-full"
+                onPress={() => navigate(`/products/${p.slug}`)}
+              />
             </motion.div>
           ))}
         </div>
@@ -84,7 +78,15 @@ export function FeaturedProductsSection({
               viewport={{ once: true }}
               transition={{ delay: i * 0.06 }}
             >
-              <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
+              <ItemCard
+                name={p.name}
+                image={p.coverGradient}
+                discountPercent={p.discountPercent}
+                installmentMonths={p.installmentMonths}
+                price={p.price}
+                originalPrice={p.originalPrice}
+                onPress={() => navigate(`/products/${p.slug}`)}
+              />
             </motion.div>
           ))}
         </div>

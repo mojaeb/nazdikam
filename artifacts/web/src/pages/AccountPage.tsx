@@ -7,7 +7,7 @@ import {
   MenuIcon, CloseIcon, LogOutIcon, UserIcon, StarIcon, BellIcon,
 } from "@/components/icons";
 import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
-import { ProductCardStandard } from "@/components/product/ProductCardStandard";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { BottomNav } from "@/components/sections/BottomNav";
 import { mockBusinesses } from "@/lib/mock-businesses";
 import { getFeaturedProducts } from "@/lib/mock-products";
@@ -41,14 +41,12 @@ interface UserMenuItem {
 }
 
 const USER_MENU_ITEMS: UserMenuItem[] = [
-  { label: "پروفایل",                path: "/account",                 icon: <UserIcon size={16} /> },
-  { label: "کسب‌وکارهای ذخیره",     path: "/account/saved-businesses",icon: <BookmarkIcon size={16} /> },
-  { label: "محصولات ذخیره",          path: "/account/saved-products",  icon: <TagIcon size={16} /> },
-  { label: "خدمات ذخیره",            path: "/account/saved-services",  icon: <StoreIcon size={16} /> },
-  { label: "دنبال‌شده‌ها",            path: "/account/following",       icon: <StarIcon size={16} /> },
-  { label: "نظرات من",               path: "/account/reviews",         icon: <StarIcon size={16} /> },
-  { label: "درخواست‌ها",             path: "/account/requests",        icon: <BellIcon size={16} /> },
-  { label: "کسب‌وکارهای من",        path: "/business",                 icon: <StoreIcon size={16} />, color: "teal" },
+  { label: "پروفایل",         path: "/account",                  icon: <UserIcon size={16} /> },
+  { label: "ذخیره‌شده‌ها",    path: "/account/saved",            icon: <BookmarkIcon size={16} /> },
+  { label: "دنبال‌شده‌ها",    path: "/account/following",        icon: <StarIcon size={16} /> },
+  { label: "نظرات من",        path: "/account/reviews",          icon: <StarIcon size={16} /> },
+  { label: "اعلان‌ها",        path: "/account/notifications",    icon: <BellIcon size={16} /> },
+  { label: "ثبت کسب‌وکار",   path: "/account/create-business",  icon: <StoreIcon size={16} />, color: "teal" },
 ];
 
 function UserHamburgerDrawer({
@@ -275,7 +273,15 @@ export default function AccountPage() {
         <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-2 snap-x">
           {savedProducts.map((p, i) => (
             <motion.div key={p.id} className="snap-start" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
-              <ProductCardStandard product={p} onPress={() => navigate(`/products/${p.slug}`)} />
+              <ItemCard
+                name={p.name}
+                image={p.coverGradient}
+                discountPercent={p.discountPercent}
+                installmentMonths={p.installmentMonths}
+                price={p.price}
+                originalPrice={p.originalPrice}
+                onPress={() => navigate(`/products/${p.slug}`)}
+              />
             </motion.div>
           ))}
         </div>

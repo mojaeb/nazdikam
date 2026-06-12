@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { ServiceCard } from "@/components/cards/ServiceCard";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { featuredServices } from "@/lib/mock-data";
 
 function WrenchIcon() {
@@ -39,7 +39,11 @@ export function FeaturedServices() {
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: i * 0.07 }}
           >
-            <ServiceCard service={service} />
+            <ItemCard
+              name={service.name}
+              image={service.gradient}
+              priceLabel={service.priceRange}
+            />
           </motion.div>
         ))}
       </div>
