@@ -19,8 +19,15 @@ export const leadsTable = pgTable("leads", {
   userId: integer("user_id").references(() => usersTable.id, {
     onDelete: "set null",
   }),
-  sourceType: text("source_type").notNull(),
   leadType: text("lead_type").notNull(),
+  sourceSurface: text("source_surface").notNull(),
+  sourceEntityType: text("source_entity_type"),
+  sourceEntityId: integer("source_entity_id"),
+  status: text("status").notNull().default("new"),
+  name: text("name"),
+  phone: text("phone"),
+  message: text("message"),
+  preferredTime: text("preferred_time"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

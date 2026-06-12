@@ -1,0 +1,167 @@
+Proceed with Foundation 4 — Lead Engine.
+
+Goal:
+
+Implement the complete lead generation system.
+
+The platform's primary success metric is lead generation.
+
+A lead is any action that indicates intent to contact a business.
+
+Lead Types:
+
+* whatsapp
+* phone
+* quote_request
+* consultation_request
+* website_click
+
+---
+
+1. Lead Capture
+
+Every contact action must create a lead record.
+
+Business Profile:
+
+* WhatsApp click
+* Phone click
+* Website click
+* Quote Request
+* Consultation Request
+
+Product Detail:
+
+* WhatsApp click
+* Phone click
+
+Video:
+
+* View Profile click
+* Contact click
+
+---
+
+2. Lead Attribution
+
+Every lead must store:
+
+* businessId
+* userId (nullable)
+* leadType
+* sourceSurface
+* sourceEntityType
+* sourceEntityId
+* createdAt
+
+sourceSurface examples:
+
+business_profile
+product_detail
+video
+search_result
+category_listing
+map
+
+sourceEntityType examples:
+
+business
+product
+service
+video
+offer
+
+---
+
+3. Quote Request Form
+
+Create structured lead form.
+
+Fields:
+
+* name
+* phone
+* message
+
+Store as lead event.
+
+leadType = quote_request
+
+---
+
+4. Consultation Request Form
+
+Create structured lead form.
+
+Fields:
+
+* name
+* phone
+* preferredTime
+* message
+
+Store as lead event.
+
+leadType = consultation_request
+
+---
+
+5. Business Dashboard Integration
+
+Replace mock lead data.
+
+Business dashboard must show:
+
+* Total Leads
+* Leads Today
+* Leads This Week
+* Leads By Type
+* Leads By Source
+
+---
+
+6. Response Metrics
+
+Implement:
+
+* responseRate
+* averageResponseTime
+
+Data model must support future lead responses.
+
+Do not fake values.
+
+If insufficient data exists:
+
+show "Not enough data"
+
+---
+
+7. Analytics Events
+
+Create event tracking for:
+
+* profile_view
+* product_view
+* service_view
+* video_view
+* save_business
+* follow_business
+
+Store in analytics_events.
+
+---
+
+8. Deliverables
+
+* Lead API
+* Lead Capture
+* Lead Attribution
+* Quote Form
+* Consultation Form
+* Dashboard Metrics
+* Analytics Event Tracking
+
+Stop after Foundation 4.
+
+Provide architecture report.

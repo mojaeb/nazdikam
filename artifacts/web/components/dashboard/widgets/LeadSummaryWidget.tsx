@@ -1,7 +1,18 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { mockLeads, mockLeadSummary, type LeadType } from "@/lib/dashboard-mock-data";
+import { cn, toPersianNumerals } from "@/lib/utils";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
+import type { LeadType } from "@/lib/dashboard-leads-data";
+
+/* ─── DB → UI type mapping ────────────────────────────── */
+const LEAD_TYPE_FROM_API: Record<string, LeadType> = {
+  phone:                 "phone-click",
+  whatsapp:              "whatsapp-click",
+  quote_request:         "price-inquiry",
+  consultation_request:  "consultation-request",
+  website_click:         "website-visit",
+};
 
 /* ─── Lead type config ────────────────────────────────── */
 const LEAD_TYPE_CONFIG: Record<LeadType, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
@@ -57,9 +68,32 @@ const LEAD_TYPE_CONFIG: Record<LeadType, { label: string; color: string; bg: str
   },
 };
 
-function LeadRow({ lead, index }: { lead: typeof mockLeads[number]; index: number }) {
-  const cfg = LEAD_TYPE_CONFIG[lead.type];
+const LEAD_AVATAR_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
+
+function timeAgo(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const m = Math.floor(diffMs / 60000);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (m < 1)  return "همین الان";
+  if (m < 60) return `${toPersianNumerals(m)} دقیقه پیش`;
+  if (h < 24) return `${toPersianNumerals(h)} ساعت پیش`;
+  return `${toPersianNumerals(d)} روز پیش`;
+}
+
+interface ApiLead {
+  id: number;
+  leadType: string;
+  status: string;
+  name: string | null;
+  createdAt: string;
+}
+
+function LeadRow({ lead, index }: { lead: ApiLead; index: number }) {
+  const uiType = LEAD_TYPE_FROM_API[lead.leadType] ?? "phone-click";
+  const cfg = LEAD_TYPE_CONFIG[uiType];
   const isNew = lead.status === "new";
+  const color = LEAD_AVATAR_COLORS[lead.id % LEAD_AVATAR_COLORS.length]!;
 
   return (
     <motion.div
@@ -71,45 +105,59 @@ function LeadRow({ lead, index }: { lead: typeof mockLeads[number]; index: numbe
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 + index * 0.06, duration: 0.3 }}
     >
-      {/* Type icon */}
       <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", cfg.bg, cfg.color)}>
         {cfg.icon}
       </div>
-
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-neutral-800 font-vazirmatn text-sm font-medium truncate">
-            {lead.customerName ?? "کاربر ناشناس"}
+            {lead.name ?? "کاربر ناشناس"}
           </p>
-          {isNew && (
-            <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500" aria-label="جدید" />
-          )}
+          {isNew && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500" aria-label="جدید" />}
         </div>
         <p className="text-neutral-400 font-vazirmatn text-xs truncate">
-          {cfg.label} · {lead.createdAt}
+          {cfg.label} · {timeAgo(lead.createdAt)}
         </p>
       </div>
-
-      {/* Status chip */}
       <span className={cn(
         "shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-lg",
-        lead.status === "new" ? "bg-blue-100 text-blue-700"
-          : lead.status === "contacted" ? "bg-green-100 text-green-700"
-          : "bg-neutral-100 text-neutral-500"
+        lead.status === "new"       ? "bg-blue-100 text-blue-700"
+        : lead.status === "contacted" ? "bg-green-100 text-green-700"
+        : "bg-neutral-100 text-neutral-500"
       )}>
-        {lead.status === "new" ? "جدید"
-          : lead.status === "contacted" ? "تماس شده"
-          : lead.status === "read" ? "خوانده شده"
-          : "بایگانی"}
+        {lead.status === "new" ? "جدید" : lead.status === "contacted" ? "تماس شده" : "بایگانی"}
       </span>
     </motion.div>
   );
 }
 
+interface LeadStats {
+  total: number;
+  new: number;
+  contacted: number;
+  responseRate: number | null;
+  recent: ApiLead[];
+}
+
 export function LeadSummaryWidget() {
   const [, navigate] = useLocation();
-  const recentLeads = mockLeads.slice(0, 4);
+  const { business } = useActiveBusiness();
+  const [stats, setStats] = useState<LeadStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!business) return;
+    setLoading(true);
+    fetch(`/api/businesses/${business.id}/leads/stats`, { credentials: "include" })
+      .then(r => r.json())
+      .then((res: { data?: LeadStats }) => { if (res.data) setStats(res.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [business?.id]);
+
+  const rateDisplay = stats?.responseRate != null
+    ? `${toPersianNumerals(stats.responseRate)}٪`
+    : "—";
 
   return (
     <motion.div
@@ -136,11 +184,11 @@ export function LeadSummaryWidget() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-px bg-neutral-100 border-y border-neutral-100">
         {[
-          { label: "لیدهای جدید", value: mockLeadSummary.new, color: "text-blue-600", bg: "bg-white" },
-          { label: "تماس شده",    value: mockLeadSummary.contacted, color: "text-green-600", bg: "bg-white" },
-          { label: "نرخ تبدیل",  value: `${mockLeadSummary.conversionRate}٪`, color: "text-amber-600", bg: "bg-white" },
+          { label: "لیدهای جدید", value: loading ? "—" : toPersianNumerals(stats?.new ?? 0),       color: "text-blue-600" },
+          { label: "تماس شده",    value: loading ? "—" : toPersianNumerals(stats?.contacted ?? 0),  color: "text-green-600" },
+          { label: "نرخ پاسخ",    value: loading ? "—" : rateDisplay,                               color: "text-amber-600" },
         ].map(stat => (
-          <div key={stat.label} className={cn("flex flex-col items-center py-3 px-2", stat.bg)}>
+          <div key={stat.label} className="flex flex-col items-center py-3 px-2 bg-white">
             <p className={cn("font-iran-yekan-x font-bold text-xl leading-none", stat.color)}>
               {stat.value}
             </p>
@@ -151,9 +199,25 @@ export function LeadSummaryWidget() {
 
       {/* Recent leads list */}
       <div className="px-2 py-2">
-        {recentLeads.map((lead, i) => (
-          <LeadRow key={lead.id} lead={lead} index={i} />
-        ))}
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 py-3 px-3 animate-pulse">
+              <div className="w-8 h-8 rounded-xl bg-neutral-100 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 w-24 bg-neutral-100 rounded" />
+                <div className="h-2.5 w-16 bg-neutral-100 rounded" />
+              </div>
+            </div>
+          ))
+        ) : stats?.recent && stats.recent.length > 0 ? (
+          stats.recent.map((lead, i) => (
+            <LeadRow key={lead.id} lead={lead} index={i} />
+          ))
+        ) : (
+          <div className="py-6 text-center">
+            <p className="font-vazirmatn text-xs text-neutral-400">هنوز لیدی ثبت نشده</p>
+          </div>
+        )}
       </div>
 
       {/* Footer CTA */}

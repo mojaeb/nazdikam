@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals, avatarGradientIndex, avatarInitial, formatPrice } from "@/lib/utils";
+import { trackLead, trackEvent } from "@/src/lib/lead-tracker";
 import {
   ChevronStartIcon, ShareIcon, BookmarkIcon, PhoneIcon, MessageIcon,
   MapPinIcon, StarFilledIcon, StarIcon, CloseIcon, CheckCircleIcon,
@@ -244,24 +245,33 @@ interface LeadFormSheetProps {
   isOpen: boolean;
   type: "consultation" | "price-inquiry";
   businessName: string;
+  businessId: number;
   onClose: () => void;
-  onSubmit: (name: string, phone: string, message: string) => void;
 }
 
-function LeadFormSheet({ isOpen, type, businessName, onClose, onSubmit }: LeadFormSheetProps) {
+function LeadFormSheet({ isOpen, type, businessName, businessId, onClose }: LeadFormSheetProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
+  const [preferredTime, setPreferredTime] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
-    onSubmit(name, phone, message);
+    await trackLead({
+      businessId,
+      leadType:      type === "consultation" ? "consultation_request" : "quote_request",
+      sourceSurface: "business_profile",
+      name:          name.trim(),
+      phone:         phone.trim(),
+      message:       message.trim() || undefined,
+      preferredTime: (type === "consultation" && preferredTime.trim()) ? preferredTime.trim() : undefined,
+    });
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
-      setName(""); setPhone(""); setMessage("");
+      setName(""); setPhone(""); setMessage(""); setPreferredTime("");
       onClose();
     }, 1800);
   }
@@ -330,6 +340,18 @@ function LeadFormSheet({ isOpen, type, businessName, onClose, onSubmit }: LeadFo
                     dir="ltr"
                   />
                 </div>
+                {type === "consultation" && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-vazirmatn text-neutral-600">زمان مناسب (اختیاری)</label>
+                    <input
+                      type="text"
+                      value={preferredTime}
+                      onChange={e => setPreferredTime(e.target.value)}
+                      placeholder="مثلاً: صبح‌ها، بعدازظهر، هر روز ۱۰ تا ۱۲"
+                      className="w-full h-11 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm font-vazirmatn text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                    />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-xs font-vazirmatn text-neutral-600">توضیحات (اختیاری)</label>
                   <textarea
@@ -380,6 +402,7 @@ export default function BusinessProfilePage({ slug }: Props) {
   const [saved, setSaved] = useState(false);
   const [leadSheet, setLeadSheet] = useState<"consultation" | "price-inquiry" | null>(null);
   const [dbBusiness, setDbBusiness] = useState<Business | null | "loading">("loading");
+  const [rawBusinessId, setRawBusinessId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -387,7 +410,14 @@ export default function BusinessProfilePage({ slug }: Props) {
     fetch(`/api/businesses/${encodeURIComponent(slug)}`, { credentials: "include" })
       .then(r => r.json())
       .then((data: { data?: DbBusiness; error?: unknown }) => {
-        if (!cancelled) setDbBusiness(data.data ? adaptDbBusiness(data.data) : null);
+        if (!cancelled) {
+          if (data.data) {
+            setDbBusiness(adaptDbBusiness(data.data));
+            setRawBusinessId(data.data.id);
+          } else {
+            setDbBusiness(null);
+          }
+        }
       })
       .catch(() => { if (!cancelled) setDbBusiness(null); });
     return () => { cancelled = true; };
@@ -398,6 +428,12 @@ export default function BusinessProfilePage({ slug }: Props) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  /* Track profile view once business is resolved */
+  useEffect(() => {
+    if (!rawBusinessId) return;
+    void trackEvent({ businessId: rawBusinessId, eventType: "profile_view", entityType: "business", entityId: rawBusinessId });
+  }, [rawBusinessId]);
 
   if (dbBusiness === "loading") {
     return (
@@ -418,18 +454,28 @@ export default function BusinessProfilePage({ slug }: Props) {
   const avatarIdx = avatarGradientIndex(business.name);
 
   const handlePhoneClick = () => {
-    if (business.phone) window.location.href = `tel:${business.phone.replace(/[^0-9+]/g, "")}`;
+    if (!business.phone) return;
+    if (rawBusinessId) {
+      void trackLead({ businessId: rawBusinessId, leadType: "phone", sourceSurface: "business_profile" });
+    }
+    window.location.href = `tel:${business.phone.replace(/[^0-9+]/g, "")}`;
   };
 
   const handleWhatsAppClick = () => {
-    if (business.phone) {
-      const num = business.phone.replace(/[^0-9]/g, "").replace(/^0/, "98");
-      window.open(`https://wa.me/${num}`, "_blank");
+    if (!business.phone) return;
+    if (rawBusinessId) {
+      void trackLead({ businessId: rawBusinessId, leadType: "whatsapp", sourceSurface: "business_profile" });
     }
+    const num = business.phone.replace(/[^0-9]/g, "").replace(/^0/, "98");
+    window.open(`https://wa.me/${num}`, "_blank");
   };
 
   const handleWebsiteClick = () => {
-    if (business.website) window.open(`https://${business.website}`, "_blank");
+    if (!business.website) return;
+    if (rawBusinessId) {
+      void trackLead({ businessId: rawBusinessId, leadType: "website_click", sourceSurface: "business_profile" });
+    }
+    window.open(`https://${business.website}`, "_blank");
   };
 
   const handleShare = () => {
@@ -438,8 +484,12 @@ export default function BusinessProfilePage({ slug }: Props) {
     }
   };
 
-  const handleLeadSubmit = (_name: string, _phone: string, _message: string) => {
-    /* leads are created server-side in production */
+  const handleSaveToggle = () => {
+    const next = !saved;
+    setSaved(next);
+    if (rawBusinessId) {
+      void trackEvent({ businessId: rawBusinessId, eventType: next ? "save_business" : "unsave_business" });
+    }
   };
 
   /* ── Rating distribution ── */
@@ -507,7 +557,7 @@ export default function BusinessProfilePage({ slug }: Props) {
               saved ? "text-rose-500" : scrolled ? "text-neutral-700" : "text-white"
             )}
             whileTap={{ scale: 0.92 }}
-            onClick={() => setSaved(v => !v)}
+            onClick={handleSaveToggle}
             aria-label={saved ? "حذف از ذخیره‌ها" : "ذخیره"}
           >
             <BookmarkIcon size={16} />
@@ -620,7 +670,7 @@ export default function BusinessProfilePage({ slug }: Props) {
               type="button"
               className="h-11 bg-neutral-100 text-neutral-700 rounded-xl flex items-center justify-center gap-1.5 text-xs font-iran-yekan-x font-bold hover:bg-neutral-200 transition-colors"
               whileTap={{ scale: 0.96 }}
-              onClick={() => setSaved(v => !v)}
+              onClick={handleSaveToggle}
               aria-label={saved ? "حذف از ذخیره‌ها" : "ذخیره"}
             >
               <BookmarkIcon size={15} />
@@ -874,8 +924,8 @@ export default function BusinessProfilePage({ slug }: Props) {
         isOpen={leadSheet !== null}
         type={leadSheet ?? "consultation"}
         businessName={business.name}
+        businessId={rawBusinessId ?? 0}
         onClose={() => setLeadSheet(null)}
-        onSubmit={handleLeadSubmit}
       />
     </div>
   );

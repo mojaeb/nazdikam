@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals } from "@/lib/utils";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import {
@@ -9,10 +10,80 @@ import {
   CheckCircleIcon, ClockIcon, SearchIcon,
 } from "@/components/icons";
 import {
-  mockLeads, LEAD_TYPE_LABELS, LEAD_SOURCE_LABELS, LEAD_STATUS_LABELS,
+  LEAD_TYPE_LABELS, LEAD_SOURCE_LABELS, LEAD_STATUS_LABELS,
   LEAD_TYPE_COLORS, LEAD_STATUS_COLORS,
   type Lead, type LeadType, type LeadSource, type LeadStatus,
 } from "@/lib/dashboard-leads-data";
+
+/* ─── Adapter helpers ─────────────────────────────────── */
+const LEAD_TYPE_FROM_API: Record<string, LeadType> = {
+  phone:                "phone-click",
+  whatsapp:             "whatsapp-click",
+  quote_request:        "price-inquiry",
+  consultation_request: "consultation-request",
+  website_click:        "website-visit",
+};
+
+const LEAD_SOURCE_FROM_API: Record<string, LeadSource> = {
+  business_profile: "business",
+  product_detail:   "product",
+  search_result:    "search",
+  category_listing: "category",
+  video:            "homepage",
+  map:              "homepage",
+};
+
+const AVATAR_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
+
+function formatTimeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diffMs / 60000);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (m < 1)  return "همین الان";
+  if (m < 60) return `${toPersianNumerals(m)} دقیقه پیش`;
+  if (h < 24) return `${toPersianNumerals(h)} ساعت پیش`;
+  return `${toPersianNumerals(d)} روز پیش`;
+}
+
+interface ApiLead {
+  id: number;
+  leadType: string;
+  sourceSurface: string;
+  status: string;
+  name: string | null;
+  phone: string | null;
+  message: string | null;
+  preferredTime: string | null;
+  createdAt: string;
+}
+
+function adaptApiLead(l: ApiLead): Lead {
+  return {
+    id:          String(l.id),
+    type:        LEAD_TYPE_FROM_API[l.leadType]   ?? "phone-click",
+    source:      LEAD_SOURCE_FROM_API[l.sourceSurface] ?? "business",
+    status:      (l.status as LeadStatus) ?? "new",
+    name:        l.name  ?? undefined,
+    phone:       l.phone ?? undefined,
+    message:     l.message ?? undefined,
+    createdAt:   new Date(l.createdAt).toLocaleDateString("fa-IR"),
+    timeAgo:     formatTimeAgo(l.createdAt),
+    avatarColor: AVATAR_COLORS[l.id % AVATAR_COLORS.length]!,
+  };
+}
+
+/* ─── API PATCH helper ────────────────────────────────── */
+async function patchLeadStatus(id: string, status: LeadStatus): Promise<void> {
+  try {
+    await fetch(`/api/leads/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+  } catch { /* optimistic update already applied */ }
+}
 
 /* ─── Type icon ───────────────────────────────────────── */
 function LeadTypeIcon({ type, size = 14 }: { type: LeadType; size?: number }) {
@@ -50,13 +121,11 @@ function LeadDetailPanel({
 
   return (
     <>
-      {/* Backdrop */}
       <motion.div
         className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
       />
-      {/* Panel */}
       <motion.div
         className="fixed inset-y-0 end-0 w-full sm:w-[440px] bg-white z-50 flex flex-col shadow-2xl"
         initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
@@ -192,15 +261,32 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 
 /* ─── Main page ───────────────────────────────────────── */
 export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
-  const [leads, setLeads]         = useState<Lead[]>(mockLeads);
+  const { business } = useActiveBusiness();
+  const [leads, setLeads]               = useState<Lead[]>([]);
+  const [loading, setLoading]           = useState(true);
   const [typeFilter, setTypeFilter]     = useState<LeadType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [search, setSearch]             = useState("");
   const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
-  const [activeLead, setActiveLead]     = useState<Lead | null>(
-    initialLeadId ? (mockLeads.find(l => l.id === initialLeadId) ?? null) : null
-  );
-  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [activeLead, setActiveLead]     = useState<Lead | null>(null);
+  const [bulkConfirm, setBulkConfirm]   = useState(false);
+
+  /* ── Fetch leads ── */
+  useEffect(() => {
+    if (!business) return;
+    setLoading(true);
+    fetch(`/api/businesses/${business.id}/leads`, { credentials: "include" })
+      .then(r => r.json())
+      .then((res: { data?: ApiLead[] }) => {
+        if (res.data) setLeads(res.data.map(adaptApiLead));
+        if (initialLeadId) {
+          const found = res.data?.find(l => String(l.id) === initialLeadId);
+          if (found) setActiveLead(adaptApiLead(found));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [business?.id, initialLeadId]);
 
   const filtered = useMemo(() => leads.filter(l => {
     if (typeFilter   !== "all" && l.type   !== typeFilter)   return false;
@@ -215,9 +301,15 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
   const updateLead = (id: string, patch: Partial<Lead>) =>
     setLeads(ls => ls.map(l => l.id === id ? { ...l, ...patch } : l));
 
-  const markContacted = (id: string) => updateLead(id, { status: "contacted" });
-  const archive       = (id: string) => updateLead(id, { status: "archived" });
-  const saveNote      = (id: string, notes: string) => {
+  const markContacted = (id: string) => {
+    updateLead(id, { status: "contacted" });
+    void patchLeadStatus(id, "contacted");
+  };
+  const archive = (id: string) => {
+    updateLead(id, { status: "archived" });
+    void patchLeadStatus(id, "archived");
+  };
+  const saveNote = (id: string, notes: string) => {
     updateLead(id, { notes });
     setActiveLead(prev => prev?.id === id ? { ...prev, notes } : prev);
   };
@@ -229,12 +321,12 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
   });
 
   const bulkArchive = () => {
-    setLeads(ls => ls.map(l => selectedIds.has(l.id) ? { ...l, status: "archived" as LeadStatus } : l));
+    selectedIds.forEach(id => { updateLead(id, { status: "archived" }); void patchLeadStatus(id, "archived"); });
     setSelectedIds(new Set());
     setBulkConfirm(false);
   };
   const bulkContacted = () => {
-    setLeads(ls => ls.map(l => selectedIds.has(l.id) ? { ...l, status: "contacted" as LeadStatus } : l));
+    selectedIds.forEach(id => { updateLead(id, { status: "contacted" }); void patchLeadStatus(id, "contacted"); });
     setSelectedIds(new Set());
   };
 
@@ -248,7 +340,7 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
   return (
     <div className="p-5 lg:p-8">
       <DashboardPageHeader
-        title={`لیدها ${toPersianNumerals(counts.new) !== "0" ? `(${toPersianNumerals(counts.new)} جدید)` : ""}`}
+        title={`لیدها ${counts.new > 0 ? `(${toPersianNumerals(counts.new)} جدید)` : ""}`}
         subtitle="مدیریت و پیگیری مشتریان بالقوه"
       />
 
@@ -278,13 +370,13 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
         )}
       </AnimatePresence>
 
-      {/* Search + status filters */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <SearchIcon size={16} className="absolute top-1/2 -translate-y-1/2 end-3 text-neutral-400 pointer-events-none" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="جستجو در نام، تلفن یا محصول..."
+            placeholder="جستجو در نام یا تلفن..."
             className="w-full h-10 pe-9 ps-4 font-vazirmatn text-sm bg-white border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all placeholder:text-neutral-400"
           />
         </div>
@@ -292,10 +384,10 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
 
       {/* Status + type filter chips */}
       <div className="flex flex-wrap gap-2 mb-5">
-        <Chip label={`همه (${toPersianNumerals(counts.all)})`}       active={statusFilter === "all"}       onClick={() => setStatusFilter("all")} />
-        <Chip label={`جدید (${toPersianNumerals(counts.new)})`}      active={statusFilter === "new"}       onClick={() => setStatusFilter("new")} />
-        <Chip label={`تماس شده (${toPersianNumerals(counts.contacted)})`} active={statusFilter === "contacted"} onClick={() => setStatusFilter("contacted")} />
-        <Chip label={`بایگانی (${toPersianNumerals(counts.archived)})`} active={statusFilter === "archived"} onClick={() => setStatusFilter("archived")} />
+        <Chip label={`همه (${toPersianNumerals(counts.all)})`}             active={statusFilter === "all"}       onClick={() => setStatusFilter("all")} />
+        <Chip label={`جدید (${toPersianNumerals(counts.new)})`}            active={statusFilter === "new"}       onClick={() => setStatusFilter("new")} />
+        <Chip label={`تماس شده (${toPersianNumerals(counts.contacted)})`}  active={statusFilter === "contacted"} onClick={() => setStatusFilter("contacted")} />
+        <Chip label={`بایگانی (${toPersianNumerals(counts.archived)})`}    active={statusFilter === "archived"}  onClick={() => setStatusFilter("archived")} />
         <div className="w-px h-8 bg-neutral-200 hidden sm:block self-center" />
         {(Object.keys(LEAD_TYPE_LABELS) as LeadType[]).map(t => (
           <Chip key={t} label={LEAD_TYPE_LABELS[t]} active={typeFilter === t} onClick={() => setTypeFilter(prev => prev === t ? "all" : t)} />
@@ -303,10 +395,26 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
       </div>
 
       {/* List */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden divide-y divide-neutral-50">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-4 animate-pulse">
+              <div className="w-5 h-5 rounded-md bg-neutral-100 shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-neutral-200 shrink-0" />
+              <div className="w-9 h-9 rounded-full bg-neutral-100 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-32 bg-neutral-100 rounded" />
+                <div className="h-2.5 w-20 bg-neutral-100 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <FilterIcon size={36} className="text-neutral-300" />
-          <p className="font-vazirmatn text-neutral-400 text-sm">لیدی با این فیلتر یافت نشد</p>
+          <p className="font-vazirmatn text-neutral-400 text-sm">
+            {leads.length === 0 ? "هنوز لیدی دریافت نشده است" : "لیدی با این فیلتر یافت نشد"}
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
@@ -326,7 +434,6 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                 onClick={() => setActiveLead(lead)}
               >
-                {/* Checkbox */}
                 <div className="shrink-0" onClick={e => { e.stopPropagation(); toggleSelect(lead.id); }}>
                   <div className={cn(
                     "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
@@ -336,13 +443,13 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
                   </div>
                 </div>
 
-                {/* Status dot */}
-                {lead.status === "new" && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />}
-                {lead.status !== "new" && <span className={cn("w-2 h-2 rounded-full shrink-0", sCfg.dot)} />}
+                {lead.status === "new"
+                  ? <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 animate-pulse" />
+                  : <span className={cn("w-2 h-2 rounded-full shrink-0", sCfg.dot)} />
+                }
 
                 <Avatar name={lead.name} color={lead.avatarColor} />
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-vazirmatn text-sm font-medium text-neutral-800 truncate">
@@ -363,13 +470,11 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
                   </div>
                 </div>
 
-                {/* Time */}
                 <div className="text-end shrink-0 hidden sm:block">
                   <p className="font-vazirmatn text-xs text-neutral-400">{lead.timeAgo}</p>
                   <p className="font-vazirmatn text-[10px] text-neutral-300 mt-0.5">{LEAD_SOURCE_LABELS[lead.source]}</p>
                 </div>
 
-                {/* Status badge (desktop) */}
                 <span className={cn("hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shrink-0", sCfg.bg, sCfg.text)}>
                   <span className={cn("w-1.5 h-1.5 rounded-full", sCfg.dot)} />
                   {LEAD_STATUS_LABELS[lead.status]}

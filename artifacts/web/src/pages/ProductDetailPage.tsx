@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { trackLead, trackEvent } from "@/src/lib/lead-tracker";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals, formatPrice, avatarGradientIndex } from "@/lib/utils";
 import {
@@ -123,18 +124,27 @@ interface LeadSheetProps {
   isOpen: boolean;
   type: "consultation" | "price-inquiry";
   productName: string;
+  businessId: number;
   onClose: () => void;
 }
 
-function LeadFormSheet({ isOpen, type, productName, onClose }: LeadSheetProps) {
+function LeadFormSheet({ isOpen, type, productName, businessId, onClose }: LeadSheetProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
+    await trackLead({
+      businessId,
+      leadType:      type === "consultation" ? "consultation_request" : "quote_request",
+      sourceSurface: "product_detail",
+      name:          name.trim(),
+      phone:         phone.trim(),
+      message:       message.trim() || undefined,
+    });
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
@@ -303,6 +313,16 @@ export default function ProductDetailPage({ slug }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const viewTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!product || viewTrackedRef.current) return;
+    viewTrackedRef.current = true;
+    const bid = parseInt(product.businessId, 10);
+    if (!Number.isNaN(bid)) {
+      void trackEvent({ businessId: bid, eventType: "product_view", entityType: "product", entityId: bid });
+    }
+  }, [product]);
+
   useEffect(() => {
     const expiresAt = product?.expiresAt;
     if (!expiresAt) return;
@@ -348,15 +368,20 @@ export default function ProductDetailPage({ slug }: Props) {
     ? (showAllReviews ? product.reviews : product.reviews.slice(0, 3))
     : [];
 
+  const _bid = parseInt(product.businessId, 10);
+
   const handlePhoneClick = () => {
     const tel = product.phone;
-    if (tel) window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
+    if (!tel) return;
+    if (!Number.isNaN(_bid)) void trackLead({ businessId: _bid, leadType: "phone", sourceSurface: "product_detail", sourceEntityType: "product", sourceEntityId: _bid });
+    window.location.href = `tel:${tel.replace(/[^0-9+]/g, "")}`;
   };
 
   const handleWhatsAppClick = () => {
-    const num = (product.whatsapp ?? product.phone ?? "")
-      .replace(/[^0-9]/g, "")
-      .replace(/^0/, "98");
+    const raw = product.whatsapp ?? product.phone ?? "";
+    if (!raw) return;
+    if (!Number.isNaN(_bid)) void trackLead({ businessId: _bid, leadType: "whatsapp", sourceSurface: "product_detail", sourceEntityType: "product", sourceEntityId: _bid });
+    const num = raw.replace(/[^0-9]/g, "").replace(/^0/, "98");
     if (num) window.open(`https://wa.me/${num}`, "_blank");
   };
 
@@ -778,6 +803,7 @@ export default function ProductDetailPage({ slug }: Props) {
         isOpen={leadSheet !== null}
         type={leadSheet ?? "consultation"}
         productName={product.name}
+        businessId={Number.isNaN(_bid) ? 0 : _bid}
         onClose={() => setLeadSheet(null)}
       />
 

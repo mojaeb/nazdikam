@@ -4,6 +4,8 @@ import productsRouter from "./products";
 import authRouter from "./auth";
 import sellerRouter from "./seller";
 import businessesRouter from "./businesses";
+import leadsRouter from "./leads";
+import analyticsRouter from "./analytics";
 
 const router: IRouter = Router();
 
@@ -12,5 +14,7 @@ router.use(authRouter);
 router.use(productsRouter);
 router.use(sellerRouter);
 router.use(businessesRouter);
+router.use(leadsRouter);
+router.use(analyticsRouter);
 
 export default router;
