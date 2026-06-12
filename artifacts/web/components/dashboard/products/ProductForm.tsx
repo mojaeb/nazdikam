@@ -9,6 +9,7 @@ import { mockDashboardProducts, PRODUCT_CATEGORIES, PRODUCT_SUBCATEGORIES } from
 import type { InventoryStatus } from "@/lib/dashboard-products-data";
 import { Input } from "@/components/ui/input";
 import { CheckIcon, PlusIcon, CloseIcon } from "@/components/icons";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 
 /* ─── FAQ form item ───────────────────────────────────── */
 interface FAQItem { question: string; answer: string }
@@ -588,20 +589,26 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
           <Section title="دسته‌بندی و برچسب‌ها">
             <div className="grid grid-cols-2 gap-4">
               <Field label="دسته‌بندی">
-                <select value={values.category}
-                  onChange={e => { set("category", e.target.value); set("subcategory", ""); }}
-                  className="w-full h-10 px-3 font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all">
-                  {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <BottomSheetSelect
+                  value={values.category}
+                  onChange={v => { set("category", v); set("subcategory", ""); }}
+                  options={PRODUCT_CATEGORIES.map(c => ({ value: c, label: c }))}
+                  title="انتخاب دسته‌بندی"
+                  searchable={false}
+                  placeholder="انتخاب دسته‌بندی"
+                />
               </Field>
               <Field label="زیردسته">
-                <select value={values.subcategory}
-                  onChange={e => set("subcategory", e.target.value)}
-                  className="w-full h-10 px-3 font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all"
-                  disabled={subcategories.length === 0}>
-                  <option value="">انتخاب کنید</option>
-                  {subcategories.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <BottomSheetSelect
+                  value={values.subcategory}
+                  onChange={v => set("subcategory", v)}
+                  options={subcategories.map(s => ({ value: s, label: s }))}
+                  title="انتخاب زیردسته"
+                  emptyOption="بدون زیردسته"
+                  placeholder="انتخاب زیردسته"
+                  disabled={subcategories.length === 0}
+                  searchable={false}
+                />
               </Field>
             </div>
             <Field label="برچسب‌ها" hint="Enter بزنید تا برچسب اضافه شود">

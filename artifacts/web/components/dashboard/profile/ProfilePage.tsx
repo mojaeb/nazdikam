@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { ImageUploader } from "@/components/dashboard/shared/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { CheckIcon, MapPinIcon, PhoneIcon, StoreIcon, VerifiedIcon } from "@/components/icons";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 import {
   mockProfileInitial, PROVINCES, CITIES, BUSINESS_CATEGORIES,
   type ProfileFormValues,
@@ -174,10 +175,14 @@ function BusinessInfoTab({ v, set }: { v: ProfileFormValues; set: <K extends key
           <Input value={v.slug} onChange={e => set("slug", e.target.value)} placeholder="my-business" dir="ltr" />
         </Field>
         <Field label="دسته‌بندی اصلی">
-          <select value={v.category} onChange={e => set("category", e.target.value)}
-            className="w-full h-10 px-3 font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all">
-            {BUSINESS_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <BottomSheetSelect
+            value={v.category}
+            onChange={val => set("category", val)}
+            options={BUSINESS_CATEGORIES.map(c => ({ value: c, label: c }))}
+            title="انتخاب دسته‌بندی"
+            searchable={false}
+            placeholder="انتخاب دسته‌بندی"
+          />
         </Field>
         <Field label="برچسب‌ها" hint="Enter یا کاما بزنید تا برچسب اضافه شود">
           <ChipInput values={v.tags} onChange={t => set("tags", t)} placeholder="برچسب بنویسید..." />
@@ -257,19 +262,25 @@ function LocationTab({ v, set }: { v: ProfileFormValues; set: <K extends keyof P
       <Section title="آدرس" description="موقعیت فیزیکی کسب‌وکار شما">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="استان">
-            <select value={v.province}
-              onChange={e => { set("province", e.target.value); set("city", ""); }}
-              className="w-full h-10 px-3 font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all">
-              {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+            <BottomSheetSelect
+              value={v.province}
+              onChange={val => { set("province", val); set("city", ""); }}
+              options={PROVINCES.map(p => ({ value: p, label: p }))}
+              title="انتخاب استان"
+              searchable={false}
+              placeholder="انتخاب استان"
+            />
           </Field>
           <Field label="شهر">
-            <select value={v.city} onChange={e => set("city", e.target.value)}
-              className="w-full h-10 px-3 font-vazirmatn text-sm bg-white text-neutral-900 border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all"
-              disabled={!cities.length}>
-              <option value="">انتخاب کنید</option>
-              {cities.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <BottomSheetSelect
+              value={v.city}
+              onChange={val => set("city", val)}
+              options={cities.map(c => ({ value: c, label: c }))}
+              title="انتخاب شهر"
+              emptyOption="انتخاب کنید"
+              placeholder="انتخاب شهر"
+              disabled={!cities.length}
+            />
           </Field>
         </div>
         <Field label="آدرس کامل">

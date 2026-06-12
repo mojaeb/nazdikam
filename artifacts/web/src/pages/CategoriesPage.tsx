@@ -119,7 +119,7 @@ export default function CategoriesPage() {
               {[1, 2, 3].map(i => <div key={i} className="h-20 w-20 bg-neutral-200 rounded-2xl shrink-0" />)}
             </div>
             <div className="h-4 bg-neutral-200 rounded-xl w-1/3 mt-6 mb-3" />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-neutral-200 rounded-2xl" />)}
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function CategoriesPage() {
               <div className="mb-4">
                 <SectionHeader title="همه دسته‌بندی‌ها" size="md" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {gridCategories.map((cat, i) => (
                   <motion.div
                     key={cat.id}

@@ -1,0 +1,320 @@
+# NAZDIKAM — MOBILE FIRST UX ENFORCEMENT ADDENDUM
+
+Priority: CRITICAL
+
+This directive overrides any desktop-first implementation.
+
+---
+
+# MOBILE FIRST IS NOT OPTIONAL
+
+The platform is primarily a mobile web application.
+
+Expected user distribution:
+
+* Mobile: 95%+
+* Desktop: <5%
+
+Therefore:
+
+Every screen must be designed for mobile first.
+
+Desktop layouts must be adaptations of the mobile design.
+
+Never design desktop first and then shrink it for mobile.
+
+---
+
+# FORM UX REDESIGN
+
+Current form experience is not acceptable.
+
+All forms must be redesigned for mobile usability.
+
+Examples:
+
+* City selector
+* Category selector
+* Province selector
+* Search filters
+* Subscription selectors
+* Product category selectors
+* Service category selectors
+
+---
+
+# FORBIDDEN UI PATTERN
+
+Do NOT use:
+
+* Browser default select dropdowns
+* Tiny dropdown menus
+* Desktop-style select lists
+* Small popup lists attached to inputs
+
+These create a poor mobile experience.
+
+---
+
+# REQUIRED PATTERN
+
+All selections must use:
+
+Bottom Sheet Modal
+
+Behavior:
+
+User taps field
+
+↓
+
+Bottom sheet slides up from bottom
+
+↓
+
+User sees searchable list
+
+↓
+
+User selects item
+
+↓
+
+Sheet closes
+
+↓
+
+Selected value appears in field
+
+Similar to:
+
+* Instagram
+* Uber
+* Digikala Mobile
+* Snapp
+
+---
+
+# CITY SELECTION UX
+
+Current city selection experience must be rebuilt.
+
+Required flow:
+
+Tap city selector
+
+↓
+
+Bottom sheet opens
+
+↓
+
+Search city
+
+↓
+
+Select province
+
+↓
+
+Select city
+
+↓
+
+Apply
+
+User should never see a browser select dropdown.
+
+---
+
+# CATEGORY SELECTION UX
+
+Same pattern.
+
+Bottom Sheet
+
+Searchable
+
+Grouped categories
+
+Recently used categories
+
+Large touch targets
+
+Mobile optimized.
+
+---
+
+# SEARCH EXPERIENCE
+
+Search is one of the core platform features.
+
+Current implementation must be audited.
+
+Requirements:
+
+* Large touch area
+* Fast typing experience
+* Search suggestions
+* Recent searches
+* Popular searches
+* Mobile keyboard optimization
+
+---
+
+# CATEGORY GRID RESPONSIVENESS
+
+Current category cards must be audited.
+
+Requirements:
+
+Mobile:
+
+2-column grid
+
+Tablet:
+
+3-column grid
+
+Desktop:
+
+4-6 columns
+
+Cards must maintain equal height.
+
+No broken wrapping.
+
+No overflow.
+
+---
+
+# PRODUCT CARD RESPONSIVENESS
+
+Every product/service card must:
+
+* Scale correctly on mobile
+* Maintain image ratio
+* Maintain readable typography
+* Maintain spacing consistency
+
+Cards must never overflow horizontally.
+
+---
+
+# BUSINESS CARD RESPONSIVENESS
+
+Business cards must remain minimal:
+
+Display only:
+
+* Logo
+* Business Name
+* City, Province
+* Rating
+
+Nothing else.
+
+Cards should feel lightweight and scannable.
+
+---
+
+# FILTER UX
+
+All filters must use Bottom Sheets.
+
+Not sidebars.
+
+Not desktop filter panels.
+
+Mobile first.
+
+Examples:
+
+* Category filters
+* Price filters
+* City filters
+* Business filters
+* Product filters
+* Service filters
+
+---
+
+# TOUCH TARGET RULE
+
+Every clickable item must be at least:
+
+44px × 44px
+
+Preferred:
+
+48px × 48px
+
+No tiny buttons.
+
+No tiny icons.
+
+No tiny dropdown arrows.
+
+---
+
+# MOBILE NAVIGATION RULE
+
+The entire application must be usable with one hand.
+
+Priority actions must be reachable by thumb.
+
+Bottom Navigation remains primary navigation.
+
+Hamburger Menu remains secondary navigation.
+
+---
+
+# RESPONSIVE QA AUDIT
+
+Audit every page:
+
+* Home
+* Search
+* Categories
+* Category Detail
+* Business Profile
+* Product Detail
+* Service Detail
+* User Dashboard
+* Business Dashboard
+* Create Business
+* Create Product
+* Create Service
+* Subscription
+* Leads
+* Reviews
+
+For each page verify:
+
+* No horizontal scroll
+* No clipped content
+* No overlapping elements
+* No broken grids
+* No inaccessible buttons
+* No desktop-only controls
+
+---
+
+# SUCCESS CRITERIA
+
+A new user using only a mobile phone must be able to:
+
+1. Select city
+2. Search
+3. Browse categories
+4. Open a business
+5. Open a product
+6. Login
+7. Create a business
+8. Create a product/service
+9. Purchase a subscription
+10. Receive a lead
+
+Without any desktop interaction.
+
+If any workflow feels desktop-oriented, it must be redesigned.

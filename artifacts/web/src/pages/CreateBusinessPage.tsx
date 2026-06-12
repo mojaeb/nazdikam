@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 
 const PROVINCES = [
   { value: "مازندران", label: "مازندران" },
@@ -199,67 +200,37 @@ export default function CreateBusinessPage() {
               </FieldGroup>
 
               <FieldGroup label="دسته‌بندی">
-                <div className="relative">
-                  <select
-                    value={form.categoryId}
-                    onChange={e => set("categoryId", e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">انتخاب دسته‌بندی</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={String(cat.id)}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 start-3 flex items-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400" aria-hidden="true">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </div>
-                </div>
+                <BottomSheetSelect
+                  value={form.categoryId}
+                  onChange={v => set("categoryId", v)}
+                  options={categories.map(cat => ({ value: String(cat.id), label: cat.name }))}
+                  title="انتخاب دسته‌بندی"
+                  emptyOption="بدون دسته‌بندی"
+                  placeholder="انتخاب دسته‌بندی"
+                />
               </FieldGroup>
 
               <div className="grid grid-cols-2 gap-3">
                 <FieldGroup label="استان" required>
-                  <div className="relative">
-                    <select
-                      value={form.province}
-                      onChange={e => set("province", e.target.value)}
-                      className={selectCls}
-                      required
-                    >
-                      {PROVINCES.map(p => (
-                        <option key={p.value} value={p.value}>{p.label}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 start-3 flex items-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400" aria-hidden="true">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </div>
-                  </div>
+                  <BottomSheetSelect
+                    value={form.province}
+                    onChange={v => set("province", v)}
+                    options={PROVINCES.map(p => ({ value: p.value, label: p.label }))}
+                    title="انتخاب استان"
+                    searchable={false}
+                    placeholder="انتخاب استان"
+                  />
                 </FieldGroup>
-
                 <FieldGroup label="شهر" required>
-                  <div className="relative">
-                    <select
-                      value={form.city}
-                      onChange={e => set("city", e.target.value)}
-                      className={selectCls}
-                      required
-                    >
-                      <option value="">انتخاب شهر</option>
-                      {cities.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 start-3 flex items-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400" aria-hidden="true">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </div>
-                  </div>
+                  <BottomSheetSelect
+                    value={form.city}
+                    onChange={v => set("city", v)}
+                    options={cities.map(c => ({ value: c, label: c }))}
+                    title="انتخاب شهر"
+                    emptyOption="انتخاب شهر"
+                    placeholder="انتخاب شهر"
+                    disabled={cities.length === 0}
+                  />
                 </FieldGroup>
               </div>
 

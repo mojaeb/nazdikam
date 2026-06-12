@@ -6,6 +6,7 @@ import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPage
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { CheckIcon } from "@/components/icons";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 import {
   mockDashboardServices, SERVICE_CATEGORIES, PRICE_UNIT_LABELS,
   type DashboardService, type ServicePriceUnit,
@@ -203,10 +204,14 @@ export function ServiceForm({ mode, serviceId }: ServiceFormProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="دسته‌بندی">
-                <select value={values.category} onChange={e => set("category", e.target.value)}
-                  className="w-full h-10 px-3 font-vazirmatn text-sm bg-white border border-neutral-200 rounded-xl outline-none focus:border-blue-500 transition-all text-neutral-700">
-                  {SERVICE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <BottomSheetSelect
+                  value={values.category}
+                  onChange={v => set("category", v)}
+                  options={SERVICE_CATEGORIES.map(c => ({ value: c, label: c }))}
+                  title="انتخاب دسته‌بندی"
+                  searchable={false}
+                  placeholder="انتخاب دسته‌بندی"
+                />
               </Field>
 
               <Field label="مدت زمان" hint={showDuration ? "به دقیقه" : undefined}>

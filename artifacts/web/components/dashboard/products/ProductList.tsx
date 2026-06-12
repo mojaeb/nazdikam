@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { ProductTable } from "@/components/dashboard/products/ProductTable";
 import type { DashboardProduct } from "@/lib/dashboard-products-data";
 import { PlusIcon, SearchIcon, GridIcon, ListIcon } from "@/components/icons";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 
 type SortKey = "updated" | "name" | "price-asc" | "price-desc";
 type FilterStatus = "all" | "published" | "draft" | "low-stock" | "out-of-stock" | "featured" | "new";
@@ -161,14 +162,16 @@ export function ProductList({ businessId }: Props) {
           </div>
 
           {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortKey)}
-            className="h-10 px-3 font-vazirmatn text-sm bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-blue-400 transition-all text-neutral-700"
-            aria-label="مرتب‌سازی"
-          >
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div className="w-[148px] shrink-0">
+            <BottomSheetSelect
+              value={sortBy}
+              onChange={v => setSortBy(v as SortKey)}
+              options={SORT_OPTIONS}
+              title="مرتب‌سازی"
+              searchable={false}
+              className="h-10 text-xs"
+            />
+          </div>
 
           {/* View toggle — desktop only */}
           <div className="hidden lg:flex items-center gap-1 bg-neutral-100 rounded-xl p-1">

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/dashboard/shared/EmptyState";
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { mockDashboardServices, PRICE_UNIT_LABELS, type DashboardService } from "@/lib/dashboard-services-data";
 import { PlusIcon, EditIcon, TrashIcon, SearchIcon } from "@/components/icons";
+import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 
 type SortKey = "name" | "price" | "updated";
 type FilterAvail = "all" | "available" | "unavailable" | "published" | "draft";
@@ -171,12 +172,20 @@ export function ServiceList() {
               className="w-full h-10 ps-9 pe-3 font-vazirmatn text-sm bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-neutral-400"
             />
           </div>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as SortKey)}
-            className="h-10 px-3 font-vazirmatn text-sm bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-blue-400 transition-all text-neutral-700">
-            <option value="updated">آخرین بروزرسانی</option>
-            <option value="name">نام (الف تا ی)</option>
-            <option value="price">قیمت</option>
-          </select>
+          <div className="w-[148px] shrink-0">
+            <BottomSheetSelect
+              value={sortBy}
+              onChange={v => setSortBy(v as SortKey)}
+              options={[
+                { value: "updated", label: "آخرین بروزرسانی" },
+                { value: "name", label: "نام (الف تا ی)" },
+                { value: "price", label: "قیمت" },
+              ]}
+              title="مرتب‌سازی"
+              searchable={false}
+              className="h-10 text-xs"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
