@@ -15,6 +15,10 @@ import BusinessProfilePage from "./pages/BusinessProfilePage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import MapPage from "./pages/MapPage";
 import AccountPage from "./pages/AccountPage";
+import SavedPage from "./pages/account/SavedPage";
+import FollowingPage from "./pages/account/FollowingPage";
+import LikedPage from "./pages/account/LikedPage";
+import EditProfilePage from "./pages/account/EditProfilePage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import HelpPage from "./pages/HelpPage";
@@ -72,11 +76,12 @@ function Router() {
       </Route>
       <Route path="/map" component={MapPage} />
       <Route path="/account" component={AccountPage} />
-      <Route path="/account/saved" component={AccountPage} />
-      <Route path="/account/following" component={AccountPage} />
+      <Route path="/account/saved" component={SavedPage} />
+      <Route path="/account/following" component={FollowingPage} />
+      <Route path="/account/liked" component={LikedPage} />
+      <Route path="/account/edit" component={EditProfilePage} />
       <Route path="/account/reviews" component={AccountPage} />
       <Route path="/account/notifications" component={AccountPage} />
-      <Route path="/account/edit" component={AccountPage} />
       <Route path="/account/settings" component={AccountPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />

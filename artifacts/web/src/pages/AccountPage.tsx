@@ -62,9 +62,15 @@ function UserHamburgerDrawer({
     { label: "دنبال‌شده‌ها",  path: "/account/following",     icon: <StarIcon size={16} /> },
     { label: "نظرات من",      path: "/account/reviews",       icon: <StarIcon size={16} /> },
     { label: "اعلان‌ها",      path: "/account/notifications", icon: <BellIcon size={16} /> },
-    hasBusiness
-      ? { label: "کسب‌وکار من",   path: "/business",               icon: <StoreIcon size={16} />, color: "blue" as const }
-      : { label: "ثبت کسب‌وکار", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
+    ...(hasBusiness
+      ? [
+          { label: "کسب‌وکار من",        path: "/business",               icon: <StoreIcon size={16} />, color: "blue" as const },
+          { label: "ثبت کسب‌وکار جدید", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
+        ]
+      : [
+          { label: "ثبت کسب‌وکار", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
+        ]
+    ),
   ];
 
   const handleNav = (item: UserMenuItem) => {
@@ -281,13 +287,25 @@ export default function AccountPage() {
         {/* Logo — center */}
         <span className="font-iran-yekan-x font-bold text-neutral-900 text-base">نزدیکام</span>
 
-        {/* Avatar — end (left in RTL) */}
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
-          style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
-          aria-hidden="true"
-        >
-          {displayName.charAt(0)}
+        {/* Bell + Avatar — end (left in RTL) */}
+        <div className="flex items-center gap-1.5">
+          <motion.button
+            type="button"
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 transition-colors"
+            whileTap={{ scale: 0.93 }}
+            onClick={() => navigate("/account/notifications")}
+            aria-label="اعلان‌ها"
+          >
+            <BellIcon size={17} className="text-neutral-600" />
+            <span className="absolute top-1.5 start-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" aria-hidden="true" />
+          </motion.button>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
+            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
+            aria-hidden="true"
+          >
+            {displayName.charAt(0)}
+          </div>
         </div>
       </header>
 
@@ -363,15 +381,6 @@ export default function AccountPage() {
                   onEnter={() => navigate("/business")}
                 />
               ))}
-              <motion.button
-                type="button"
-                className="w-full h-12 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-vazirmatn font-medium text-sm flex items-center justify-center gap-2 hover:bg-green-100 transition-colors"
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/account/create-business")}
-              >
-                <StoreIcon size={16} className="text-green-500" />
-                ثبت کسب‌وکار جدید
-              </motion.button>
             </div>
           )}
         </motion.div>
@@ -393,6 +402,11 @@ export default function AccountPage() {
             icon={<StarIcon size={18} />}
             label="دنبال‌شده‌ها"
             onClick={() => navigate("/account/following")}
+          />
+          <SectionRow
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>}
+            label="پسندیده‌ها"
+            onClick={() => navigate("/account/liked")}
           />
           <SectionRow
             icon={<SettingsIcon size={18} />}

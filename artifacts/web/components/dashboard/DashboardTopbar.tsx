@@ -4,7 +4,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BellIcon, MenuIcon, LogOutIcon, UserIcon } from "@/components/icons";
 import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 import { useAuth } from "@/src/contexts/AuthContext";
-import { cn } from "@/lib/utils";
+import { cn, avatarGradientIndex } from "@/lib/utils";
+
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg,#1860DB,#0A3FA0)",
+  "linear-gradient(135deg,#0891B2,#164E63)",
+  "linear-gradient(135deg,#059669,#064E3B)",
+  "linear-gradient(135deg,#7C3AED,#3B0764)",
+  "linear-gradient(135deg,#DC2626,#7F1D1D)",
+  "linear-gradient(135deg,#D97706,#78350F)",
+  "linear-gradient(135deg,#0284C7,#0C4A6E)",
+  "linear-gradient(135deg,#16A34A,#14532D)",
+  "linear-gradient(135deg,#9333EA,#4C1D95)",
+  "linear-gradient(135deg,#E11D48,#881337)",
+];
 
 const UNREAD_NOTIFICATIONS = 3;
 
@@ -15,10 +28,12 @@ interface Props {
 export function DashboardTopbar({ onHamburger }: Props) {
   const [, navigate] = useLocation();
   const { business } = useActiveBusiness();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const bizName = business?.name ?? "کسب‌وکار";
+  const displayName = user?.name ?? user?.phone ?? "کاربر";
+  const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
 
   const handleLogout = async () => {
     setProfileOpen(false);
@@ -85,21 +100,24 @@ export function DashboardTopbar({ onHamburger }: Props) {
           )}
         </motion.button>
 
-        {/* Profile quick-access (desktop only) */}
-        <div className="relative hidden sm:block">
+        {/* Profile quick-access — avatar visible on all sizes */}
+        <div className="relative">
           <motion.button
             type="button"
             className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors",
-              profileOpen && "bg-white/15"
+              "w-9 h-9 rounded-xl flex items-center justify-center transition-colors overflow-hidden",
+              profileOpen ? "ring-2 ring-white/40" : "hover:ring-2 hover:ring-white/20"
             )}
+            style={{ background: AVATAR_GRADIENTS[avatarIdx % 10] }}
             whileTap={{ scale: 0.93 }}
             onClick={() => setProfileOpen(v => !v)}
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             aria-label="منوی کاربر"
           >
-            <UserIcon size={16} className="text-white/80" />
+            <span className="font-iran-yekan-x font-bold text-white text-[13px]">
+              {displayName.slice(0, 1)}
+            </span>
           </motion.button>
           <AnimatePresence>
             {profileOpen && (
