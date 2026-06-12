@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { HomeIcon, GridIcon, MapPinIcon, UserIcon } from "@/components/icons";
+import { HomeIcon, GridIcon, SearchIcon, MapPinIcon, UserIcon } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { avatarGradientIndex } from "@/lib/utils";
 
@@ -20,20 +20,21 @@ const AVATAR_GRADIENTS = [
 interface Tab {
   id: string;
   label: string;
-  guestLabel: string;
   path: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 const TABS: Tab[] = [
-  { id: "home",       label: "خانه",        guestLabel: "خانه",     path: "/",          Icon: HomeIcon    },
-  { id: "categories", label: "دسته‌بندی‌ها", guestLabel: "دسته‌ها",  path: "/categories", Icon: GridIcon    },
-  { id: "map",        label: "نقشه",        guestLabel: "نقشه",     path: "/map",        Icon: MapPinIcon  },
-  { id: "account",   label: "حساب",        guestLabel: "ورود",     path: "/account",    Icon: UserIcon    },
+  { id: "home",       label: "خانه",       path: "/",           Icon: HomeIcon    },
+  { id: "categories", label: "دسته‌بندی",  path: "/categories", Icon: GridIcon    },
+  { id: "search",     label: "جستجو",      path: "/search",     Icon: SearchIcon  },
+  { id: "map",        label: "نقشه",       path: "/map",        Icon: MapPinIcon  },
+  { id: "account",    label: "حساب",       path: "/account",    Icon: UserIcon    },
 ];
 
 function getActiveTab(location: string): string {
   if (location.startsWith("/categories")) return "categories";
+  if (location.startsWith("/search"))     return "search";
   if (location.startsWith("/map"))        return "map";
   if (location.startsWith("/account"))    return "account";
   return "home";
@@ -49,62 +50,78 @@ export function BottomNav() {
   const initial = user?.name?.slice(0, 1) ?? "ک";
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 pb-safe">
-      <div className="bg-white border-t border-neutral-150 px-2">
-        <div className="flex items-stretch h-16">
-          {TABS.map(tab => {
-            const isActive = active === tab.id;
-            const isAccountTab = tab.id === "account";
+    /* Floating pill — sits above the safe area */
+    <div className="fixed bottom-0 inset-x-0 z-50 px-3 pb-3 pb-safe pointer-events-none">
+      <div
+        className="pointer-events-auto flex items-stretch h-[62px] rounded-[22px] border border-neutral-200/70 px-1 gap-0.5"
+        style={{
+          background: "rgba(255,255,255,0.94)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
+        }}
+        role="navigation"
+        aria-label="ناوبری اصلی"
+      >
+        {TABS.map(tab => {
+          const isActive = active === tab.id;
+          const isAccountTab = tab.id === "account";
 
-            return (
-              <motion.button
-                key={tab.id}
-                className="flex-1 flex flex-col items-center justify-center gap-1 relative"
-                onClick={() => navigate(tab.path)}
-                whileTap={{ scale: 0.93 }}
-                transition={{ duration: 0.12 }}
-                aria-label={isLoggedIn ? tab.label : tab.guestLabel}
-                aria-current={isActive ? "page" : undefined}
-                type="button"
-              >
-                {/* Active indicator pill */}
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-blue-500"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
+          return (
+            <motion.button
+              key={tab.id}
+              type="button"
+              className="flex-1 flex flex-col items-center justify-center gap-[3px] rounded-[18px] relative overflow-hidden"
+              onClick={() => navigate(tab.path)}
+              whileTap={{ scale: 0.91 }}
+              transition={{ duration: 0.1 }}
+              aria-label={tab.label}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {/* Active background pill */}
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-pill"
+                  className="absolute inset-1 rounded-[14px] bg-blue-50"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
 
-                {/* Icon — avatar for logged-in account tab */}
+              {/* Icon */}
+              <div className="relative z-10">
                 {isAccountTab && isLoggedIn ? (
                   <motion.div
                     className="w-6 h-6 rounded-full flex items-center justify-center overflow-hidden"
                     style={{ background: avatarGradient }}
-                    animate={{ opacity: 1 }}
+                    animate={{ scale: isActive ? 1.1 : 1 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <span className="text-white text-[10px] font-iran-yekan-x font-bold">{initial}</span>
                   </motion.div>
                 ) : (
                   <motion.div
-                    animate={{ color: isActive ? "#1860DB" : "#9CA3AF" }}
-                    transition={{ duration: 0.15 }}
+                    animate={{
+                      color: isActive ? "#1860DB" : "#9CA3AF",
+                      scale: isActive ? 1.1 : 1,
+                    }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <tab.Icon size={22} />
+                    <tab.Icon size={21} />
                   </motion.div>
                 )}
+              </div>
 
-                <motion.span
-                  className="text-[10px] font-vazirmatn font-medium leading-none"
-                  animate={{ color: isActive ? "#1860DB" : isAccountTab && !isLoggedIn ? "#1860DB" : "#9CA3AF" }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {isLoggedIn ? tab.label : tab.guestLabel}
-                </motion.span>
-              </motion.button>
-            );
-          })}
-        </div>
+              {/* Label */}
+              <motion.span
+                className="relative z-10 text-[10px] font-vazirmatn font-medium leading-none"
+                animate={{ color: isActive ? "#1860DB" : "#9CA3AF" }}
+                transition={{ duration: 0.2 }}
+              >
+                {tab.label}
+              </motion.span>
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );
