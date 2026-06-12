@@ -8,11 +8,8 @@ import { RecentActivityWidget } from "@/components/dashboard/widgets/RecentActiv
 import { QuickActionsWidget } from "@/components/dashboard/widgets/QuickActionsWidget";
 import { SubscriptionWidget } from "@/components/dashboard/widgets/SubscriptionWidget";
 import { AnalyticsSnapshotWidget } from "@/components/dashboard/widgets/AnalyticsSnapshotWidget";
-import { ProductList } from "@/components/dashboard/products/ProductList";
-import { ProductForm } from "@/components/dashboard/products/ProductForm";
-import { ServiceList } from "@/components/dashboard/services/ServiceList";
-import { ServiceForm } from "@/components/dashboard/services/ServiceForm";
 import { CatalogPage } from "@/components/dashboard/catalog/CatalogPage";
+import { ListingForm } from "@/components/dashboard/listings/ListingForm";
 import { ProfilePage } from "@/components/dashboard/profile/ProfilePage";
 import { SubscriptionPage } from "@/components/dashboard/subscription/SubscriptionPage";
 import { LeadsPage } from "@/components/dashboard/leads/LeadsPage";
@@ -198,20 +195,16 @@ function DashboardContent() {
     return <DashboardOverview />;
   }
 
-  /* Unified products + services catalog */
+  /* Unified listings (catalog) */
   if (location === "/business/catalog") return <CatalogPage />;
+  if (location === "/business/listings/new") return <ListingForm mode="create" />;
+  const listingEditMatch = location.match(/^\/business\/listings\/([^/]+)\/edit$/);
+  if (listingEditMatch) return <ListingForm mode="edit" listingId={listingEditMatch[1]} />;
 
-  /* Products routes */
-  if (location === "/business/products") return <ProductList businessId={activeBusinessId ? String(activeBusinessId) : undefined} />;
-  if (location === "/business/products/new") return <ProductForm mode="create" />;
-  const productEditMatch = location.match(/^\/business\/products\/([^/]+)\/edit$/);
-  if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;
-
-  /* Services routes */
-  if (location === "/business/services") return <ServiceList />;
-  if (location === "/business/services/new") return <ServiceForm mode="create" />;
-  const serviceEditMatch = location.match(/^\/business\/services\/([^/]+)\/edit$/);
-  if (serviceEditMatch) return <ServiceForm mode="edit" serviceId={serviceEditMatch[1]} />;
+  /* Legacy redirects — keep old product/service paths working during transition */
+  if (location.startsWith("/business/products") || location.startsWith("/business/services")) {
+    return <CatalogPage />;
+  }
 
   if (location === "/business/profile")      return <ProfilePage />;
   if (location === "/business/subscription") return <SubscriptionPage />;
