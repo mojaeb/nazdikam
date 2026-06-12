@@ -2,54 +2,57 @@ import { HomeHeader } from "@/components/sections/HomeHeader";
 import { SearchBar } from "@/components/sections/SearchBar";
 import { HeroBanner } from "@/components/sections/HeroBanner";
 import { CategoryTiles } from "@/components/sections/CategoryTiles";
-import { FeaturedProducts } from "@/components/sections/FeaturedProducts";
-import { FeaturedServices } from "@/components/sections/FeaturedServices";
-import { DealsSection } from "@/components/sections/DealsSection";
-import { InstallmentSection } from "@/components/sections/InstallmentSection";
+import { HotDiscountsSection } from "@/components/sections/HotDiscountsSection";
+import { BestInstallmentsSection } from "@/components/sections/BestInstallmentsSection";
+import { AdBannerSection } from "@/components/sections/AdBannerSection";
+import { NearYouSection } from "@/components/sections/NearYouSection";
 import { FeaturedBusinesses } from "@/components/sections/FeaturedBusinesses";
 import { VideoDiscoveryRow } from "@/components/sections/VideoDiscoveryRow";
-import { ProvinceStrip } from "@/components/sections/ProvinceStrip";
+import { LatestSection } from "@/components/sections/LatestSection";
+import { RegisterBizBanner } from "@/components/sections/RegisterBizBanner";
 import { HomeFooter } from "@/components/sections/HomeFooter";
 import { BottomNav } from "@/components/sections/BottomNav";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-page-bg pb-24" dir="rtl">
-      {/* 1. Sticky Header — logo centered, minimal */}
+      {/* Header — logo centered, minimal */}
       <HomeHeader />
 
-      {/* 2. Search Bar + City Selector — side by side, above banner */}
+      {/* S1: Search + City Selector */}
       <SearchBar />
 
-      {/* 3. Hero Banner */}
+      {/* S2: Hero Banner Slider */}
       <HeroBanner />
 
-      {/* 4. Category Tiles */}
+      {/* S3: Categories */}
       <CategoryTiles />
 
-      {/* 5. Featured Products & Services */}
-      <FeaturedProducts />
-      <FeaturedServices />
+      {/* S4: Hot Discounts — sorted by discount% desc */}
+      <HotDiscountsSection />
 
-      {/* 6. Deals / Offers */}
-      <DealsSection />
+      {/* S5: Best Installments — sorted by best terms */}
+      <BestInstallmentsSection />
 
-      {/* 7. Installment Section */}
-      <InstallmentSection />
+      {/* S6: Advertising Banner */}
+      <AdBannerSection />
 
-      {/* 8. Featured Businesses */}
+      {/* S7: Near You — only when city is selected */}
+      <NearYouSection />
+
+      {/* S8: Popular Businesses */}
       <FeaturedBusinesses />
 
-      {/* 9. Videos — at bottom per spec ("ویدیو نباید بالای صفحه باشد") */}
+      {/* S9: Business Videos — discovery content, not at top */}
       <VideoDiscoveryRow />
 
-      {/* 10. Province Strip */}
-      <ProvinceStrip />
+      {/* S10: Latest Products & Services */}
+      <LatestSection />
 
-      {/* 11. Footer */}
+      {/* S11: Register Your Business Banner */}
+      <RegisterBizBanner />
+
       <HomeFooter />
-
-      {/* Bottom Navigation (floating pill) */}
       <BottomNav />
     </div>
   );

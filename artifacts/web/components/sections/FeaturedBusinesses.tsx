@@ -22,8 +22,8 @@ export function FeaturedBusinesses() {
     >
       <div className="px-4 mb-4">
         <SectionHeader
-          title="کسب‌وکارهای برگزیده"
-          subtitle="تأیید شده · محبوب · محلی"
+          title="کسب‌وکارهای محبوب"
+          subtitle="بر اساس دنبال‌کننده و بازدید"
           actionLabel="همه"
           icon={<StoreIcon size={16} />}
           size="md"

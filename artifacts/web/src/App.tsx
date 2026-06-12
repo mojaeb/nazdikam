@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { AuthProvider } from "@/src/contexts/AuthContext";
+import { CityProvider } from "@/lib/city-context";
 import Home from "./pages/Home";
 import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
@@ -100,7 +101,9 @@ export default function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <AuthProvider>
-        <Router />
+        <CityProvider>
+          <Router />
+        </CityProvider>
       </AuthProvider>
     </WouterRouter>
   );
