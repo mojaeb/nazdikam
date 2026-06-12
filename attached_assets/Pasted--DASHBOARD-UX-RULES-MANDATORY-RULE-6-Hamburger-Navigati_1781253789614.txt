@@ -1,0 +1,225 @@
+# DASHBOARD UX RULES (MANDATORY)
+
+## RULE 6 — Hamburger Navigation For All Dashboards
+
+Applies To:
+
+* User Dashboard
+* Business Dashboard
+
+Current Goal:
+
+Keep navigation simple and mobile-friendly.
+
+Requirements:
+
+Do NOT use complex desktop sidebars as the primary navigation pattern.
+
+Primary navigation must be:
+
+Hamburger Menu
+
+Accessible from the top header.
+
+When opened, it displays all available sections.
+
+Users should always know:
+
+* Where they are
+* How to return
+* How to access other sections
+
+---
+
+# USER DASHBOARD STRUCTURE
+
+Account Dashboard
+
+☰ Menu
+
+* Profile
+* Saved Businesses
+* Saved Products
+* Saved Services
+* Following
+* Reviews
+* Requests
+* My Businesses
+* Logout
+
+If the user owns businesses:
+
+My Businesses
+
+* Business A
+* Business B
+* Create New Business
+
+---
+
+# BUSINESS DASHBOARD STRUCTURE
+
+Business Dashboard
+
+☰ Menu
+
+* Overview
+* Business Profile
+* Products / Services
+* Videos
+* Offers
+* Installment Plans
+* Leads
+* Reviews
+* Analytics
+* Notifications
+* Subscription
+* Referral Program
+* Back To Account
+
+Users must always be able to return to their personal account dashboard.
+
+No navigation dead-ends are allowed.
+
+---
+
+## RULE 7 — Products And Services Management Must Be Unified
+
+Products and Services are conceptually identical.
+
+The dashboard must not force users to learn two different management systems.
+
+Use one unified menu item:
+
+Products / Services
+
+Not:
+
+* Products
+* Services
+
+as separate dashboard modules.
+
+---
+
+# PRODUCTS / SERVICES MANAGEMENT PAGE
+
+Tabs:
+
+* All
+* Products
+* Services
+
+Actions:
+
+* Add Product
+* Add Service
+
+Both creation forms must use the same layout.
+
+Only a small number of fields may differ.
+
+---
+
+# PRODUCT / SERVICE CREATION FORM
+
+Common Fields:
+
+* Images
+* Title
+* Category
+* Description
+* Province
+* City
+* Price
+
+---
+
+## Discount System
+
+Optional.
+
+Toggle:
+
+☐ Enable Discount
+
+If enabled:
+
+* Original Price
+* Discount Percentage
+* Final Price
+
+Must calculate automatically.
+
+---
+
+## Installment System
+
+Optional.
+
+Toggle:
+
+☐ Enable Installments
+
+If enabled:
+
+Card 1
+
+* Number Of Installments
+* Installment Amount
+* Total Installment Cost
+
+Card 2
+
+Eligible Groups
+
+Examples:
+
+* Men
+* Women
+* Retirees
+* Employees
+* Students
+
+Card 3
+
+Installment Conditions
+
+Short explanatory text.
+
+---
+
+# CONTENT RULE
+
+Every Product and Service can have:
+
+* No Discount
+* Discount Only
+* Installments Only
+* Discount + Installments
+
+All four states must be supported.
+
+The system must never force installment usage or discount usage.
+
+They are optional business tools.
+
+---
+
+# BUSINESS DASHBOARD PRIORITY
+
+The dashboard is not an admin panel.
+
+The dashboard is a business growth tool.
+
+Priority order:
+
+1. Leads
+2. Products / Services
+3. Profile Completion
+4. Reviews
+5. Analytics
+6. Subscription
+7. Referrals
+
+Everything else is secondary.

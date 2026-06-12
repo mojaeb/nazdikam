@@ -1,137 +1,75 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { BellIcon, ChevronDownIcon, UserIcon, LogOutIcon, SettingsIcon } from "@/components/icons";
-import { mockDashboardBusiness } from "@/lib/dashboard-mock-data";
+import { BellIcon, MenuIcon, LogOutIcon, UserIcon } from "@/components/icons";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
+import { useAuth } from "@/src/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const UNREAD_NOTIFICATIONS = 3;
 
-function BusinessAvatar() {
-  return (
-    <div
-      className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-sm shrink-0"
-      style={{ backgroundColor: mockDashboardBusiness.avatarColor }}
-      aria-hidden="true"
-    >
-      {mockDashboardBusiness.avatarLetter}
-    </div>
-  );
+interface Props {
+  onHamburger: () => void;
 }
 
-function VerifiedBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 bg-green-500/15 text-green-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-      تایید شده
-    </span>
-  );
-}
-
-function ProfileDropdown({ onClose }: { onClose: () => void }) {
+export function DashboardTopbar({ onHamburger }: Props) {
   const [, navigate] = useLocation();
-
-  const items = [
-    { label: "پروفایل کسب‌وکار", path: "/business/profile", icon: <UserIcon size={15} /> },
-    { label: "تنظیمات", path: "/business/settings", icon: <SettingsIcon size={15} /> },
-  ];
-
-  return (
-    <motion.div
-      className="absolute top-full end-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-neutral-100 overflow-hidden z-50"
-      initial={{ opacity: 0, y: -8, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.95 }}
-      transition={{ duration: 0.15 }}
-    >
-      {/* Business info header */}
-      <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-100">
-        <p className="font-vazirmatn font-bold text-sm text-neutral-900">{mockDashboardBusiness.name}</p>
-        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">
-          {mockDashboardBusiness.city} · {mockDashboardBusiness.category}
-        </p>
-      </div>
-
-      {/* Nav items */}
-      {items.map(item => (
-        <button
-          key={item.path}
-          type="button"
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-vazirmatn text-neutral-700 hover:bg-neutral-50 transition-colors text-start"
-          onClick={() => { navigate(item.path); onClose(); }}
-        >
-          <span className="text-neutral-400">{item.icon}</span>
-          {item.label}
-        </button>
-      ))}
-
-      <div className="border-t border-neutral-100">
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-vazirmatn text-red-500 hover:bg-red-50 transition-colors text-start"
-          onClick={onClose}
-        >
-          <LogOutIcon size={15} />
-          خروج از حساب
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-export function DashboardTopbar() {
-  const [, navigate] = useLocation();
+  const { business } = useActiveBusiness();
+  const { logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const bizName = business?.name ?? "کسب‌وکار";
+
+  const handleLogout = async () => {
+    setProfileOpen(false);
+    await logout();
+    navigate("/");
+  };
 
   return (
     <header
-      className="fixed top-0 inset-x-0 h-[60px] z-40 flex items-center justify-between px-4 lg:px-6"
+      className="fixed top-0 inset-x-0 h-[60px] z-40 flex items-center justify-between px-4"
       style={{ backgroundColor: "#0F172A" }}
       role="banner"
     >
-      {/* Start (right in RTL): Logo + Business selector */}
-      <div className="flex items-center gap-3">
-        {/* Logo */}
+      {/* START (right in RTL): Logo + Business name */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
           className="flex items-center gap-2 shrink-0"
           onClick={() => navigate("/business")}
           aria-label="داشبورد"
         >
-          <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </div>
-          <span className="font-iran-yekan-x font-bold text-white text-base hidden sm:block">نزدیکام</span>
-          <span className="text-white/40 font-vazirmatn text-xs hidden sm:block">داشبورد</span>
+          <span className="font-iran-yekan-x font-bold text-white text-base hidden xs:block">نزدیکام</span>
         </button>
 
-        <div className="w-px h-6 bg-white/15 hidden sm:block" aria-hidden="true" />
+        <div className="w-px h-5 bg-white/20 hidden sm:block" aria-hidden="true" />
 
-        {/* Business selector */}
-        <button
-          type="button"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
-          aria-label="انتخاب کسب‌وکار"
-        >
-          <BusinessAvatar />
-          <div className="text-start hidden sm:block">
-            <p className="font-vazirmatn font-bold text-white text-[13px] leading-tight">{mockDashboardBusiness.name}</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <VerifiedBadge />
+        {business && (
+          <div className="flex items-center gap-2 min-w-0 hidden sm:flex">
+            <div
+              className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] font-iran-yekan-x shrink-0"
+              aria-hidden="true"
+            >
+              {bizName.slice(0, 1)}
             </div>
+            <p className="font-vazirmatn font-bold text-white text-[13px] truncate max-w-[160px]">
+              {bizName}
+            </p>
           </div>
-          <ChevronDownIcon size={14} className="text-white/50 hidden sm:block" />
-        </button>
+        )}
       </div>
 
-      {/* End (left in RTL): Actions */}
-      <div className="flex items-center gap-2">
-        {/* Notification bell */}
+      {/* END (left in RTL): Bell + Profile + Hamburger */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        {/* Notifications */}
         <motion.button
           type="button"
           className="relative w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors"
@@ -147,8 +85,8 @@ export function DashboardTopbar() {
           )}
         </motion.button>
 
-        {/* Profile button */}
-        <div className="relative">
+        {/* Profile quick-access (desktop only) */}
+        <div className="relative hidden sm:block">
           <motion.button
             type="button"
             className={cn(
@@ -161,26 +99,51 @@ export function DashboardTopbar() {
             aria-haspopup="menu"
             aria-label="منوی کاربر"
           >
-            <div className="w-6 h-6 rounded-lg overflow-hidden bg-blue-500/60 flex items-center justify-center">
-              <UserIcon size={14} className="text-white" />
-            </div>
+            <UserIcon size={16} className="text-white/80" />
           </motion.button>
-
           <AnimatePresence>
             {profileOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setProfileOpen(false)}
-                  aria-hidden="true"
-                />
-                <div className="relative z-50">
-                  <ProfileDropdown onClose={() => setProfileOpen(false)} />
-                </div>
+                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} aria-hidden="true" />
+                <motion.div
+                  className="absolute top-full end-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden z-50"
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-vazirmatn text-neutral-700 hover:bg-neutral-50 transition-colors text-start border-b border-neutral-100"
+                    onClick={() => { navigate("/account"); setProfileOpen(false); }}
+                  >
+                    <UserIcon size={14} className="text-neutral-400" />
+                    حساب شخصی
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-vazirmatn text-red-500 hover:bg-red-50 transition-colors text-start"
+                    onClick={handleLogout}
+                  >
+                    <LogOutIcon size={14} />
+                    خروج
+                  </button>
+                </motion.div>
               </>
             )}
           </AnimatePresence>
         </div>
+
+        {/* ☰ Hamburger — primary nav */}
+        <motion.button
+          type="button"
+          className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors"
+          whileTap={{ scale: 0.93 }}
+          onClick={onHamburger}
+          aria-label="منوی ناوبری"
+        >
+          <MenuIcon size={20} className="text-white/90" />
+        </motion.button>
       </div>
     </header>
   );

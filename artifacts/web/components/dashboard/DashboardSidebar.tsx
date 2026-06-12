@@ -4,34 +4,28 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   HomeIcon, StoreIcon, TagIcon, StarIcon, UserIcon,
-  BellIcon, SettingsIcon, LogOutIcon,
+  BellIcon, LogOutIcon, ChevronDownIcon,
 } from "@/components/icons";
 import type { IconProps } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 
-/* ─── Icon helpers ────────────────────────────────────── */
+/* ─── Icon helper ─────────────────────────────────────── */
 type IconName =
-  | "home" | "store" | "tag" | "star" | "user" | "bell" | "settings" | "logout"
-  | "wrench" | "chart" | "creditcard" | "megaphone" | "trending" | "plus" | "chevron";
+  | "home" | "store" | "tag" | "star" | "user" | "bell" | "logout"
+  | "chart" | "creditcard" | "megaphone" | "trending" | "plus" | "chevron"
+  | "video" | "gift" | "layers" | "arrowback" | "wrench";
 
 function DashboardIcon({ name, size = 17 }: { name: IconName; size?: number }) {
-  const props: IconProps = { size, className: "shrink-0" };
+  const p: IconProps = { size, className: "shrink-0" };
   switch (name) {
-    case "home":       return <HomeIcon {...props} />;
-    case "store":      return <StoreIcon {...props} />;
-    case "tag":        return <TagIcon {...props} />;
-    case "star":       return <StarIcon {...props} />;
-    case "user":       return <UserIcon {...props} />;
-    case "bell":       return <BellIcon {...props} />;
-    case "settings":   return <SettingsIcon {...props} />;
-    case "logout":     return <LogOutIcon {...props} />;
-    case "wrench":
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-        </svg>
-      );
+    case "home":       return <HomeIcon {...p} />;
+    case "store":      return <StoreIcon {...p} />;
+    case "tag":        return <TagIcon {...p} />;
+    case "star":       return <StarIcon {...p} />;
+    case "user":       return <UserIcon {...p} />;
+    case "bell":       return <BellIcon {...p} />;
+    case "logout":     return <LogOutIcon {...p} />;
     case "chart":
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -63,16 +57,43 @@ function DashboardIcon({ name, size = 17 }: { name: IconName; size?: number }) {
         </svg>
       );
     case "chevron":
+      return <ChevronDownIcon size={size} />;
+    case "video":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        </svg>
+      );
+    case "gift":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" />
+          <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
+        </svg>
+      );
+    case "layers":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+        </svg>
+      );
+    case "arrowback":
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9" />
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      );
+    case "wrench":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
         </svg>
       );
   }
 }
 
 /* ─── Business Switcher ───────────────────────────────── */
-function BusinessSwitcher() {
+function BusinessSwitcher({ onNavigate }: { onNavigate: () => void }) {
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [, navigate] = useLocation();
@@ -81,7 +102,6 @@ function BusinessSwitcher() {
   if (!business) return null;
 
   const hasMultiple = allBusinesses.length > 1;
-  const initial = business.name.slice(0, 1);
 
   const handleSwitch = async (id: number) => {
     if (id === business.id) { setOpen(false); return; }
@@ -92,21 +112,19 @@ function BusinessSwitcher() {
   };
 
   return (
-    <div className="px-3 mb-5 relative">
+    <div className="px-4 py-3 border-b border-neutral-100 relative">
       <button
         type="button"
         onClick={() => hasMultiple && setOpen(!open)}
         className={cn(
-          "w-full flex items-center gap-2.5 p-3 rounded-xl transition-colors text-start",
-          hasMultiple
-            ? "bg-blue-50 hover:bg-blue-100 cursor-pointer"
-            : "bg-blue-50 cursor-default",
+          "w-full flex items-center gap-2.5 p-2.5 rounded-xl transition-colors text-start",
+          hasMultiple ? "bg-blue-50 hover:bg-blue-100 cursor-pointer" : "bg-blue-50 cursor-default"
         )}
         aria-expanded={hasMultiple ? open : undefined}
         aria-label={hasMultiple ? "تغییر کسب‌وکار فعال" : business.name}
       >
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shrink-0 font-iran-yekan-x">
-          {initial}
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shrink-0 font-iran-yekan-x">
+          {business.name.slice(0, 1)}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-neutral-900 truncate font-vazirmatn leading-tight">
@@ -117,11 +135,7 @@ function BusinessSwitcher() {
           </p>
         </div>
         {hasMultiple && (
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="text-neutral-400 shrink-0"
-          >
+          <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-neutral-400 shrink-0">
             <DashboardIcon name="chevron" size={14} />
           </motion.span>
         )}
@@ -134,36 +148,23 @@ function BusinessSwitcher() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute start-3 end-3 top-full mt-1 z-50 rounded-xl border border-neutral-100 bg-white overflow-hidden"
+            className="absolute start-4 end-4 top-full mt-1 z-50 rounded-xl border border-neutral-100 bg-white overflow-hidden"
             style={{ boxShadow: "var(--shadow-elevation-2)" }}
           >
-            {allBusinesses
-              .filter((b) => b.id !== business.id)
-              .map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  disabled={switching}
-                  onClick={() => handleSwitch(b.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-start border-b border-neutral-50 last:border-0"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0 font-iran-yekan-x">
-                    {b.name.slice(0, 1)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-neutral-800 truncate font-vazirmatn">
-                      {b.name}
-                    </p>
-                    <p className="text-xs text-neutral-400 truncate font-vazirmatn">
-                      {b.city}
-                    </p>
-                  </div>
-                </button>
-              ))}
-
+            {allBusinesses.filter(b => b.id !== business.id).map(b => (
+              <button key={b.id} type="button" disabled={switching}
+                onClick={() => handleSwitch(b.id)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-start border-b border-neutral-50 last:border-0"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0 font-iran-yekan-x">
+                  {b.name.slice(0, 1)}
+                </div>
+                <p className="text-sm font-medium text-neutral-800 truncate font-vazirmatn">{b.name}</p>
+              </button>
+            ))}
             <button
               type="button"
-              onClick={() => { setOpen(false); navigate("/account/create-business"); }}
+              onClick={() => { setOpen(false); onNavigate(); navigate("/account/create-business"); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-blue-600 hover:bg-blue-50 transition-colors text-start border-t border-neutral-100"
             >
               <DashboardIcon name="plus" size={14} />
@@ -176,7 +177,7 @@ function BusinessSwitcher() {
   );
 }
 
-/* ─── Nav config ──────────────────────────────────────── */
+/* ─── Nav item ────────────────────────────────────────── */
 interface NavItem {
   label: string;
   path: string;
@@ -185,65 +186,18 @@ interface NavItem {
   badgeColor?: "red" | "amber" | "blue";
 }
 
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    title: "عمومی",
-    items: [
-      { label: "پیشخوان", path: "/business", icon: "home" },
-    ],
-  },
-  {
-    title: "کسب‌وکار",
-    items: [
-      { label: "پروفایل", path: "/business/profile", icon: "store" },
-      { label: "محصولات", path: "/business/products", icon: "tag", badge: 14, badgeColor: "blue" },
-      { label: "خدمات", path: "/business/services", icon: "wrench", badge: 6, badgeColor: "blue" },
-    ],
-  },
-  {
-    title: "بازاریابی",
-    items: [
-      { label: "لیدها", path: "/business/leads", icon: "trending", badge: 5, badgeColor: "red" },
-      { label: "نظرات", path: "/business/reviews", icon: "star", badge: 2, badgeColor: "amber" },
-      { label: "مشتریان", path: "/business/customers", icon: "user" },
-      { label: "اعلان‌ها", path: "/business/notifications", icon: "bell", badge: 3, badgeColor: "red" },
-    ],
-  },
-  {
-    title: "رشد",
-    items: [
-      { label: "آمار و تحلیل‌ها", path: "/business/analytics", icon: "chart" },
-      { label: "تبلیغات", path: "/business/promotions", icon: "megaphone" },
-      { label: "اشتراک", path: "/business/subscription", icon: "creditcard" },
-    ],
-  },
-];
-
 const BADGE_COLORS: Record<NonNullable<NavItem["badgeColor"]>, string> = {
-  red: "bg-red-500 text-white",
+  red:   "bg-red-500 text-white",
   amber: "bg-amber-500 text-white",
-  blue: "bg-blue-100 text-blue-700",
+  blue:  "bg-blue-100 text-blue-700",
 };
 
-function NavItemButton({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: NavItem;
-  isActive: boolean;
-  onClick: () => void;
-}) {
+function NavBtn({ item, isActive, onClick }: { item: NavItem; isActive: boolean; onClick: () => void }) {
   return (
     <motion.button
       type="button"
       className={cn(
-        "w-full flex items-center justify-between gap-3 py-2 px-3 rounded-xl text-sm font-vazirmatn font-medium transition-colors text-start",
+        "w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium transition-colors text-start",
         isActive
           ? "bg-blue-50 text-blue-700 font-semibold"
           : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
@@ -267,8 +221,31 @@ function NavItemButton({
   );
 }
 
+/* ─── Business Dashboard nav items (spec-compliant) ─────
+   Priority order per spec:
+   1 Leads  2 Products/Services  3 Profile  4 Reviews  5 Analytics  6 Subscription  7 Referrals
+   Full order per spec menu:
+   Overview → Profile → Products/Services → Videos → Offers → Installments →
+   Leads → Reviews → Analytics → Notifications → Subscription → Referrals
+   ────────────────────────────────────────────────────── */
+const BUSINESS_NAV: NavItem[] = [
+  { label: "پیشخوان",              path: "/business",               icon: "home" },
+  { label: "پروفایل کسب‌وکار",    path: "/business/profile",       icon: "store" },
+  { label: "محصولات / خدمات",     path: "/business/catalog",       icon: "tag",        badge: 20, badgeColor: "blue" },
+  { label: "ویدیوها",              path: "/business/videos",        icon: "video" },
+  { label: "پیشنهادها",            path: "/business/offers",        icon: "gift" },
+  { label: "طرح‌های اقساطی",      path: "/business/installments",  icon: "layers" },
+  { label: "لیدها",                path: "/business/leads",         icon: "trending",   badge: 5,  badgeColor: "red" },
+  { label: "نظرات",                path: "/business/reviews",       icon: "star",       badge: 2,  badgeColor: "amber" },
+  { label: "آمار",                 path: "/business/analytics",     icon: "chart" },
+  { label: "اعلان‌ها",             path: "/business/notifications", icon: "bell",       badge: 3,  badgeColor: "red" },
+  { label: "اشتراک",               path: "/business/subscription",  icon: "creditcard" },
+  { label: "معرفی و ارجاع",       path: "/business/referral",      icon: "megaphone" },
+];
+
+/* ─── Sidebar / Drawer ────────────────────────────────── */
 interface DashboardSidebarProps {
-  onNavigate?: (path: string) => void;
+  onNavigate?: (path?: string) => void;
 }
 
 export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
@@ -276,9 +253,7 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
   const { logout } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === "/business") {
-      return location === "/business" || location === "/business/overview";
-    }
+    if (path === "/business") return location === "/business" || location === "/business/overview";
     return location.startsWith(path);
   };
 
@@ -289,56 +264,41 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
 
   const handleLogout = async () => {
     await logout();
+    onNavigate?.();
     navigate("/");
   };
 
   return (
-    <div className="flex flex-col h-full py-4 overflow-y-auto">
-      {/* ← Return to Personal Account */}
-      <div className="px-3 mb-3">
-        <button
-          type="button"
-          onClick={() => handleNav("/account")}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-vazirmatn font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors text-start"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-          <span>حساب شخصی</span>
-        </button>
-      </div>
+    <div className="flex flex-col h-full py-2">
+      {/* Business switcher */}
+      <BusinessSwitcher onNavigate={() => onNavigate?.()} />
 
-      <BusinessSwitcher />
-
-      <div className="flex-1 px-3 space-y-5">
-        {NAV_SECTIONS.map(section => (
-          <div key={section.title}>
-            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5 px-3">
-              {section.title}
-            </p>
-            <div className="space-y-0.5">
-              {section.items.map(item => (
-                <NavItemButton
-                  key={item.path}
-                  item={item}
-                  isActive={isActive(item.path)}
-                  onClick={() => handleNav(item.path)}
-                />
-              ))}
-            </div>
-          </div>
+      {/* Nav items */}
+      <div className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        {BUSINESS_NAV.map(item => (
+          <NavBtn
+            key={item.path}
+            item={item}
+            isActive={isActive(item.path)}
+            onClick={() => handleNav(item.path)}
+          />
         ))}
       </div>
 
-      <div className="px-3 pt-4 border-t border-neutral-100 space-y-0.5 mt-4">
-        <NavItemButton
-          item={{ label: "تنظیمات", path: "/business/settings", icon: "settings" }}
-          isActive={isActive("/business/settings")}
-          onClick={() => handleNav("/business/settings")}
-        />
+      {/* Bottom separator + Back to Account + Logout */}
+      <div className="px-3 py-3 border-t border-neutral-100 space-y-0.5">
         <motion.button
           type="button"
-          className="w-full flex items-center gap-2.5 py-2 px-3 rounded-xl text-sm font-vazirmatn font-medium text-red-500 hover:bg-red-50 transition-colors text-start"
+          className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium text-teal-700 hover:bg-teal-50 transition-colors text-start"
+          whileTap={{ scale: 0.97 }}
+          onClick={() => handleNav("/account")}
+        >
+          <span className="text-teal-500"><DashboardIcon name="arrowback" /></span>
+          بازگشت به حساب شخصی
+        </motion.button>
+        <motion.button
+          type="button"
+          className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium text-red-500 hover:bg-red-50 transition-colors text-start"
           whileTap={{ scale: 0.97 }}
           onClick={handleLogout}
           aria-label="خروج از حساب"

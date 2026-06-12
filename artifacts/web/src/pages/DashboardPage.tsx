@@ -12,6 +12,7 @@ import { ProductList } from "@/components/dashboard/products/ProductList";
 import { ProductForm } from "@/components/dashboard/products/ProductForm";
 import { ServiceList } from "@/components/dashboard/services/ServiceList";
 import { ServiceForm } from "@/components/dashboard/services/ServiceForm";
+import { CatalogPage } from "@/components/dashboard/catalog/CatalogPage";
 import { ProfilePage } from "@/components/dashboard/profile/ProfilePage";
 import { SubscriptionPage } from "@/components/dashboard/subscription/SubscriptionPage";
 import { LeadsPage } from "@/components/dashboard/leads/LeadsPage";
@@ -99,7 +100,7 @@ function WelcomeSection() {
       <p className="font-vazirmatn text-neutral-400 text-sm mb-1">خوش آمدید 👋</p>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-iran-yekan-x font-bold text-neutral-900 text-2xl lg:text-3xl leading-tight">
+          <h1 className="font-iran-yekan-x font-bold text-neutral-900 text-2xl leading-tight">
             {biz.name}
           </h1>
           <div className="flex items-center flex-wrap gap-2 mt-2">
@@ -136,11 +137,11 @@ function WelcomeSection() {
 /* ─── Overview page ───────────────────────────────────── */
 function DashboardOverview() {
   return (
-    <div className="p-5 lg:p-8 max-w-[1400px]">
+    <div className="p-5 max-w-[1400px]">
       <WelcomeSection />
 
       <section aria-label="شاخص‌های کلیدی">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {mockDashboardStats.map((stat, i) => {
             const Icon = KPI_ICONS[i];
             return (
@@ -197,11 +198,16 @@ function DashboardContent() {
     return <DashboardOverview />;
   }
 
+  /* Unified products + services catalog */
+  if (location === "/business/catalog") return <CatalogPage />;
+
+  /* Products routes */
   if (location === "/business/products") return <ProductList businessId={activeBusinessId ? String(activeBusinessId) : undefined} />;
   if (location === "/business/products/new") return <ProductForm mode="create" />;
   const productEditMatch = location.match(/^\/business\/products\/([^/]+)\/edit$/);
   if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;
 
+  /* Services routes */
   if (location === "/business/services") return <ServiceList />;
   if (location === "/business/services/new") return <ServiceForm mode="create" />;
   const serviceEditMatch = location.match(/^\/business\/services\/([^/]+)\/edit$/);
@@ -219,22 +225,18 @@ function DashboardContent() {
   if (location === "/business/analytics")     return <AnalyticsPage />;
 
   const SECTION_LABELS: Record<string, string> = {
-    "/business/profile":       "پروفایل کسب‌وکار",
-    "/business/leads":         "مدیریت لیدها",
-    "/business/reviews":       "نظرات و امتیازها",
-    "/business/customers":     "مشتریان",
-    "/business/notifications": "اعلان‌ها",
-    "/business/analytics":     "آمار و تحلیل‌ها",
-    "/business/promotions":    "تبلیغات",
-    "/business/subscription":  "اشتراک",
-    "/business/settings":      "تنظیمات",
+    "/business/videos":       "ویدیوها",
+    "/business/offers":       "پیشنهادها",
+    "/business/installments": "طرح‌های اقساطی",
+    "/business/referral":     "معرفی و ارجاع",
+    "/business/settings":     "تنظیمات",
   };
 
   const key = Object.keys(SECTION_LABELS).find(k => location.startsWith(k));
   return <ComingSoon section={key ? SECTION_LABELS[key] : "این بخش"} />;
 }
 
-/* ─── Auth guard wrapper ──────────────────────────────── */
+/* ─── Auth guard ──────────────────────────────────────── */
 function DashboardGuard() {
   const [, navigate] = useLocation();
   const { user, isLoading, isLoggedIn } = useAuth();
