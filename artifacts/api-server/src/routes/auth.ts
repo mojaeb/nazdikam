@@ -133,6 +133,7 @@ router.post("/auth/verify-otp", async (req, res) => {
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.businessIds = businessIds;
+    req.session.activeBusinessId = businessIds[0] ?? null;
 
     res.json({
       success: true,
@@ -196,6 +197,7 @@ router.get("/auth/me", async (req, res) => {
       user: {
         ...user,
         businessIds: req.session.businessIds ?? [],
+        activeBusinessId: req.session.activeBusinessId ?? req.session.businessIds?.[0] ?? null,
       },
     });
   } catch (err) {

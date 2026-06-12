@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   HomeIcon, StoreIcon, TagIcon, StarIcon, UserIcon,
@@ -7,11 +8,12 @@ import {
 } from "@/components/icons";
 import type { IconProps } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 
 /* ─── Icon helpers ────────────────────────────────────── */
 type IconName =
   | "home" | "store" | "tag" | "star" | "user" | "bell" | "settings" | "logout"
-  | "wrench" | "chart" | "creditcard" | "megaphone" | "trending";
+  | "wrench" | "chart" | "creditcard" | "megaphone" | "trending" | "plus" | "chevron";
 
 function DashboardIcon({ name, size = 17 }: { name: IconName; size?: number }) {
   const props: IconProps = { size, className: "shrink-0" };
@@ -54,7 +56,124 @@ function DashboardIcon({ name, size = 17 }: { name: IconName; size?: number }) {
           <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
         </svg>
       );
+    case "plus":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      );
+    case "chevron":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      );
   }
+}
+
+/* ─── Business Switcher ───────────────────────────────── */
+function BusinessSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [, navigate] = useLocation();
+  const { business, allBusinesses, switchBusiness } = useActiveBusiness();
+
+  if (!business) return null;
+
+  const hasMultiple = allBusinesses.length > 1;
+  const initial = business.name.slice(0, 1);
+
+  const handleSwitch = async (id: number) => {
+    if (id === business.id) { setOpen(false); return; }
+    setSwitching(true);
+    await switchBusiness(id);
+    setOpen(false);
+    setSwitching(false);
+  };
+
+  return (
+    <div className="px-3 mb-5 relative">
+      <button
+        type="button"
+        onClick={() => hasMultiple && setOpen(!open)}
+        className={cn(
+          "w-full flex items-center gap-2.5 p-3 rounded-xl transition-colors text-start",
+          hasMultiple
+            ? "bg-blue-50 hover:bg-blue-100 cursor-pointer"
+            : "bg-blue-50 cursor-default",
+        )}
+        aria-expanded={hasMultiple ? open : undefined}
+        aria-label={hasMultiple ? "تغییر کسب‌وکار فعال" : business.name}
+      >
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base shrink-0 font-iran-yekan-x">
+          {initial}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-neutral-900 truncate font-vazirmatn leading-tight">
+            {business.name}
+          </p>
+          <p className="text-xs text-neutral-400 truncate font-vazirmatn mt-0.5">
+            {business.city} · {business.province}
+          </p>
+        </div>
+        {hasMultiple && (
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="text-neutral-400 shrink-0"
+          >
+            <DashboardIcon name="chevron" size={14} />
+          </motion.span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute start-3 end-3 top-full mt-1 z-50 rounded-xl border border-neutral-100 bg-white overflow-hidden"
+            style={{ boxShadow: "var(--shadow-elevation-2)" }}
+          >
+            {allBusinesses
+              .filter((b) => b.id !== business.id)
+              .map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  disabled={switching}
+                  onClick={() => handleSwitch(b.id)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-neutral-50 transition-colors text-start border-b border-neutral-50 last:border-0"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0 font-iran-yekan-x">
+                    {b.name.slice(0, 1)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-800 truncate font-vazirmatn">
+                      {b.name}
+                    </p>
+                    <p className="text-xs text-neutral-400 truncate font-vazirmatn">
+                      {b.city}
+                    </p>
+                  </div>
+                </button>
+              ))}
+
+            <button
+              type="button"
+              onClick={() => { setOpen(false); navigate("/account/create-business"); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-blue-600 hover:bg-blue-50 transition-colors text-start border-t border-neutral-100"
+            >
+              <DashboardIcon name="plus" size={14} />
+              <span className="text-sm font-medium font-vazirmatn">افزودن کسب‌وکار</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 /* ─── Nav config ──────────────────────────────────────── */
@@ -175,6 +294,8 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
 
   return (
     <div className="flex flex-col h-full py-4 overflow-y-auto">
+      <BusinessSwitcher />
+
       <div className="flex-1 px-3 space-y-5">
         {NAV_SECTIONS.map(section => (
           <div key={section.title}>

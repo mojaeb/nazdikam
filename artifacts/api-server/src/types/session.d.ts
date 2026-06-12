@@ -5,5 +5,6 @@ declare module "express-session" {
     userId: number;
     role: "user" | "business_owner" | "admin";
     businessIds: number[];
+    activeBusinessId: number | null;
   }
 }

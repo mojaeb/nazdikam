@@ -7,6 +7,7 @@ export interface AuthUser {
   avatar: string | null;
   role: "user" | "business_owner" | "admin";
   businessIds: number[];
+  activeBusinessId: number | null;
 }
 
 interface AuthContextValue {

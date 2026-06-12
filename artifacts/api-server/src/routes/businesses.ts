@@ -68,6 +68,33 @@ router.get("/businesses/my", requireAuth, async (req, res) => {
   }
 });
 
+/* ─── POST /api/businesses/switch-active ─────────────── */
+const SwitchActiveSchema = z.object({
+  businessId: z.number().int().positive(),
+});
+
+router.post("/businesses/switch-active", requireAuth, (req, res) => {
+  const parsed = SwitchActiveSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({
+      error: { code: "VALIDATION_ERROR", message: parsed.error.message },
+    });
+    return;
+  }
+
+  const { businessId } = parsed.data;
+
+  if (!req.session.businessIds?.includes(businessId)) {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "You do not own this business" },
+    });
+    return;
+  }
+
+  req.session.activeBusinessId = businessId;
+  res.json({ success: true, activeBusinessId: businessId });
+});
+
 /* ─── POST /api/businesses ────────────────────────────── */
 const CreateBusinessSchema = z.object({
   name:        z.string().min(2).max(100),
@@ -116,6 +143,10 @@ router.post("/businesses", requireAuth, async (req, res) => {
       ...(req.session.businessIds ?? []),
       business!.id,
     ];
+
+    if (!req.session.activeBusinessId) {
+      req.session.activeBusinessId = business!.id;
+    }
 
     if (req.session.role === "user") {
       await db
@@ -201,6 +232,21 @@ router.get(
     }
   },
 );
+
+/* ─── POST /api/businesses/:id/claim (stub) ──────────── */
+router.post("/businesses/:id/claim", requireAuth, (req, res) => {
+  res.status(501).json({
+    error: {
+      code: "NOT_IMPLEMENTED",
+      message: "Business claim flow is not yet available",
+    },
+    _meta: {
+      planned: true,
+      description:
+        "Claim flow: user submits documents, admin reviews, ownerId updated. Uses business_verifications table.",
+    },
+  });
+});
 
 /* ─── GET /api/businesses/:slug (public) ─────────────── */
 router.get("/businesses/:slug", async (req, res) => {

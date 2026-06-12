@@ -19,12 +19,15 @@ import { ReviewsPage } from "@/components/dashboard/reviews/ReviewsPage";
 import { NotificationsPage } from "@/components/dashboard/notifications/NotificationsPage";
 import { AnalyticsPage } from "@/components/dashboard/analytics/AnalyticsPage";
 import {
-  mockDashboardBusiness,
   mockDashboardStats,
   mockSubscription,
 } from "@/lib/dashboard-mock-data";
 import { VerifiedIcon, MapPinIcon, StoreIcon } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
+import {
+  ActiveBusinessProvider,
+  useActiveBusiness,
+} from "@/src/contexts/ActiveBusinessContext";
 
 /* ─── KPI icon helpers ────────────────────────────────── */
 function LeadsIcon() {
@@ -68,8 +71,23 @@ const KPI_ICONS = [LeadsIcon, EyeIcon, PackageIcon, StarSmIcon, PercentIcon];
 /* ─── Welcome Section ─────────────────────────────────── */
 function WelcomeSection() {
   const [, navigate] = useLocation();
-  const biz = mockDashboardBusiness;
+  const { business: biz, isLoading } = useActiveBusiness();
   const sub = mockSubscription;
+
+  if (isLoading) {
+    return (
+      <div className="mb-6 animate-pulse">
+        <div className="h-4 w-24 bg-neutral-100 rounded mb-3" />
+        <div className="h-8 w-64 bg-neutral-100 rounded mb-2" />
+        <div className="flex gap-2">
+          <div className="h-6 w-20 bg-neutral-100 rounded-full" />
+          <div className="h-6 w-28 bg-neutral-100 rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!biz) return null;
 
   return (
     <motion.div
@@ -172,12 +190,14 @@ function ComingSoon({ section }: { section: string }) {
 /* ─── Dashboard router ────────────────────────────────── */
 function DashboardContent() {
   const [location] = useLocation();
+  const { business } = useActiveBusiness();
+  const activeBusinessId = business?.id ?? 0;
 
   if (location === "/business" || location === "/business/overview") {
     return <DashboardOverview />;
   }
 
-  if (location === "/business/products") return <ProductList businessId={mockDashboardBusiness.id} />;
+  if (location === "/business/products") return <ProductList businessId={activeBusinessId ? String(activeBusinessId) : undefined} />;
   if (location === "/business/products/new") return <ProductForm mode="create" />;
   const productEditMatch = location.match(/^\/business\/products\/([^/]+)\/edit$/);
   if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;
@@ -241,9 +261,11 @@ function DashboardGuard() {
   if (!isLoggedIn || (user && user.businessIds.length === 0)) return null;
 
   return (
-    <DashboardShell>
-      <DashboardContent />
-    </DashboardShell>
+    <ActiveBusinessProvider>
+      <DashboardShell>
+        <DashboardContent />
+      </DashboardShell>
+    </ActiveBusinessProvider>
   );
 }
 
