@@ -76,6 +76,8 @@ function Router() {
       <Route path="/account/following" component={AccountPage} />
       <Route path="/account/reviews" component={AccountPage} />
       <Route path="/account/notifications" component={AccountPage} />
+      <Route path="/account/edit" component={AccountPage} />
+      <Route path="/account/settings" component={AccountPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/help" component={HelpPage} />

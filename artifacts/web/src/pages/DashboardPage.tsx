@@ -10,6 +10,7 @@ import { LeadsPage } from "@/components/dashboard/leads/LeadsPage";
 import { ReviewsPage } from "@/components/dashboard/reviews/ReviewsPage";
 import { NotificationsPage } from "@/components/dashboard/notifications/NotificationsPage";
 import { AnalyticsPage } from "@/components/dashboard/analytics/AnalyticsPage";
+import { VideosPage } from "@/components/dashboard/videos/VideosPage";
 import { mockSubscription } from "@/lib/dashboard-mock-data";
 import { toPersianNumerals } from "@/lib/utils";
 import { StoreIcon } from "@/components/icons";
@@ -283,8 +284,9 @@ function DashboardContent() {
   if (location === "/business/notifications") return <NotificationsPage />;
   if (location === "/business/analytics")     return <AnalyticsPage />;
 
+  if (location === "/business/videos") return <VideosPage />;
+
   const SECTION_LABELS: Record<string, string> = {
-    "/business/videos":       "ویدیوها",
     "/business/offers":       "پیشنهادها",
     "/business/installments": "طرح‌های اقساطی",
     "/business/referral":     "معرفی و ارجاع",

@@ -1,0 +1,634 @@
+# NAZDIKAM FINAL UX/UI REBUILD DIRECTIVE
+
+IMPORTANT:
+
+این دستور از تمامی طراحی‌ها، صفحات، کامپوننت‌ها، تصمیمات UX/UI قبلی و طراحی‌های فعلی اولویت بالاتر دارد.
+
+هدف این فاز:
+
+بازطراحی کامل تجربه کاربری نزدیکام به یک Mobile First Marketplace مدرن، ساده، قابل فهم و مناسب کاربران عمومی و صاحبان کسب‌وکار.
+
+---
+
+# RULE 1 — MOBILE FIRST
+
+نزدیکام Mobile First است.
+
+بیش از 95 درصد کاربران از موبایل استفاده می‌کنند.
+
+بنابراین:
+
+* ابتدا موبایل طراحی شود
+* سپس همان طراحی برای دسکتاپ توسعه پیدا کند
+* دسکتاپ فقط نسخه بزرگ‌تر موبایل باشد
+* نباید دو UI متفاوت بین موبایل و دسکتاپ وجود داشته باشد
+
+قانون:
+
+Desktop = Expanded Mobile
+
+نه:
+
+Desktop = Different Product
+
+---
+
+# RULE 2 — REMOVE COMPLEXITY
+
+هیچ صفحه‌ای نباید شبیه:
+
+* ERP
+* CRM
+* Accounting Software
+* Admin Software
+
+باشد.
+
+نزدیکام باید شبیه:
+
+* Instagram
+* Airbnb
+* Digikala Mobile
+* Twitter Profile
+
+باشد.
+
+---
+
+# RULE 3 — BUSINESS PROFILE IS THE CENTER
+
+تمام مسیرها باید در نهایت به Business Profile ختم شوند:
+
+* Search
+* Categories
+* Products
+* Services
+* Videos
+* Offers
+* Installments
+* Map
+
+همه باید کاربر را به صفحه کسب‌وکار هدایت کنند.
+
+---
+
+# AUTH FLOW REBUILD
+
+BUG TO FIX:
+
+بعد از لاگین کاربر نباید مستقیماً به Create Business منتقل شود.
+
+جریان صحیح:
+
+Guest
+↓
+Login
+↓
+User Dashboard
+
+فقط زمانی که کاربر خودش انتخاب کرد:
+
+"ثبت کسب و کار"
+
+به Create Business منتقل شود.
+
+---
+
+# ACCOUNT PAGE
+
+BUG TO FIX:
+
+در حال حاضر:
+
+Account
+↓
+
+مستقیم وارد حساب می‌شود
+
+بدون اینکه وضعیت لاگین بررسی شود.
+
+باید:
+
+اگر لاگین نیست:
+
+Login Modal
+
+یا
+
+Login Page
+
+نمایش داده شود.
+
+---
+
+# GUEST USER
+
+کاربر مهمان می‌تواند:
+
+* جستجو کند
+* مشاهده کند
+* دسته‌بندی ببیند
+* محصول ببیند
+* خدمت ببیند
+* ویدیو ببیند
+
+اما نمی‌تواند:
+
+* ذخیره کند
+* دنبال کند
+* نظر ثبت کند
+
+در اولین اقدام:
+
+Save
+Follow
+Review
+
+باید Login Modal باز شود.
+
+---
+
+# USER DASHBOARD REBUILD
+
+از تصویر مرجع ارسال‌شده پیروی شود.
+
+ساختار:
+
+* پروفایل
+* ذخیره شده‌ها
+* دنبال شده‌ها
+* تنظیمات
+
+اگر کسب‌وکار ندارد:
+
+نمایش:
+
+ثبت کسب و کار
+
+اگر کسب‌وکار دارد:
+
+نمایش کارت کسب‌وکار
+
+---
+
+هیچ آمار پیچیده‌ای نمایش داده نشود.
+
+---
+
+# BUSINESS DASHBOARD REBUILD
+
+از تصویر مرجع ارسال‌شده پیروی شود.
+
+موارد غیرضروری حذف شوند:
+
+* Latest Activity
+* Complex Analytics
+* Large KPI Blocks
+* Unused Widgets
+
+---
+
+ساختار:
+
+اشتراک ویژه
+
+کارت کسب‌وکار
+
+آمار کسب‌وکار:
+
+* محصولات
+* خدمات
+* ویدیوها
+* بازدیدها
+
+---
+
+منوها:
+
+* محصولات و خدمات
+* ویدیوها
+* اطلاعات کسب‌وکار
+* شماره تماس و لینک‌ها
+* آدرس و موقعیت مکانی
+* ارتقاء اشتراک
+* آموزش و پشتیبانی
+
+---
+
+# IMPORTANT
+
+Switch Account
+
+باید وجود داشته باشد.
+
+کاربر باید بتواند بین:
+
+* User Dashboard
+* Business Dashboard
+
+جابجا شود.
+
+---
+
+# HEADER REBUILD
+
+هدر باید بسیار خلوت باشد.
+
+فقط:
+
+NAZDIKAM LOGO
+
+در مرکز
+
+نمایش داده شود.
+
+حذف شود:
+
+* Login
+* Register
+* Extra Buttons
+* Extra Links
+
+---
+
+# HOME PAGE REBUILD
+
+ترتیب قطعی:
+
+1 Banner Slider
+
+2 Categories
+
+3 Hot Discounts
+
+4 Easy Installments
+
+5 Advertisement Banner
+
+6 Near You
+
+(فقط اگر شهر انتخاب شده باشد)
+
+7 Popular Businesses
+
+8 Business Videos
+
+9 Latest Products & Services
+
+10 Register Your Business Banner
+
+---
+
+# TOP SECTION
+
+Search
+
+سمت راست
+
+City Selector
+
+سمت چپ
+
+کنار هم
+
+---
+
+# CITY SELECTOR REBUILD
+
+UI فعلی مردود است.
+
+Dropdownهای مرورگر ممنوع.
+
+باید:
+
+Bottom Sheet Modal
+
+استفاده شود.
+
+مانند:
+
+Instagram
+Snapp
+Digikala
+
+از پایین باز شود.
+
+---
+
+# ALL FORMS REBUILD
+
+تمام فرم‌ها:
+
+* Mobile First
+* Responsive
+* Bottom Sheet
+* Large Touch Targets
+
+باشند.
+
+هیچ Select Native Browser استفاده نشود.
+
+---
+
+# BUSINESS CARD
+
+فقط:
+
+* Logo
+* Name
+* City
+* Province
+* Rating
+
+---
+
+هیچ داده اضافی نمایش داده نشود.
+
+---
+
+# PRODUCT CARD
+
+فقط:
+
+* Image
+* Title
+* Discount
+* Installment Count
+* Final Price
+* Old Price
+
+---
+
+# SERVICE CARD
+
+کاملاً مشابه Product Card
+
+یک Component مشترک استفاده شود.
+
+---
+
+# PRODUCT DETAIL PAGE
+
+# SERVICE DETAIL PAGE
+
+باید 100 درصد یکسان باشند.
+
+یک Shared Detail Component ساخته شود.
+
+تنها تفاوت:
+
+Title Label
+
+محصول
+
+یا
+
+خدمت
+
+باشد.
+
+---
+
+ترتیب:
+
+1 Gallery
+
+2 Title
+
+3 Category + City + Province
+
+4 Business Card
+
+5 Price Box
+
+6 Installment Box
+
+7 Call + Navigation Buttons
+
+8 Description
+
+9 Reviews
+
+---
+
+# REMOVE DUPLICATE DATA
+
+BUG TO FIX:
+
+اگر کسب‌وکار شماره تماس دارد:
+
+محصول
+
+و
+
+خدمت
+
+نباید مجدداً شماره تماس جداگانه دریافت کنند.
+
+اطلاعات تماس از Business Profile ارث‌بری شود.
+
+---
+
+# BUSINESS PROFILE REBUILD
+
+Twitter + Instagram Layout
+
+---
+
+Sections:
+
+Cover Banner
+
+Logo
+
+Follow Button
+
+Business Name
+
+Verified Badge
+
+Category
+
+Follower Count
+
+Review Count
+
+Sticky Navigation
+
+---
+
+Tabs:
+
+Videos
+
+Products / Services
+
+Contact Info
+
+Address
+
+Working Hours
+
+Social Links
+
+Reviews
+
+---
+
+# VIDEO SYSTEM REBUILD
+
+BUG TO FIX:
+
+Home Page Videos
+
+در حال حاضر هیچ کاری انجام نمی‌دهند.
+
+---
+
+باید:
+
+Instagram Reels Style
+
+پیاده‌سازی شود.
+
+---
+
+Video Click
+
+↓
+
+Open Reel Viewer
+
+---
+
+Business Profile Videos
+
+باید دقیقاً از همان Component استفاده کنند.
+
+---
+
+یک سیستم واحد برای:
+
+* Home Videos
+* Business Videos
+
+ساخته شود.
+
+---
+
+# PRODUCT / SERVICE MANAGEMENT
+
+فرم محصول و خدمت باید یکی باشد.
+
+---
+
+Fields:
+
+Title
+
+Description
+
+Images
+
+Category
+
+Price
+
+---
+
+Discount Switch
+
+اگر فعال شد:
+
+Discount Percent
+
+Expiry Date
+
+---
+
+Installment Switch
+
+اگر فعال شد:
+
+Installment Count
+
+Installment Amount
+
+Total Amount
+
+Eligible Groups
+
+Conditions
+
+---
+
+# REMOVE ALL MOCK DATA
+
+هیچ داده Mock نباید در UI باقی بماند.
+
+اگر API آماده نیست:
+
+Loading State
+
+نمایش داده شود.
+
+---
+
+نه:
+
+Fake Data
+
+---
+
+# FIX ALL BROKEN NAVIGATION
+
+تمام Route ها بررسی شوند.
+
+تمام:
+
+404
+
+Broken Links
+
+Dead Buttons
+
+رفع شوند.
+
+---
+
+# RESPONSIVE DESIGN
+
+تمام صفحات:
+
+* Mobile First
+* Tablet
+* Desktop
+
+را پشتیبانی کنند.
+
+---
+
+Desktop فقط Grid بزرگ‌تر داشته باشد.
+
+نه طراحی متفاوت.
+
+---
+
+SUCCESS CRITERIA
+
+یک کاربر جدید باید بتواند:
+
+1 پیدا کردن شهر
+2 جستجو
+3 پیدا کردن کسب‌وکار
+4 مشاهده محصول
+5 ذخیره
+6 لاگین
+7 ثبت کسب‌وکار
+8 ورود به داشبورد کسب‌وکار
+9 خرید اشتراک
+10 ثبت محصول یا خدمت
+
+را بدون آموزش و در کمتر از 5 دقیقه انجام دهد.
+
+هر بخشی که این مسیر را سخت یا گیج‌کننده کند باید بازطراحی شود.

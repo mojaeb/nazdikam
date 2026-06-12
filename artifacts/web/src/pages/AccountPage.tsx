@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn, avatarGradientIndex } from "@/lib/utils";
 import {
   MenuIcon, CloseIcon, LogOutIcon, UserIcon, StarIcon, BellIcon,
-  BookmarkIcon, StoreIcon, MapPinIcon,
+  BookmarkIcon, StoreIcon, MapPinIcon, SettingsIcon,
 } from "@/components/icons";
 import { BottomNav } from "@/components/sections/BottomNav";
 import { useAuth } from "@/src/contexts/AuthContext";
@@ -395,7 +395,7 @@ export default function AccountPage() {
             onClick={() => navigate("/account/following")}
           />
           <SectionRow
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>}
+            icon={<SettingsIcon size={18} />}
             label="تنظیمات"
             onClick={() => navigate("/account/settings")}
           />
