@@ -27,7 +27,7 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#E11D48,#881337)",
 ];
 
-/* ─── Business type (from API) ───────────────────────── */
+/* ─── Types ──────────────────────────────────────────── */
 interface ApiBusiness {
   id: number;
   slug: string;
@@ -35,6 +35,13 @@ interface ApiBusiness {
   city: string;
   province: string;
   categoryId: number | null;
+  isVerified: boolean;
+}
+
+interface ApiCategory {
+  id: number;
+  name: string;
+  subcategories?: ApiCategory[];
 }
 
 /* ─── Guest view ─────────────────────────────────────── */
@@ -65,8 +72,27 @@ function GuestAccountView({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+/* ─── Verified badge ─────────────────────────────────── */
+function VerifiedBadge() {
+  return (
+    <span className="inline-flex items-center gap-0.5 bg-teal-50 text-teal-700 text-[10px] font-vazirmatn font-semibold px-1.5 py-0.5 rounded-full border border-teal-200">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      تایید شده
+    </span>
+  );
+}
+
 /* ─── Business card ──────────────────────────────────── */
-function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onEnter: () => void }) {
+function AccountBusinessCard({
+  business, categoryName, onEnter,
+}: {
+  business: ApiBusiness;
+  categoryName: string | null;
+  onEnter: () => void;
+}) {
   const avatarIdx = avatarGradientIndex(business.name);
   return (
     <motion.div
@@ -74,23 +100,34 @@ function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onE
       style={{ boxShadow: "var(--shadow-elevation-1)" }}
       whileTap={{ scale: 0.98 }}
     >
+      {/* Logo / Avatar */}
       <div
         className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-xl shrink-0"
         style={{ background: AVATAR_GRADIENTS[(avatarIdx + 3) % 10]! }}
       >
         {business.name.slice(0, 1)}
       </div>
+
+      {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-iran-yekan-x font-bold text-neutral-900 text-[14px] truncate">{business.name}</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="font-iran-yekan-x font-bold text-neutral-900 text-[14px] truncate">{business.name}</p>
+          {business.isVerified && <VerifiedBadge />}
+        </div>
+        {categoryName && (
+          <p className="font-vazirmatn text-[11px] text-blue-600 font-medium mt-0.5 truncate">{categoryName}</p>
+        )}
         <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{business.city} · {business.province}</p>
       </div>
+
+      {/* CTA */}
       <motion.button
         type="button"
-        className="shrink-0 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-vazirmatn text-xs font-bold transition-colors"
+        className="shrink-0 h-9 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-vazirmatn text-xs font-bold transition-colors whitespace-nowrap"
         whileTap={{ scale: 0.96 }}
         onClick={onEnter}
       >
-        داشبورد
+        ورود به داشبورد
       </motion.button>
     </motion.div>
   );
@@ -123,21 +160,40 @@ export default function AccountPage() {
   const { show: showLoginModal } = useLoginModal();
   const { selectedCity } = useCity();
   const [businesses, setBusinesses] = useState<ApiBusiness[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Map<number, string>>(new Map());
   const [bizLoading, setBizLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) showLoginModal();
   }, [isLoading, isLoggedIn, showLoginModal]);
 
+  /* Fetch categories once (no auth required) to resolve categoryId → name */
   useEffect(() => {
-    if (isLoggedIn) {
-      setBizLoading(true);
-      fetch("/api/businesses/my")
-        .then(r => r.ok ? r.json() : [])
-        .then(data => setBusinesses(Array.isArray(data) ? data : []))
-        .catch(() => setBusinesses([]))
-        .finally(() => setBizLoading(false));
-    }
+    fetch("/api/categories", { credentials: "include" })
+      .then(r => r.ok ? r.json() as Promise<{ data: ApiCategory[] }> : { data: [] })
+      .then(({ data }) => {
+        const map = new Map<number, string>();
+        const flatten = (cats: ApiCategory[]) => {
+          for (const c of cats) {
+            map.set(c.id, c.name);
+            if (c.subcategories) flatten(c.subcategories);
+          }
+        };
+        flatten(data);
+        setCategoryMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  /* Fetch user's businesses — requires session cookie */
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setBizLoading(true);
+    fetch("/api/businesses/my", { credentials: "include" })
+      .then(r => r.ok ? r.json() as Promise<{ data: ApiBusiness[] }> : { data: [] })
+      .then(({ data }) => setBusinesses(Array.isArray(data) ? data : []))
+      .catch(() => setBusinesses([]))
+      .finally(() => setBizLoading(false));
   }, [isLoggedIn]);
 
   if (isLoading) {
@@ -242,6 +298,7 @@ export default function AccountPage() {
                 <AccountBusinessCard
                   key={biz.id}
                   business={biz}
+                  categoryName={biz.categoryId ? (categoryMap.get(biz.categoryId) ?? null) : null}
                   onEnter={() => navigate("/business")}
                 />
               ))}
