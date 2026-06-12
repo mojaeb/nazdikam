@@ -1,0 +1,293 @@
+# BUSINESS PROFILE PAGE (NAZDIKAM OFFICIAL STRUCTURE)
+
+## Core Principle
+
+The Business Profile Page is the most important page in the platform.
+
+Its purpose is:
+
+1. Build Trust
+2. Showcase Business
+3. Generate Leads
+4. Convert Visitors Into Contacts
+
+The page must be mobile-first.
+
+---
+
+# HEADER SECTION
+
+## 1. Cover Banner
+
+A large fixed cover banner similar to:
+
+* Twitter / X
+* LinkedIn Company Pages
+
+Purpose:
+
+* Visual identity
+* Branding
+* Professional appearance
+
+---
+
+## 2. Business Logo
+
+Circular profile image.
+
+Requirements:
+
+* Positioned partially over the banner
+* Similar to Twitter profile layout
+* Approximately 50% over banner
+* Approximately 50% over content area
+
+---
+
+## 3. Follow Button
+
+Position:
+
+Top-right beside the logo area.
+
+States:
+
+* Follow
+* Following
+
+Must remain visible without scrolling.
+
+---
+
+# BUSINESS IDENTITY SECTION
+
+## 4. Business Name
+
+Display:
+
+* Business Name
+* Verification Badge (only if verified)
+
+Verification badge must never be displayed unless verification workflow is completed.
+
+---
+
+## 5. Business Category
+
+Display directly below business name.
+
+Examples:
+
+* رستوران
+* فروشگاه پوشاک
+* آموزشگاه
+* کلینیک زیبایی
+
+Only primary category is required.
+
+---
+
+# SOCIAL PROOF SECTION
+
+## 6. Statistics Bar
+
+Display:
+
+* Followers Count
+* Reviews Count
+
+Example:
+
+1,240 دنبال‌کننده
+186 نظر
+
+No other metrics needed here.
+
+---
+
+# STICKY NAVIGATION
+
+## 7. Sticky Tab Menu
+
+After scrolling:
+
+The tab navigation must remain fixed at the top.
+
+Purpose:
+
+Quick navigation through the profile.
+
+Tabs:
+
+* ویدیوها
+* محصولات / خدمات
+* اطلاعات تماس
+* آدرس و مسیریابی
+* ساعت کاری
+* راه‌های ارتباطی
+* امتیاز و دیدگاه‌ها
+
+Behavior:
+
+Clicking a tab:
+
+* Scrolls smoothly to the section
+* Highlights active tab
+* Keeps tab bar sticky
+
+---
+
+# CONTENT SECTIONS
+
+## 8. Videos Section
+
+Purpose:
+
+Highest-trust content.
+
+Display:
+
+* Horizontal scroll
+* Video thumbnails
+* Fullscreen player on click
+
+Priority:
+
+High
+
+---
+
+## 9. Products / Services Section
+
+Products and Services must be displayed in one unified section.
+
+Requirements:
+
+Filter:
+
+* همه
+* محصولات
+* خدمات
+
+Cards use the unified Product/Service Card design.
+
+Clicking a card opens:
+
+Product Detail Page
+or
+Service Detail Page
+
+Both use the same detail layout.
+
+---
+
+## 10. Contact Information Section
+
+Display:
+
+* Phone Number
+* Secondary Phone (optional)
+
+Quick actions:
+
+* Call
+* Copy Number
+
+---
+
+## 11. Address & Navigation Section
+
+Display:
+
+* Province
+* City
+* Full Address
+
+Actions:
+
+* Open Map
+* Get Directions
+
+Priority:
+
+High
+
+This section directly affects lead generation.
+
+---
+
+## 12. Working Hours Section
+
+Display:
+
+Weekly schedule.
+
+Examples:
+
+شنبه
+08:00 - 18:00
+
+جمعه
+تعطیل
+
+If business is currently open:
+
+Show green status.
+
+If closed:
+
+Show red status.
+
+---
+
+## 13. Communication Channels Section
+
+Display only available channels:
+
+* WhatsApp
+* Telegram
+* Instagram
+* Website
+
+Each item should be one-tap accessible.
+
+Priority:
+
+High
+
+---
+
+## 14. Rating & Reviews Section
+
+Display:
+
+* Average Rating
+* Total Reviews
+
+Users can:
+
+* View Reviews
+* Submit Review
+* Give Rating
+
+Business owners can:
+
+* Reply to Reviews
+
+---
+
+# DESIGN RULES
+
+The page must prioritize:
+
+1. Trust
+2. Visibility
+3. Contact Actions
+4. Lead Generation
+
+Not content overload.
+
+Every section should help the user answer:
+
+"Can I trust this business and should I contact them?"
