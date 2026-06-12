@@ -11,9 +11,9 @@ import { NewBusinessesSection } from "@/components/sections/NewBusinessesSection
 import { PopularProductsSection } from "@/components/sections/PopularProductsSection";
 import { CategoryHighlights } from "@/components/sections/CategoryHighlights";
 import { SearchIcon } from "@/components/icons";
-import { findCategoryBySlug, getCategoryKeywords, getProductCategoryKeywords, mockCategories } from "@/lib/mock-categories";
-import { mockBusinesses } from "@/lib/mock-businesses";
+import { findCategoryBySlug, getProductCategoryKeywords, mockCategories } from "@/lib/mock-categories";
 import { toPersianNumerals } from "@/lib/utils";
+import { useBusinessSearch } from "@/hooks/useBusinessSearch";
 import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
 
@@ -92,16 +92,11 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
     );
   }
 
-  /* Filter businesses by category keywords */
-  const keywords = getCategoryKeywords(slug);
-  const categoryBusinesses = keywords.length > 0
-    ? mockBusinesses.filter(b =>
-        keywords.some(k =>
-          b.category === k || (b.subcategory ?? "").includes(k)
-        )
-      )
-    : mockBusinesses;
-  const businesses = categoryBusinesses.length >= 2 ? categoryBusinesses : mockBusinesses;
+  /* Real businesses from API — switch category when subcategory selected */
+  const { businesses: fetchedBusinesses, isLoading: isBusinessesLoading } = useBusinessSearch(
+    { category: activeSubcategory ?? slug, per_page: 50 },
+  );
+  const businesses = fetchedBusinesses;
 
   /* Apply installment/verified filters to API products */
   const filteredProducts = apiProducts.filter(p => {
@@ -114,25 +109,18 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
   const popular = filteredProducts.filter(p => p.rating >= 4.5).slice(0, 6);
   const featuredProducts = filteredProducts.slice(0, 4);
 
-  /* Divide businesses into sections */
-  const featured = businesses.filter(b => b.featured).slice(0, 3);
-  const trending = businesses.filter(b => b.rating >= 4.5).slice(0, 4);
-  const nearby = businesses.filter(b => b.distance).slice(0, 5);
-  const newOnes = businesses.filter(b => !b.featured).slice(0, 4);
+  /* Divide businesses into sections — offset slices for variety */
+  const featured = businesses.slice(0, 3);
+  const trending = businesses.length > 3 ? businesses.slice(3, 7) : businesses.slice(0, 4);
+  const nearby   = businesses.slice(0, 5);
+  const newOnes  = businesses.length > 7 ? businesses.slice(7, 11) : businesses.slice(0, 4);
 
   /* Related categories (siblings) */
   const related = mockCategories
     .filter(c => c.id !== category.id && c.isPopular)
     .slice(0, 4);
 
-  /* Subcategory filter */
-  const filteredBusinesses = activeSubcategory
-    ? businesses.filter(b =>
-        b.subcategory && category.subcategories
-          .find(s => s.slug === activeSubcategory)?.name === b.subcategory
-      )
-    : businesses;
-  const displayBusinesses = filteredBusinesses.length > 0 ? filteredBusinesses : businesses;
+  const displayBusinesses = businesses;
 
   const showBusinesses = activeFilter === "all" || activeFilter === "businesses";
   const showProducts = activeFilter === "all" || activeFilter === "products";

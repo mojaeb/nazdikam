@@ -4,6 +4,7 @@ import productsRouter from "./products";
 import authRouter from "./auth";
 import sellerRouter from "./seller";
 import businessesRouter from "./businesses";
+import servicesRouter from "./services";
 import leadsRouter from "./leads";
 import analyticsRouter from "./analytics";
 
@@ -12,6 +13,7 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(authRouter);
 router.use(productsRouter);
+router.use(servicesRouter);
 router.use(sellerRouter);
 router.use(businessesRouter);
 router.use(leadsRouter);

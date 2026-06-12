@@ -18,6 +18,7 @@ import HelpPage from "./pages/HelpPage";
 import TermsPage from "./pages/TermsPage";
 import LoginPage from "./pages/LoginPage";
 import CreateBusinessPage from "./pages/CreateBusinessPage";
+import ServiceDetailPage from "./pages/ServiceDetailPage";
 
 function SmartHome() {
   if (typeof window !== "undefined" && window.innerWidth >= 1024) {
@@ -57,6 +58,9 @@ function Router() {
       </Route>
       <Route path="/categories/:slug">
         {(params) => <CategoryDetailPage slug={params?.slug ?? ""} />}
+      </Route>
+      <Route path="/services/:slug">
+        {(params) => <ServiceDetailPage slug={params?.slug ?? ""} />}
       </Route>
       <Route path="/businesses/:slug">
         {(params) => <BusinessProfilePage slug={params?.slug ?? ""} />}

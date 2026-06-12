@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { SearchIcon, MapPinIcon, ChevronStartIcon } from "@/components/icons";
 import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
 import { BottomNav } from "@/components/sections/BottomNav";
-import { mockBusinesses } from "@/lib/mock-businesses";
+import { useBusinessSearch } from "@/hooks/useBusinessSearch";
 
 const PROVINCES = ["همه", "مازندران", "گیلان", "گلستان"];
 const CATEGORIES = ["همه", "رستوران", "کافه", "خدمات", "صنایع دستی", "پارچه و خیاطی", "داروخانه", "عکاسی", "زنبورداری"];
@@ -58,11 +58,15 @@ export default function MapPage() {
   const [province, setProvince] = useState("همه");
   const [category, setCategory] = useState("همه");
 
-  const filtered = mockBusinesses.filter(b => {
-    const matchesProvince = province === "همه" || b.province === province;
-    const matchesCategory = category === "همه" || b.category === category;
-    const matchesQuery = !query || b.name.includes(query) || b.city.includes(query);
-    return matchesProvince && matchesCategory && matchesQuery;
+  const { businesses: allBusinesses, isLoading: isBusinessesLoading } = useBusinessSearch({
+    q: query || undefined,
+    province: province === "همه" ? undefined : province,
+    per_page: 50,
+  });
+
+  const filtered = allBusinesses.filter(b => {
+    if (category === "همه") return true;
+    return b.category.includes(category);
   });
 
   return (

@@ -23,7 +23,7 @@ import {
   countActiveFilters,
   getActiveFilterChips,
 } from "@/lib/search-utils";
-import { mockBusinesses } from "@/lib/mock-businesses";
+import { useBusinessSearch } from "@/hooks/useBusinessSearch";
 
 const RECENT_SEARCHES_KEY = "nazdikam_recent_searches";
 const VIEW_MODE_KEY = "nazdikam_view_mode";
@@ -171,10 +171,25 @@ export function useSearch() {
     [productsApiData]
   );
 
+  /* ── Live Businesses from API ─────────────────────────── */
+  const businessApiParams = {
+    q: debouncedQuery || undefined,
+    province: filters.provinces.length === 1 ? filters.provinces[0] : undefined,
+    verified: filters.onlyVerified || undefined,
+    sort: (sortBy === "distance" ? "distance" : "newest") as "newest" | "distance",
+    per_page: 50,
+  };
+
+  const { businesses: rawApiBusinesses, isLoading: isBusinessesLoading, isError: isBusinessesError } =
+    useBusinessSearch(businessApiParams, { enabled: !isIdle });
+
   /* ── Derived Results ──────────────────────────────────── */
   const businessResults = useMemo<Business[]>(
-    () => filterAndSortBusinesses(mockBusinesses, debouncedQuery, filters, sortBy),
-    [debouncedQuery, filters, sortBy]
+    () => {
+      if (isIdle) return [];
+      return filterAndSortBusinesses(rawApiBusinesses, debouncedQuery, filters, sortBy);
+    },
+    [rawApiBusinesses, debouncedQuery, filters, sortBy, isIdle],
   );
 
   const productResults = useMemo<Product[]>(
@@ -239,5 +254,6 @@ export function useSearch() {
     locationResults, categoryResults,
     totalCount, isIdle, isEmpty,
     isProductsLoading, isProductsError,
+    isBusinessesLoading, isBusinessesError,
   };
 }

@@ -6,7 +6,7 @@ import {
   businessCategoriesTable,
   usersTable,
 } from "@workspace/db";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, ilike, or, and, desc, asc, sql } from "drizzle-orm";
 import { requireAuth, requireBusinessOwner } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -50,6 +50,136 @@ function slugify(name: string): string {
     .slice(0, 50);
   return `${base}-${Date.now().toString(36)}`;
 }
+
+/* ─── GET /api/businesses — public search ────────────── */
+const BusinessListQuerySchema = z.object({
+  page:     z.coerce.number().int().min(1).default(1),
+  per_page: z.coerce.number().int().min(1).max(50).default(20),
+  q:        z.string().optional(),
+  category: z.string().optional(),    // category slug
+  city:     z.string().optional(),
+  province: z.string().optional(),
+  verified: z.enum(["true", "false"]).optional(),
+  sort:     z.enum(["newest", "name", "distance"]).default("newest"),
+  lat:      z.coerce.number().optional(),
+  lng:      z.coerce.number().optional(),
+  radius:   z.coerce.number().min(1).max(500).default(50), // km
+});
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+router.get("/businesses", async (req, res) => {
+  const parsed = BusinessListQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(422).json({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+    return;
+  }
+
+  const { page, per_page, q, category, city, province, verified, sort, lat, lng, radius } =
+    parsed.data;
+
+  try {
+    /* Resolve category slug → id if provided */
+    let categoryId: number | null = null;
+    if (category) {
+      const [cat] = await db
+        .select({ id: businessCategoriesTable.id })
+        .from(businessCategoriesTable)
+        .where(eq(businessCategoriesTable.slug, category))
+        .limit(1);
+      if (cat) categoryId = cat.id;
+    }
+
+    const conditions = [eq(businessesTable.status, "active")];
+    if (q)          conditions.push(or(ilike(businessesTable.name, `%${q}%`), ilike(businessesTable.description ?? businessesTable.name, `%${q}%`))!);
+    if (categoryId) conditions.push(eq(businessesTable.categoryId, categoryId));
+    if (city)       conditions.push(ilike(businessesTable.city, `%${city}%`));
+    if (province)   conditions.push(ilike(businessesTable.province, `%${province}%`));
+    if (verified === "true") conditions.push(eq(businessesTable.isVerified, true));
+
+    /* Geo bounding box pre-filter (fast) + haversine post-filter (accurate) */
+    const useGeo = lat !== undefined && lng !== undefined;
+    if (useGeo) {
+      const latDelta = radius / 111;
+      const lngDelta = radius / (111 * Math.cos((lat! * Math.PI) / 180));
+      conditions.push(sql`${businessesTable.latitude} IS NOT NULL`);
+      conditions.push(sql`${businessesTable.latitude} BETWEEN ${lat! - latDelta} AND ${lat! + latDelta}`);
+      conditions.push(sql`${businessesTable.longitude} BETWEEN ${lng! - lngDelta} AND ${lng! + lngDelta}`);
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const orderBy =
+      sort === "name"     ? asc(businessesTable.name) :
+      sort === "distance" ? asc(businessesTable.createdAt) /* placeholder — sorted by distance below */ :
+      desc(businessesTable.createdAt);
+
+    const [rows, countResult] = await Promise.all([
+      db
+        .select({
+          business: businessesTable,
+          categoryName: businessCategoriesTable.name,
+        })
+        .from(businessesTable)
+        .leftJoin(businessCategoriesTable, eq(businessesTable.categoryId, businessCategoriesTable.id))
+        .where(where)
+        .orderBy(orderBy)
+        .limit(useGeo ? 200 : per_page)           // fetch more for geo post-filter
+        .offset(useGeo ? 0 : (page - 1) * per_page),
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(businessesTable)
+        .where(where),
+    ]);
+
+    let data = rows.map(r => ({
+      ...r.business,
+      categoryName: r.categoryName,
+      distanceKm: null as number | null,
+    }));
+
+    /* Haversine post-filter + sort for geo queries */
+    if (useGeo) {
+      data = data
+        .map(b => ({
+          ...b,
+          distanceKm: b.latitude && b.longitude
+            ? haversineKm(lat!, lng!, b.latitude, b.longitude)
+            : null,
+        }))
+        .filter(b => b.distanceKm == null || b.distanceKm <= radius)
+        .sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+
+      /* Manual pagination after geo filter */
+      const total = data.length;
+      data = data.slice((page - 1) * per_page, page * per_page);
+
+      res.json({
+        data,
+        meta: { page, per_page, total, total_pages: Math.ceil(total / per_page) },
+      });
+      return;
+    }
+
+    const total = countResult[0]?.count ?? rows.length;
+    res.json({
+      data,
+      meta: { page, per_page, total, total_pages: Math.ceil(total / per_page) },
+    });
+  } catch (err) {
+    req.log.error({ err }, "GET /businesses failed");
+    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Internal server error" } });
+  }
+});
 
 /* ─── GET /api/businesses/my ──────────────────────────── */
 router.get("/businesses/my", requireAuth, async (req, res) => {
@@ -288,12 +418,36 @@ router.get("/businesses/:slug", async (req, res) => {
 /* ─── GET /api/categories ─────────────────────────────── */
 router.get("/categories", async (req, res) => {
   try {
-    const categories = await db
-      .select()
-      .from(businessCategoriesTable)
-      .where(isNull(businessCategoriesTable.parentId));
+    /* Fetch all categories in one query, then build tree in JS */
+    const all = await db.select().from(businessCategoriesTable);
 
-    res.json({ data: categories });
+    /* Business count per category (join) */
+    const counts = await db
+      .select({
+        categoryId: businessesTable.categoryId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(businessesTable)
+      .where(eq(businessesTable.status, "active"))
+      .groupBy(businessesTable.categoryId);
+
+    const countMap = new Map<number, number>();
+    for (const c of counts) {
+      if (c.categoryId != null) countMap.set(c.categoryId, c.count);
+    }
+
+    const parents = all.filter(c => c.parentId == null);
+    const children = all.filter(c => c.parentId != null);
+
+    const data = parents.map(p => ({
+      ...p,
+      businessCount: countMap.get(p.id) ?? 0,
+      subcategories: children
+        .filter(c => c.parentId === p.id)
+        .map(c => ({ ...c, businessCount: countMap.get(c.id) ?? 0 })),
+    }));
+
+    res.json({ data });
   } catch (err) {
     req.log.error({ err }, "GET /categories failed");
     res.status(500).json({
