@@ -12,6 +12,9 @@ import { VerificationBadge } from "@/components/business/badges/VerificationBadg
 import { getOpenStatus } from "@/lib/business.types";
 import type { Business } from "@/lib/business.types";
 import type { ProfileReview } from "@/lib/mock-business-profile";
+import { ReelCard } from "@/components/reels/ReelCard";
+import { ReelViewer } from "@/components/reels/ReelViewer";
+import { videoItems } from "@/lib/mock-data";
 
 /* ─── Inline SVG Icons ────────────────────────────────── */
 interface InlineIconProps { size?: number; className?: string }
@@ -428,7 +431,10 @@ export default function BusinessProfilePage({ slug }: Props) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("videos");
   const [tabsSticky, setTabsSticky] = useState(false);
+  const [reelOpen, setReelOpen] = useState(false);
+  const [reelStartIndex, setReelStartIndex] = useState(0);
   const [productFilter, setProductFilter] = useState<"all" | "products" | "services">("all");
+  const businessVideos = videoItems.filter(v => v.businessSlug === slug);
 
   /* ── Data state ── */
   const [dbBusiness, setDbBusiness] = useState<DbBusiness | null | "loading">("loading");
@@ -820,24 +826,37 @@ export default function BusinessProfilePage({ slug }: Props) {
 
       {/* ══════════ VIDEOS ════════════════════════════════ */}
       <div ref={sectionRefs.videos} id="section-videos" className="bg-white mt-2 px-4 py-5">
-        <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-800 mb-4">ویدیوها</h2>
-        {/* Empty state — no videos yet */}
-        <div className="flex overflow-x-auto gap-3 scrollbar-hide pb-1">
-          {[1, 2, 3].map(i => (
-            <div
-              key={i}
-              className="shrink-0 w-40 h-24 rounded-2xl flex items-center justify-center bg-neutral-100"
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-800">ویدیوها</h2>
+          {businessVideos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setReelStartIndex(0); setReelOpen(true); }}
+              className="text-xs font-vazirmatn text-teal-600 hover:text-teal-700 transition-colors"
             >
-              <div className="flex flex-col items-center gap-1.5 text-neutral-300">
-                <PlayIcon size={24} />
-                <span className="text-[10px] font-vazirmatn">ویدیو {toPersianNumerals(i)}</span>
-              </div>
-            </div>
-          ))}
+              مشاهده همه
+            </button>
+          )}
         </div>
-        <p className="text-center text-xs font-vazirmatn text-neutral-400 mt-3">
-          ویدیویی توسط این کسب‌وکار بارگذاری نشده
-        </p>
+        {businessVideos.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+              <PlayIcon size={22} className="text-neutral-300" />
+            </div>
+            <p className="text-xs font-vazirmatn text-neutral-400">ویدیویی بارگذاری نشده</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1 rounded-2xl overflow-hidden">
+            {businessVideos.map((v, i) => (
+              <ReelCard
+                key={v.id}
+                item={v}
+                mode="grid"
+                onPress={() => { setReelStartIndex(i); setReelOpen(true); }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ══════════ PRODUCTS / SERVICES ═══════════════════ */}
@@ -1278,6 +1297,14 @@ export default function BusinessProfilePage({ slug }: Props) {
           </motion.button>
         </div>
       </div>
+
+      {reelOpen && (
+        <ReelViewer
+          videos={businessVideos}
+          startIndex={reelStartIndex}
+          onClose={() => setReelOpen(false)}
+        />
+      )}
     </div>
   );
 }

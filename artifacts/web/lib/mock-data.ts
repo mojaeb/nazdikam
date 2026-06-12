@@ -48,12 +48,16 @@ export interface Service {
 
 export interface VideoItem {
   id: string;
+  title: string;
   businessName: string;
+  businessSlug: string;
   category: string;
   city: string;
   viewCount: string;
+  likeCount: string;
   gradient: string;
   duration: string;
+  isFeatured?: boolean;
 }
 
 export interface Deal {
@@ -366,58 +370,78 @@ export const featuredServices: Service[] = [
 
 export const videoItems: VideoItem[] = [
   {
+    id: "v5",
+    title: "پیتزا با مواد کاملاً محلی — طعمی که فراموش نمی‌کنید",
+    businessName: "پیتزا شمال",
+    businessSlug: "pizza-shomal",
+    category: "فست‌فود",
+    city: "آمل",
+    viewCount: "۳۴.۲ هزار",
+    likeCount: "۴.۱ هزار",
+    gradient: "linear-gradient(180deg, #DC2626 0%, #7F1D1D 100%)",
+    duration: "۰:۳۲",
+    isFeatured: true,
+  },
+  {
+    id: "v3",
+    title: "صبحانه در دل جنگل — تجربه‌ای که باید امتحان کنید",
+    businessName: "کافه جنگل",
+    businessSlug: "cafe-jangal",
+    category: "کافه",
+    city: "نوشهر",
+    viewCount: "۲۱.۳ هزار",
+    likeCount: "۳.۲ هزار",
+    gradient: "linear-gradient(180deg, #15803D 0%, #14532D 100%)",
+    duration: "۰:۵۸",
+    isFeatured: true,
+  },
+  {
+    id: "v6",
+    title: "مدل موی پاییزه — ترندهای جدید فصل",
+    businessName: "آرایشگاه مدرن",
+    businessSlug: "arayeshgah-modern",
+    category: "زیبایی",
+    city: "لاهیجان",
+    viewCount: "۱۶.۸ هزار",
+    likeCount: "۲.۱ هزار",
+    gradient: "linear-gradient(180deg, #DB2777 0%, #831843 100%)",
+    duration: "۱:۰۵",
+  },
+  {
     id: "v1",
+    title: "ماهی شکم پر با سبزیجات بومی مازندران",
     businessName: "رستوران دریا",
+    businessSlug: "restaurant-darya",
     category: "رستوران",
     city: "بابل",
     viewCount: "۱۲.۴ هزار",
+    likeCount: "۱.۸ هزار",
     gradient: "linear-gradient(180deg, #EA580C 0%, #7C2D12 100%)",
     duration: "۰:۴۵",
   },
   {
     id: "v2",
+    title: "بافت ابریشم گیلان — هنر اصیل ایرانی",
     businessName: "گالری ابریشم",
+    businessSlug: "gallery-abrisham",
     category: "صنایع دستی",
     city: "رشت",
     viewCount: "۸.۱ هزار",
+    likeCount: "۹۴۰",
     gradient: "linear-gradient(180deg, #7C3AED 0%, #2E1065 100%)",
     duration: "۱:۱۲",
   },
   {
-    id: "v3",
-    businessName: "کافه جنگل",
-    category: "کافه",
-    city: "نوشهر",
-    viewCount: "۲۱.۳ هزار",
-    gradient: "linear-gradient(180deg, #15803D 0%, #14532D 100%)",
-    duration: "۰:۵۸",
-  },
-  {
     id: "v4",
+    title: "پشت صحنه آتلیه عکاسی — فرآیند خلق یک عکس حرفه‌ای",
     businessName: "آتلیه نور",
+    businessSlug: "atelier-noor",
     category: "عکاسی",
     city: "ساری",
     viewCount: "۵.۷ هزار",
+    likeCount: "۶۳۰",
     gradient: "linear-gradient(180deg, #0369A1 0%, #0C4A6E 100%)",
     duration: "۱:۳۰",
-  },
-  {
-    id: "v5",
-    businessName: "پیتزا شمال",
-    category: "فست‌فود",
-    city: "آمل",
-    viewCount: "۳۴.۲ هزار",
-    gradient: "linear-gradient(180deg, #DC2626 0%, #7F1D1D 100%)",
-    duration: "۰:۳۲",
-  },
-  {
-    id: "v6",
-    businessName: "آرایشگاه مدرن",
-    category: "زیبایی",
-    city: "لاهیجان",
-    viewCount: "۱۶.۸ هزار",
-    gradient: "linear-gradient(180deg, #DB2777 0%, #831843 100%)",
-    duration: "۱:۰۵",
   },
 ];
 
