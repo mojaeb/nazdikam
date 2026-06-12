@@ -1,0 +1,461 @@
+# NAZDIKAM — ACCOUNT DASHBOARD & BUSINESS DASHBOARD UX REBUILD
+
+## HIGH PRIORITY REFACTOR
+
+The current dashboards do not match the final product vision.
+
+The current implementation feels like a SaaS admin panel, CRM, or ERP system.
+
+Nazdikam is not an ERP.
+
+Nazdikam is a Mobile First social-commerce platform.
+
+The dashboards must be redesigned according to the uploaded wireframes.
+
+---
+
+# CORE UX PRINCIPLES
+
+## Principle 1
+
+Mobile First.
+
+All dashboard decisions must be optimized for mobile screens first.
+
+Desktop is only an expanded version of the mobile experience.
+
+Do not create a different visual language for desktop.
+
+---
+
+## Principle 2
+
+Users must never feel lost.
+
+Each dashboard must have a single clear purpose.
+
+Avoid visual clutter.
+
+Avoid excessive cards.
+
+Avoid excessive statistics.
+
+Avoid complex management panels.
+
+---
+
+## Principle 3
+
+Action First.
+
+The user should immediately understand:
+
+* Where am I?
+* What can I do?
+* What is my next step?
+
+within 3 seconds.
+
+---
+
+# ACCOUNT DASHBOARD REBUILD
+
+## Current Problem
+
+The account dashboard still behaves like an unfinished management panel.
+
+It does not match the provided wireframe.
+
+---
+
+## New Goal
+
+The account dashboard should feel similar to:
+
+* Instagram profile
+* Airbnb account
+* Modern mobile applications
+
+NOT:
+
+* ERP
+* CRM
+* Accounting software
+
+---
+
+# ACCOUNT DASHBOARD STRUCTURE
+
+## Header
+
+Center:
+
+Nazdikam logo
+
+Right:
+
+Hamburger menu
+
+Left:
+
+User avatar
+
+---
+
+## User Profile Section
+
+Show:
+
+* Avatar
+* Full name
+* Phone number
+* Email
+* City
+
+Edit Profile button
+
+---
+
+## Business Section
+
+### If user has no business
+
+Show:
+
+Register Business
+
+as the primary CTA.
+
+---
+
+### If user owns businesses
+
+Show:
+
+Your Businesses
+
+Business cards:
+
+* Logo
+* Business Name
+* Category
+* City, Province
+
+Button:
+
+Enter Dashboard
+
+---
+
+## Personal Sections
+
+Show only:
+
+* Saved Items
+* Following
+* Settings
+
+---
+
+## Remove Completely
+
+Do not show:
+
+* Leads
+* Revenue
+* Analytics
+* Charts
+* Statistics
+* Business KPIs
+
+inside Account Dashboard.
+
+These belong to Business Dashboard.
+
+---
+
+# BUSINESS DASHBOARD REBUILD
+
+The uploaded wireframe is the source of truth.
+
+The current dashboard must be redesigned to match it.
+
+---
+
+## Header
+
+Left:
+
+User avatar
+
+Center:
+
+Nazdikam logo
+
+Right:
+
+Hamburger menu
+
+---
+
+## Page Title
+
+Business Dashboard
+
+---
+
+## Subscription Card
+
+First card on screen.
+
+Show:
+
+* Current plan
+* Remaining days
+
+CTA:
+
+Upgrade Subscription
+
+---
+
+## Business Card
+
+Display:
+
+* Business logo
+* Business name
+* Category
+* City
+* Province
+
+Edit button
+
+---
+
+## Content Summary Card
+
+Show only 4 metrics:
+
+* Products
+* Services
+* Videos
+* Views
+
+No additional metrics.
+
+---
+
+## Main Navigation Cards
+
+Large touch-friendly cards.
+
+### Products & Services
+
+Manage products and services.
+
+---
+
+### Videos
+
+Manage business videos.
+
+---
+
+### Contact & Social Links
+
+Manage:
+
+* Phone
+* WhatsApp
+* Telegram
+* Instagram
+* Website
+
+---
+
+### Business Information
+
+Manage business details.
+
+---
+
+### Address & Location
+
+Manage map and location.
+
+---
+
+## Create New Business
+
+Large green CTA button.
+
+Highly visible.
+
+---
+
+## Support & Education
+
+Last section.
+
+---
+
+# REMOVE FROM DASHBOARD HOME
+
+The following elements must NOT appear on dashboard home:
+
+* Lead widgets
+* Lead analytics
+* Revenue cards
+* KPI cards
+* Funnel metrics
+* Recent activity
+* Complex charts
+* Notification summaries
+
+These can exist on dedicated pages only.
+
+---
+
+# PRODUCT & SERVICE UNIFICATION
+
+Current implementation is inconsistent.
+
+Products and Services must become one system.
+
+---
+
+## Single Entity Model
+
+Create a shared Item architecture.
+
+Type:
+
+* Product
+* Service
+
+Only the label changes.
+
+The structure remains identical.
+
+---
+
+## Shared Form
+
+Use one form component.
+
+Fields:
+
+* Title
+* Description
+* Images
+* Category
+* Price
+
+---
+
+## Discount Section
+
+Toggle:
+
+Enable Discount
+
+If enabled:
+
+* Discount percentage
+* Expiration date
+
+---
+
+## Installment Section
+
+Toggle:
+
+Enable Installment
+
+If enabled:
+
+* Number of installments
+* Installment amount
+* Total installment price
+* Eligible groups
+* Conditions
+
+---
+
+# REMOVE DUPLICATED BUSINESS DATA
+
+Do not ask users to enter:
+
+* Phone number
+* Address
+* WhatsApp
+* Website
+* Instagram
+
+inside Product or Service forms.
+
+These values must inherit from the Business Profile.
+
+---
+
+# BUSINESS DATA INHERITANCE
+
+Every Product/Service automatically uses:
+
+* Business phone
+* Business WhatsApp
+* Business address
+* Business location
+* Business social links
+
+The user enters these once only.
+
+---
+
+# RESPONSIVE UX RULES
+
+All forms must be redesigned.
+
+Current dropdowns and selectors feel desktop-oriented.
+
+---
+
+## Mobile Selection Components
+
+Replace ugly dropdowns with:
+
+Bottom Sheet Selectors
+
+Behavior:
+
+* Slide from bottom
+* Large touch targets
+* Mobile friendly
+* Searchable
+
+Use for:
+
+* City selection
+* Province selection
+* Category selection
+* Filters
+
+---
+
+# FINAL SUCCESS CRITERIA
+
+A new user should be able to:
+
+1. Login
+2. View account dashboard
+3. Register a business
+4. Enter business dashboard
+5. Create a product/service
+6. Enable discount
+7. Enable installment
+8. Publish
+
+without confusion and without training.
+
+If the experience feels similar to Instagram and modern mobile apps, the redesign is successful.

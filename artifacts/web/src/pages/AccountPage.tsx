@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, avatarGradientIndex, toPersianNumerals } from "@/lib/utils";
+import { cn, avatarGradientIndex } from "@/lib/utils";
 import {
-  StoreIcon, MapPinIcon, BookmarkIcon, SearchIcon, TagIcon,
   MenuIcon, CloseIcon, LogOutIcon, UserIcon, StarIcon, BellIcon,
+  BookmarkIcon, StoreIcon, MapPinIcon,
 } from "@/components/icons";
-import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
-import { ItemCard } from "@/components/cards/ItemCard";
 import { BottomNav } from "@/components/sections/BottomNav";
-import { mockBusinesses } from "@/lib/mock-businesses";
-import { getFeaturedProducts } from "@/lib/mock-products";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { useLoginModal } from "@/lib/login-modal-context";
 import { useCity } from "@/lib/city-context";
 
+/* ─── Avatar gradients ───────────────────────────────── */
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#1860DB,#0A3FA0)",
   "linear-gradient(135deg,#0891B2,#164E63)",
@@ -28,9 +25,15 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#E11D48,#881337)",
 ];
 
-const savedBusinesses = mockBusinesses.slice(0, 4);
-const savedProducts = getFeaturedProducts().slice(0, 6);
-const recentSearches = ["چای لاهیجان", "عسل طبیعی", "صنایع دستی گیلان", "رستوران بابل", "قهوه"];
+/* ─── Business type (from API) ───────────────────────── */
+interface ApiBusiness {
+  id: number;
+  slug: string;
+  name: string;
+  city: string;
+  province: string;
+  categoryId: number | null;
+}
 
 /* ─── Hamburger Drawer ───────────────────────────────── */
 interface UserMenuItem {
@@ -42,15 +45,9 @@ interface UserMenuItem {
 }
 
 function UserHamburgerDrawer({
-  open,
-  onClose,
-  hasBusiness,
-  onLogout,
+  open, onClose, hasBusiness, onLogout,
 }: {
-  open: boolean;
-  onClose: () => void;
-  hasBusiness: boolean;
-  onLogout: () => void;
+  open: boolean; onClose: () => void; hasBusiness: boolean; onLogout: () => void;
 }) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -60,14 +57,14 @@ function UserHamburgerDrawer({
   const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
 
   const menuItems: UserMenuItem[] = [
-    { label: "پروفایل",         path: "/account",                  icon: <UserIcon size={16} /> },
-    { label: "ذخیره‌شده‌ها",    path: "/account/saved",            icon: <BookmarkIcon size={16} /> },
-    { label: "دنبال‌شده‌ها",    path: "/account/following",        icon: <StarIcon size={16} /> },
-    { label: "نظرات من",        path: "/account/reviews",          icon: <StarIcon size={16} /> },
-    { label: "اعلان‌ها",        path: "/account/notifications",    icon: <BellIcon size={16} /> },
+    { label: "پروفایل",       path: "/account",               icon: <UserIcon size={16} /> },
+    { label: "ذخیره‌شده‌ها",  path: "/account/saved",         icon: <BookmarkIcon size={16} /> },
+    { label: "دنبال‌شده‌ها",  path: "/account/following",     icon: <StarIcon size={16} /> },
+    { label: "نظرات من",      path: "/account/reviews",       icon: <StarIcon size={16} /> },
+    { label: "اعلان‌ها",      path: "/account/notifications", icon: <BellIcon size={16} /> },
     hasBusiness
-      ? { label: "کسب‌وکار من",    path: "/business",             icon: <StoreIcon size={16} />, color: "blue" as const }
-      : { label: "ثبت کسب‌وکار",  path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
+      ? { label: "کسب‌وکار من",   path: "/business",               icon: <StoreIcon size={16} />, color: "blue" as const }
+      : { label: "ثبت کسب‌وکار", path: "/account/create-business", icon: <StoreIcon size={16} />, color: "teal" as const },
   ];
 
   const handleNav = (item: UserMenuItem) => {
@@ -82,9 +79,7 @@ function UserHamburgerDrawer({
         <>
           <motion.div
             className="fixed inset-0 z-50 bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
             aria-hidden="true"
@@ -92,33 +87,19 @@ function UserHamburgerDrawer({
           <motion.div
             className="fixed inset-y-0 start-0 z-50 w-[280px] bg-white overflow-hidden flex flex-col"
             style={{ boxShadow: "0 0 40px rgba(0,0,0,0.2)" }}
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            role="dialog"
-            aria-label="منوی حساب کاربری"
-            aria-modal="true"
+            role="dialog" aria-label="منوی حساب کاربری" aria-modal="true"
           >
-            {/* Header */}
             <div className="h-[60px] flex items-center justify-between px-4 shrink-0 bg-gradient-to-l from-blue-600 to-blue-800">
               <span className="font-iran-yekan-x font-bold text-white text-base">حساب کاربری</span>
-              <button
-                type="button"
-                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-                onClick={onClose}
-                aria-label="بستن منو"
-              >
+              <button type="button" className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors" onClick={onClose} aria-label="بستن منو">
                 <CloseIcon size={16} className="text-white/80" />
               </button>
             </div>
 
-            {/* User info */}
             <div className="px-4 py-4 border-b border-neutral-100 flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-iran-yekan-x font-bold shadow-sm shrink-0"
-                style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
-              >
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-iran-yekan-x font-bold shadow-sm shrink-0" style={{ background: AVATAR_GRADIENTS[avatarIdx] }}>
                 {displayName.charAt(0)}
               </div>
               <div>
@@ -130,26 +111,19 @@ function UserHamburgerDrawer({
               </div>
             </div>
 
-            {/* Nav items */}
             <div className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5">
               {menuItems.map((item, i) => (
                 <motion.button
-                  key={i}
-                  type="button"
+                  key={i} type="button" whileTap={{ scale: 0.97 }}
                   className={cn(
                     "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium transition-colors text-start",
                     item.color === "teal"  ? "text-teal-700 hover:bg-teal-50"
                     : item.color === "blue" ? "text-blue-700 hover:bg-blue-50"
                     : "text-neutral-700 hover:bg-neutral-50"
                   )}
-                  whileTap={{ scale: 0.97 }}
                   onClick={() => handleNav(item)}
                 >
-                  <span className={cn(
-                    item.color === "teal"  ? "text-teal-500"
-                    : item.color === "blue" ? "text-blue-500"
-                    : "text-neutral-400"
-                  )}>
+                  <span className={cn(item.color === "teal" ? "text-teal-500" : item.color === "blue" ? "text-blue-500" : "text-neutral-400")}>
                     {item.icon}
                   </span>
                   {item.label}
@@ -157,12 +131,9 @@ function UserHamburgerDrawer({
               ))}
             </div>
 
-            {/* Logout */}
             <div className="px-3 py-3 border-t border-neutral-100">
-              <motion.button
-                type="button"
+              <motion.button type="button" whileTap={{ scale: 0.97 }}
                 className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-vazirmatn font-medium text-red-500 hover:bg-red-50 transition-colors text-start"
-                whileTap={{ scale: 0.97 }}
                 onClick={() => { onClose(); onLogout(); }}
               >
                 <LogOutIcon size={16} />
@@ -176,15 +147,12 @@ function UserHamburgerDrawer({
   );
 }
 
-/* ─── Guest Prompt View ──────────────────────────────── */
+/* ─── Guest view ─────────────────────────────────────── */
 function GuestAccountView({ onLogin }: { onLogin: () => void }) {
   return (
     <div dir="rtl" className="min-h-screen bg-page-bg flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6 pb-24">
-        <div
-          className="w-24 h-24 rounded-3xl flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #f0fdf9, #ccfbf1)" }}
-        >
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#f0fdf9,#ccfbf1)" }}>
           <UserIcon size={40} className="text-teal-500" />
         </div>
         <div className="text-center">
@@ -193,17 +161,60 @@ function GuestAccountView({ onLogin }: { onLogin: () => void }) {
             برای مشاهده پروفایل، ذخیره‌شده‌ها و دنبال‌شده‌ها، وارد شوید.
           </p>
         </div>
-        <motion.button
-          type="button"
-          className="w-full h-12 rounded-2xl bg-teal-600 text-white font-vazirmatn font-bold text-[14px]"
-          whileTap={{ scale: 0.97 }}
-          onClick={onLogin}
-        >
+        <motion.button type="button" className="w-full h-12 rounded-2xl bg-teal-600 text-white font-vazirmatn font-bold text-[14px]" whileTap={{ scale: 0.97 }} onClick={onLogin}>
           ورود / ثبت‌نام
         </motion.button>
       </div>
       <BottomNav />
     </div>
+  );
+}
+
+/* ─── Business card (in account page) ───────────────── */
+function AccountBusinessCard({ business, onEnter }: { business: ApiBusiness; onEnter: () => void }) {
+  const initial = business.name.slice(0, 1);
+  const avatarIdx = avatarGradientIndex(business.name);
+  return (
+    <motion.div
+      className="bg-white rounded-2xl p-4 flex items-center gap-3"
+      style={{ boxShadow: "var(--shadow-elevation-1)" }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-xl shrink-0" style={{ background: AVATAR_GRADIENTS[avatarIdx % 10] }}>
+        {initial}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-iran-yekan-x font-bold text-neutral-900 text-[14px] truncate">{business.name}</p>
+        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{business.city} · {business.province}</p>
+      </div>
+      <motion.button
+        type="button"
+        className="shrink-0 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-vazirmatn text-xs font-bold transition-colors"
+        whileTap={{ scale: 0.96 }}
+        onClick={onEnter}
+      >
+        ورود به داشبورد
+      </motion.button>
+    </motion.div>
+  );
+}
+
+/* ─── Section row button ─────────────────────────────── */
+function SectionRow({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      className="w-full bg-white rounded-2xl px-4 py-4 flex items-center gap-3 text-start"
+      style={{ boxShadow: "var(--shadow-elevation-1)" }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+    >
+      <div className="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0 text-neutral-500">
+        {icon}
+      </div>
+      <span className="flex-1 font-vazirmatn font-medium text-neutral-800 text-sm">{label}</span>
+      <span className="text-neutral-300 text-xl leading-none">‹</span>
+    </motion.button>
   );
 }
 
@@ -214,12 +225,23 @@ export default function AccountPage() {
   const { user, isLoggedIn, isLoading, logout } = useAuth();
   const { show: showLoginModal } = useLoginModal();
   const { selectedCity } = useCity();
+  const [businesses, setBusinesses] = useState<ApiBusiness[]>([]);
+  const [bizLoading, setBizLoading] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
-      showLoginModal();
-    }
+    if (!isLoading && !isLoggedIn) showLoginModal();
   }, [isLoading, isLoggedIn, showLoginModal]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      setBizLoading(true);
+      fetch("/api/businesses/my")
+        .then(r => r.ok ? r.json() : [])
+        .then(data => setBusinesses(Array.isArray(data) ? data : []))
+        .catch(() => setBusinesses([]))
+        .finally(() => setBizLoading(false));
+    }
+  }, [isLoggedIn]);
 
   if (isLoading) {
     return (
@@ -229,13 +251,10 @@ export default function AccountPage() {
     );
   }
 
-  if (!isLoggedIn) {
-    return <GuestAccountView onLogin={showLoginModal} />;
-  }
+  if (!isLoggedIn) return <GuestAccountView onLogin={showLoginModal} />;
 
   const displayName = user?.name ?? user?.phone ?? "کاربر";
-  const displayCity = selectedCity ?? "شهر انتخاب نشده";
-  const hasBusiness = (user?.businessIds?.length ?? 0) > 0;
+  const hasBusiness = businesses.length > 0 || (user?.businessIds?.length ?? 0) > 0;
   const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
 
   const handleLogout = async () => {
@@ -244,166 +263,157 @@ export default function AccountPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-page-bg pb-24">
+    <div dir="rtl" className="min-h-screen bg-[#F7F8FA] pb-24">
 
-      {/* ─── Profile header ──────────────────────────── */}
-      <motion.div
-        className="bg-gradient-to-br from-blue-600 to-blue-800 px-4 pt-12 pb-6 relative"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {/* Hamburger button */}
-        <button
+      {/* ── Fixed top bar ── */}
+      <header className="fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-neutral-100 flex items-center justify-between px-4">
+        {/* Hamburger — start (right in RTL) */}
+        <motion.button
           type="button"
-          className="absolute top-4 end-4 w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 transition-colors"
+          className="w-9 h-9 rounded-xl flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 transition-colors"
+          whileTap={{ scale: 0.93 }}
           onClick={() => setMenuOpen(true)}
           aria-label="منوی حساب کاربری"
         >
-          <MenuIcon size={18} className="text-white" />
-        </button>
+          <MenuIcon size={18} className="text-neutral-600" />
+        </motion.button>
 
-        <div className="flex items-center gap-4">
-          {/* Avatar */}
+        {/* Logo — center */}
+        <span className="font-iran-yekan-x font-bold text-neutral-900 text-base">نزدیکام</span>
+
+        {/* Avatar — end (left in RTL) */}
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
+          style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
+          aria-hidden="true"
+        >
+          {displayName.charAt(0)}
+        </div>
+      </header>
+
+      <div className="pt-14 px-4 space-y-4 max-w-2xl mx-auto">
+
+        {/* ── Profile section ── */}
+        <motion.div
+          className="bg-white rounded-2xl p-5 mt-4 flex flex-col items-center text-center gap-3"
+          style={{ boxShadow: "var(--shadow-elevation-1)" }}
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-iran-yekan-x font-bold shadow-lg shrink-0"
+            className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-3xl"
             style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
           >
             {displayName.charAt(0)}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <p className="text-lg font-iran-yekan-x font-bold text-white truncate">{displayName}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <MapPinIcon size={12} className="text-blue-200" />
-              <span className="text-xs font-vazirmatn text-blue-200">{displayCity}</span>
-            </div>
+          <div>
+            <p className="font-iran-yekan-x font-bold text-neutral-900 text-lg">{displayName}</p>
+            {user?.phone && user.phone !== displayName && (
+              <p className="font-vazirmatn text-sm text-neutral-400 mt-0.5">{user.phone}</p>
+            )}
+            {selectedCity && (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <MapPinIcon size={12} className="text-neutral-400" />
+                <span className="font-vazirmatn text-xs text-neutral-400">{selectedCity}</span>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mt-5">
-          {[
-            { value: toPersianNumerals(savedBusinesses.length), label: "ذخیره شده" },
-            { value: toPersianNumerals(savedProducts.length),   label: "محصول" },
-            { value: toPersianNumerals(recentSearches.length),  label: "جستجو" },
-          ].map(s => (
-            <div key={s.label} className="bg-white/15 rounded-xl px-3 py-2.5 text-center">
-              <p className="text-base font-iran-yekan-x font-bold text-white">{s.value}</p>
-              <p className="text-[10px] font-vazirmatn text-blue-100 mt-0.5">{s.label}</p>
+          <motion.button
+            type="button"
+            className="h-9 px-6 rounded-xl border border-neutral-200 text-sm font-vazirmatn font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate("/account/edit")}
+          >
+            ویرایش پروفایل
+          </motion.button>
+        </motion.div>
+
+        {/* ── Business section ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+        >
+          {bizLoading ? (
+            <div className="h-20 bg-white rounded-2xl animate-pulse" style={{ boxShadow: "var(--shadow-elevation-1)" }} />
+          ) : businesses.length === 0 ? (
+            /* No business — register CTA */
+            <motion.button
+              type="button"
+              className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-iran-yekan-x font-bold text-[15px] flex items-center justify-center gap-3 transition-colors"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate("/account/create-business")}
+            >
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <StoreIcon size={18} className="text-white" />
+              </div>
+              ثبت کسب‌وکار
+            </motion.button>
+          ) : (
+            /* Has businesses — list them */
+            <div className="space-y-3">
+              <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1">کسب‌وکارهای شما</p>
+              {businesses.map(biz => (
+                <AccountBusinessCard
+                  key={biz.id}
+                  business={biz}
+                  onEnter={() => navigate("/business")}
+                />
+              ))}
+              <motion.button
+                type="button"
+                className="w-full h-12 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-vazirmatn font-medium text-sm flex items-center justify-center gap-2 hover:bg-green-100 transition-colors"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate("/account/create-business")}
+              >
+                <StoreIcon size={16} className="text-green-500" />
+                ثبت کسب‌وکار جدید
+              </motion.button>
             </div>
-          ))}
-        </div>
-      </motion.div>
+          )}
+        </motion.div>
 
-      {/* ─── Business CTA ────────────────────────────── */}
-      <div className="px-4 mt-4">
+        {/* ── Personal sections ── */}
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+        >
+          <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1">حساب شخصی</p>
+          <SectionRow
+            icon={<BookmarkIcon size={18} />}
+            label="ذخیره‌شده‌ها"
+            onClick={() => navigate("/account/saved")}
+          />
+          <SectionRow
+            icon={<StarIcon size={18} />}
+            label="دنبال‌شده‌ها"
+            onClick={() => navigate("/account/following")}
+          />
+          <SectionRow
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>}
+            label="تنظیمات"
+            onClick={() => navigate("/account/settings")}
+          />
+        </motion.div>
+
+        {/* ── Logout ── */}
         <motion.button
           type="button"
-          className="w-full card p-4 flex items-center gap-3 bg-gradient-to-l from-blue-50 to-teal-50 border border-blue-100"
-          onClick={() => navigate(hasBusiness ? "/business" : "/account/create-business")}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          className="w-full h-12 rounded-2xl bg-red-50 border border-red-100 text-red-600 font-vazirmatn font-medium text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+          whileTap={{ scale: 0.97 }}
+          onClick={handleLogout}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
         >
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-            <StoreIcon size={20} className="text-white" />
-          </div>
-          <div className="flex-1 text-start">
-            <p className="text-sm font-iran-yekan-x font-bold text-neutral-900">
-              {hasBusiness ? "کسب‌وکار من" : "ثبت کسب‌وکار"}
-            </p>
-            <p className="text-xs font-vazirmatn text-neutral-500 mt-0.5">
-              {hasBusiness ? "مدیریت محصولات، لیدها و آنالیتیکس" : "کسب‌وکار خود را در نزدیکام ثبت کنید"}
-            </p>
-          </div>
-          <span className="text-blue-500 text-xl leading-none">‹</span>
+          <LogOutIcon size={16} />
+          خروج از حساب
         </motion.button>
-      </div>
-
-      {/* ─── Saved businesses ────────────────────────── */}
-      <div className="mt-4">
-        <div className="px-4 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookmarkIcon size={16} className="text-blue-500" />
-            <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">کسب‌وکارهای ذخیره‌شده</h2>
-          </div>
-          <button type="button" onClick={() => navigate("/search")} className="text-xs font-vazirmatn text-blue-500">همه</button>
-        </div>
-        <div className="px-4 space-y-3">
-          {savedBusinesses.map((b, i) => (
-            <motion.div key={b.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}>
-              <BusinessCardHorizontal business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Saved products ──────────────────────────── */}
-      <div className="mt-4">
-        <div className="px-4 mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TagIcon size={16} className="text-amber-500" />
-            <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">محصولات ذخیره‌شده</h2>
-          </div>
-          <button type="button" onClick={() => navigate("/search")} className="text-xs font-vazirmatn text-blue-500">همه</button>
-        </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-2 snap-x">
-          {savedProducts.map((p, i) => (
-            <motion.div key={p.id} className="snap-start" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
-              <ItemCard
-                name={p.name}
-                image={p.coverGradient}
-                discountPercent={p.discountPercent}
-                installmentMonths={p.installmentMonths}
-                price={p.price}
-                originalPrice={p.originalPrice}
-                onPress={() => navigate(`/products/${p.slug}`)}
-              />
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Recent searches ─────────────────────────── */}
-      <div className="mt-4 px-4">
-        <div className="mb-3 flex items-center gap-2">
-          <SearchIcon size={16} className="text-neutral-400" />
-          <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-900">جستجوهای اخیر</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {recentSearches.map((s, i) => (
-            <motion.button key={s} type="button"
-              className="h-8 px-3.5 rounded-full bg-neutral-100 text-neutral-600 text-xs font-vazirmatn hover:bg-neutral-200 transition-colors"
-              onClick={() => navigate("/search")}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.25 + i * 0.04 }}>
-              {s}
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Quick links ─────────────────────────────── */}
-      <div className="mt-4 px-4 space-y-2">
-        {[
-          { label: "درباره نزدیکام",    path: "/about" },
-          { label: "راهنما و پشتیبانی", path: "/help" },
-          { label: "قوانین و مقررات",    path: "/terms" },
-          { label: "تماس با ما",        path: "/contact" },
-        ].map((item, i) => (
-          <motion.button key={item.path} type="button"
-            className="w-full card px-4 py-3.5 flex items-center justify-between text-start"
-            onClick={() => navigate(item.path)}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.04 }}
-            whileTap={{ scale: 0.98 }}>
-            <span className="text-sm font-vazirmatn text-neutral-700">{item.label}</span>
-            <span className="text-neutral-400 text-lg">‹</span>
-          </motion.button>
-        ))}
       </div>
 
       <BottomNav />
