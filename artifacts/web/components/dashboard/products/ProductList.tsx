@@ -139,7 +139,7 @@ export function ProductList({ businessId }: Props) {
       <DashboardPageHeader
         title="محصولات"
         subtitle={`${toPersianNumerals(publishedCount)} منتشر شده از ${toPersianNumerals(products.length)} محصول`}
-        action={{ label: "محصول جدید +", onClick: () => navigate("/dashboard/products/new") }}
+        action={{ label: "محصول جدید +", onClick: () => navigate("/business/products/new") }}
       />
 
       {/* Search + Sort + View */}
@@ -265,7 +265,7 @@ export function ProductList({ businessId }: Props) {
           <EmptyState
             title="محصولی یافت نشد"
             description={search ? `هیچ محصولی با "${search}" یافت نشد` : "محصولی برای نمایش وجود ندارد"}
-            action={{ label: "افزودن محصول جدید", onClick: () => navigate("/dashboard/products/new") }}
+            action={{ label: "افزودن محصول جدید", onClick: () => navigate("/business/products/new") }}
           />
         ) : (
           <ProductTable
@@ -274,7 +274,7 @@ export function ProductList({ businessId }: Props) {
             viewMode={viewMode}
             onSelectAll={handleSelectAll}
             onSelect={handleSelect}
-            onEdit={(id) => navigate(`/dashboard/products/${id}/edit`)}
+            onEdit={(id) => navigate(`/business/products/${id}/edit`)}
             onDelete={(id) => setDeleteTarget(id)}
             onTogglePublish={handleTogglePublish}
           />

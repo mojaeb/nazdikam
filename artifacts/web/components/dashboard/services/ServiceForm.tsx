@@ -136,7 +136,7 @@ export function ServiceForm({ mode, serviceId }: ServiceFormProps) {
     const errs = validate(values);
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaveSuccess(true);
-    setTimeout(() => navigate("/dashboard/services"), 1200);
+    setTimeout(() => navigate("/business/services"), 1200);
   };
 
   const attemptNavigate = (path: string) => {

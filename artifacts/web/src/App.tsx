@@ -72,6 +72,10 @@ function Router() {
       </Route>
       <Route path="/map" component={MapPage} />
       <Route path="/account" component={AccountPage} />
+      <Route path="/account/saved" component={AccountPage} />
+      <Route path="/account/following" component={AccountPage} />
+      <Route path="/account/reviews" component={AccountPage} />
+      <Route path="/account/notifications" component={AccountPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/help" component={HelpPage} />

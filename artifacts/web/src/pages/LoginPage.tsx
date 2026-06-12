@@ -223,7 +223,7 @@ export default function LoginPage() {
   };
 
   const handleSuccess = () => {
-    const redirectTo = new URLSearchParams(window.location.search).get("redirect") ?? "/business";
+    const redirectTo = new URLSearchParams(window.location.search).get("redirect") ?? "/account";
     navigate(redirectTo);
   };
 

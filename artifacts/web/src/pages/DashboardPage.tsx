@@ -248,7 +248,7 @@ function DashboardGuard() {
       return;
     }
     if (user && user.businessIds.length === 0) {
-      navigate("/account/create-business", { replace: true });
+      navigate("/account", { replace: true });
     }
   }, [isLoading, isLoggedIn, user, navigate]);
 

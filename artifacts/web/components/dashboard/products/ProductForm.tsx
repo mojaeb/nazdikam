@@ -415,7 +415,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
     const errs = validate(values);
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaveSuccess(true);
-    setTimeout(() => navigate("/dashboard/products"), 1200);
+    setTimeout(() => navigate("/business/products"), 1200);
   };
 
   const attemptNavigate = (path: string) => {

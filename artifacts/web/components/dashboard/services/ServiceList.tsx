@@ -155,7 +155,7 @@ export function ServiceList() {
       <DashboardPageHeader
         title="خدمات"
         subtitle={`${toPersianNumerals(services.filter(s => s.isAvailable).length)} فعال از ${toPersianNumerals(services.length)} خدمت`}
-        action={{ label: "خدمت جدید +", onClick: () => navigate("/dashboard/services/new") }}
+        action={{ label: "خدمت جدید +", onClick: () => navigate("/business/services/new") }}
       />
 
       {/* Search + Sort */}
@@ -200,7 +200,7 @@ export function ServiceList() {
             icon={<WrenchIcon size={32} />}
             title="خدمتی یافت نشد"
             description="خدمتی برای نمایش وجود ندارد"
-            action={{ label: "افزودن خدمت جدید", onClick: () => navigate("/dashboard/services/new") }}
+            action={{ label: "افزودن خدمت جدید", onClick: () => navigate("/business/services/new") }}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -217,7 +217,7 @@ export function ServiceList() {
               <tbody>
                 {filtered.map((s, i) => (
                   <ServiceRow key={s.id} service={s} index={i}
-                    onEdit={() => navigate(`/dashboard/services/${s.id}/edit`)}
+                    onEdit={() => navigate(`/business/services/${s.id}/edit`)}
                     onDelete={() => setDeleteTarget(s.id)}
                     onToggleAvail={() => toggleAvail(s.id)}
                   />

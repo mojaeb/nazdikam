@@ -1,0 +1,221 @@
+# CRITICAL UX & NAVIGATION FIXES
+
+Status: Must Fix Before Next Foundation
+
+Priority: P0
+
+---
+
+# BUG 1 — Incorrect Post Login Redirect
+
+## Current Behavior
+
+در حال حاضر وقتی کاربر:
+
+1. شماره موبایل وارد می‌کند
+2. کد تایید را وارد می‌کند
+3. وارد حساب می‌شود
+
+سیستم او را مستقیم به صفحه:
+
+/account/create-business
+
+منتقل می‌کند.
+
+---
+
+## Why This Is Wrong
+
+ثبت کسب‌وکار یک اقدام اختیاری است.
+
+هر کاربری که ثبت نام می‌کند لزوماً صاحب کسب‌وکار نیست.
+
+بسیاری از کاربران فقط برای:
+
+* ذخیره کردن
+* دنبال کردن
+* ثبت نظر
+* مدیریت پروفایل
+
+ثبت نام می‌کنند.
+
+بنابراین هدایت اجباری به ثبت کسب‌وکار تجربه کاربری اشتباه ایجاد می‌کند.
+
+---
+
+## Required Behavior
+
+پس از Login:
+
+همیشه کاربر وارد:
+
+/account
+
+شود.
+
+---
+
+## Account Dashboard Behavior
+
+اگر کاربر کسب‌وکار نداشته باشد:
+
+در داشبورد کاربری فقط CTA نمایش داده شود:
+
+"ثبت کسب‌وکار"
+
+اما کاربر مجبور به ثبت کسب‌وکار نباشد.
+
+---
+
+## Business Dashboard Access
+
+فقط زمانی که کاربر:
+
+* حداقل یک کسب‌وکار ثبت کرده باشد
+
+باید بتواند وارد:
+
+/business
+
+شود.
+
+---
+
+## Expected Flow
+
+Guest
+
+↓
+
+Login
+
+↓
+
+Account Dashboard
+
+↓
+
+(Optional)
+
+Create Business
+
+↓
+
+Business Dashboard
+
+---
+
+# BUG 2 — Broken Navigation & 404 Pages
+
+## Current Problem
+
+برخی لینک‌ها:
+
+* کار نمی‌کنند
+* به مسیر اشتباه می‌روند
+* یا کاربر را به 404 منتقل می‌کنند
+
+---
+
+## Required Audit
+
+کل پروژه باید Navigation Audit شود.
+
+---
+
+## Check All Navigation Sources
+
+### Header
+
+بررسی تمام لینک‌های هدر
+
+---
+
+### Mobile Bottom Navigation
+
+بررسی تمام آیتم‌ها
+
+* Home
+* Categories
+* Search
+* Map
+* Account
+
+---
+
+### Account Dashboard
+
+بررسی همه لینک‌ها
+
+---
+
+### Business Dashboard
+
+بررسی همه لینک‌ها
+
+---
+
+### Business Profile
+
+بررسی تمام CTA ها
+
+---
+
+### Product Detail
+
+بررسی تمام CTA ها
+
+---
+
+### Service Detail
+
+بررسی تمام CTA ها
+
+---
+
+### Category Pages
+
+بررسی تمام لینک‌ها
+
+---
+
+### Search Results
+
+بررسی تمام لینک‌ها
+
+---
+
+## Required Result
+
+هیچ لینکی نباید:
+
+* به 404 برود
+* صفحه خالی باز کند
+* Route اشتباه داشته باشد
+* Component Missing داشته باشد
+
+---
+
+## Required Implementation
+
+یک Navigation Validation Pass انجام شود.
+
+برای هر Route:
+
+* Route Exists
+* Component Exists
+* Navigation Exists
+* Mobile Works
+* Desktop Works
+
+---
+
+## Success Criteria
+
+100% Navigation Coverage
+
+Zero 404 Errors
+
+Zero Dead Links
+
+Zero Broken Routes
