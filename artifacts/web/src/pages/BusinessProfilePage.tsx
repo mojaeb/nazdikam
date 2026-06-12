@@ -12,10 +12,6 @@ import { ProductCardStandard } from "@/components/product/ProductCardStandard";
 import { VerificationBadge } from "@/components/business/badges/VerificationBadge";
 import { OpenStatusBadge } from "@/components/business/badges/OpenStatusBadge";
 import { RatingRow } from "@/components/business/RatingRow";
-import {
-  findBusinessBySlug, getBusinessProducts, getSimilarBusinesses,
-  getBusinessServices, getBusinessReviews,
-} from "@/lib/mock-business-profile";
 import { getOpenStatus } from "@/lib/business.types";
 import type { Business } from "@/lib/business.types";
 import type { ProfileReview, ProfileService } from "@/lib/mock-business-profile";
@@ -50,6 +46,71 @@ function DirectionsIcon() {
       <polygon points="3 11 22 2 13 21 11 13 3 11"/>
     </svg>
   );
+}
+
+/* ─── DB → Business adapter ──────────────────────────── */
+interface DbBusiness {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
+  province: string | null;
+  city: string | null;
+  address: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  website: string | null;
+  logo: string | null;
+  coverImage: string | null;
+  isVerified: boolean | null;
+  status: string;
+}
+
+const DB_GRADIENTS = [
+  "linear-gradient(135deg, #0D9488 0%, #0369A1 100%)",
+  "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)",
+  "linear-gradient(135deg, #EA580C 0%, #DC2626 100%)",
+  "linear-gradient(135deg, #059669 0%, #0D9488 100%)",
+  "linear-gradient(135deg, #0369A1 0%, #1D4ED8 100%)",
+  "linear-gradient(135deg, #DB2777 0%, #9D174D 100%)",
+];
+
+function adaptDbBusiness(db: DbBusiness): Business {
+  const gi = db.name.charCodeAt(0) % DB_GRADIENTS.length;
+  return {
+    id: String(db.id),
+    slug: db.slug,
+    name: db.name,
+    description: db.description ?? "",
+    coverGradient: DB_GRADIENTS[gi]!,
+    logoColor: "#0D9488",
+    category: db.categoryName ?? "کسب‌وکار",
+    subcategory: undefined,
+    tags: [],
+    city: db.city ?? "",
+    province: db.province ?? "",
+    address: db.address ?? "",
+    latitude: db.latitude ? Number(db.latitude) : 0,
+    longitude: db.longitude ? Number(db.longitude) : 0,
+    distance: undefined,
+    phone: db.phone ?? "",
+    website: db.website ?? undefined,
+    rating: 0,
+    reviewCount: 0,
+    followersCount: 0,
+    verificationStatus: db.isVerified ? "verified" : "unverified",
+    promoted: false,
+    featured: false,
+    isOpen: true,
+    opensAt: "09:00",
+    closesAt: "21:00",
+    responseRate: 0,
+    gallery: [],
+  };
 }
 
 /* ─── Gallery section ─────────────────────────────────── */
@@ -318,8 +379,19 @@ export default function BusinessProfilePage({ slug }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [leadSheet, setLeadSheet] = useState<"consultation" | "price-inquiry" | null>(null);
+  const [dbBusiness, setDbBusiness] = useState<Business | null | "loading">("loading");
 
-  const business = findBusinessBySlug(slug);
+  useEffect(() => {
+    let cancelled = false;
+    setDbBusiness("loading");
+    fetch(`/api/businesses/${encodeURIComponent(slug)}`, { credentials: "include" })
+      .then(r => r.json())
+      .then((data: { data?: DbBusiness; error?: unknown }) => {
+        if (!cancelled) setDbBusiness(data.data ? adaptDbBusiness(data.data) : null);
+      })
+      .catch(() => { if (!cancelled) setDbBusiness(null); });
+    return () => { cancelled = true; };
+  }, [slug]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 220);
@@ -327,13 +399,22 @@ export default function BusinessProfilePage({ slug }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  if (!business) return <BusinessNotFound onBack={() => navigate("/")} />;
+  if (dbBusiness === "loading") {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center" dir="rtl">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
+  if (!dbBusiness) return <BusinessNotFound onBack={() => navigate("/")} />;
+
+  const business = dbBusiness;
   const openStatus = getOpenStatus(business);
-  const products = getBusinessProducts(business);
-  const services = getBusinessServices(business);
-  const reviews = getBusinessReviews(business);
-  const similar = getSimilarBusinesses(business);
+  const products: import("@/lib/product.types").Product[] = [];
+  const services: ProfileService[] = [];
+  const reviews: ProfileReview[] = [];
+  const similar: Business[] = [];
   const avatarIdx = avatarGradientIndex(business.name);
 
   const handlePhoneClick = () => {

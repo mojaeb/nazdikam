@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
@@ -23,6 +24,7 @@ import {
   mockSubscription,
 } from "@/lib/dashboard-mock-data";
 import { VerifiedIcon, MapPinIcon, StoreIcon } from "@/components/icons";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 /* ─── KPI icon helpers ────────────────────────────────── */
 function LeadsIcon() {
@@ -83,17 +85,14 @@ function WelcomeSection() {
             {biz.name}
           </h1>
           <div className="flex items-center flex-wrap gap-2 mt-2">
-            {/* Verification badge */}
             <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-vazirmatn text-xs font-medium">
               <VerifiedIcon size={12} />
               تایید شده
             </span>
-            {/* Location */}
             <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full bg-neutral-100 text-neutral-600 font-vazirmatn text-xs">
               <MapPinIcon size={12} />
               {biz.city} · {biz.province}
             </span>
-            {/* Plan */}
             <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-vazirmatn text-xs font-medium">
               <StoreIcon size={12} />
               پلن {sub.planName} · {sub.daysRemaining} روز مانده
@@ -101,7 +100,6 @@ function WelcomeSection() {
           </div>
         </div>
 
-        {/* View public listing CTA */}
         <button
           type="button"
           onClick={() => navigate(`/businesses/${biz.slug}`)}
@@ -123,7 +121,6 @@ function DashboardOverview() {
     <div className="p-5 lg:p-8 max-w-[1400px]">
       <WelcomeSection />
 
-      {/* KPI Grid */}
       <section aria-label="شاخص‌های کلیدی">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
           {mockDashboardStats.map((stat, i) => {
@@ -144,15 +141,11 @@ function DashboardOverview() {
         </div>
       </section>
 
-      {/* Main two-column layout */}
       <div className="grid lg:grid-cols-3 gap-5 mt-5">
-        {/* Start side (right in RTL) — 2/3 width */}
         <div className="lg:col-span-2 space-y-5">
           <LeadSummaryWidget />
           <RecentActivityWidget />
         </div>
-
-        {/* End side (left in RTL) — 1/3 width */}
         <div className="space-y-5">
           <QuickActionsWidget />
           <SubscriptionWidget />
@@ -163,7 +156,7 @@ function DashboardOverview() {
   );
 }
 
-/* ─── Route stubs (for future phases) ────────────────── */
+/* ─── Route stubs ─────────────────────────────────────── */
 function ComingSoon({ section }: { section: string }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -180,56 +173,81 @@ function ComingSoon({ section }: { section: string }) {
 function DashboardContent() {
   const [location] = useLocation();
 
-  if (location === "/dashboard" || location === "/dashboard/overview") {
+  if (location === "/business" || location === "/business/overview") {
     return <DashboardOverview />;
   }
 
-  /* Products */
-  if (location === "/dashboard/products") return <ProductList businessId={mockDashboardBusiness.id} />;
-  if (location === "/dashboard/products/new") return <ProductForm mode="create" />;
-  const productEditMatch = location.match(/^\/dashboard\/products\/([^/]+)\/edit$/);
+  if (location === "/business/products") return <ProductList businessId={mockDashboardBusiness.id} />;
+  if (location === "/business/products/new") return <ProductForm mode="create" />;
+  const productEditMatch = location.match(/^\/business\/products\/([^/]+)\/edit$/);
   if (productEditMatch) return <ProductForm mode="edit" productId={productEditMatch[1]} />;
 
-  /* Services */
-  if (location === "/dashboard/services") return <ServiceList />;
-  if (location === "/dashboard/services/new") return <ServiceForm mode="create" />;
-  const serviceEditMatch = location.match(/^\/dashboard\/services\/([^/]+)\/edit$/);
+  if (location === "/business/services") return <ServiceList />;
+  if (location === "/business/services/new") return <ServiceForm mode="create" />;
+  const serviceEditMatch = location.match(/^\/business\/services\/([^/]+)\/edit$/);
   if (serviceEditMatch) return <ServiceForm mode="edit" serviceId={serviceEditMatch[1]} />;
 
-  if (location === "/dashboard/profile")      return <ProfilePage />;
-  if (location === "/dashboard/subscription") return <SubscriptionPage />;
+  if (location === "/business/profile")      return <ProfilePage />;
+  if (location === "/business/subscription") return <SubscriptionPage />;
 
-  /* Leads */
-  if (location === "/dashboard/leads")        return <LeadsPage />;
-  const leadDetailMatch = location.match(/^\/dashboard\/leads\/([^/]+)$/);
+  if (location === "/business/leads")        return <LeadsPage />;
+  const leadDetailMatch = location.match(/^\/business\/leads\/([^/]+)$/);
   if (leadDetailMatch) return <LeadsPage initialLeadId={leadDetailMatch[1]} />;
 
-  /* Growth */
-  if (location === "/dashboard/reviews")       return <ReviewsPage />;
-  if (location === "/dashboard/notifications") return <NotificationsPage />;
-  if (location === "/dashboard/analytics")     return <AnalyticsPage />;
+  if (location === "/business/reviews")       return <ReviewsPage />;
+  if (location === "/business/notifications") return <NotificationsPage />;
+  if (location === "/business/analytics")     return <AnalyticsPage />;
 
   const SECTION_LABELS: Record<string, string> = {
-    "/dashboard/profile":       "پروفایل کسب‌وکار",
-    "/dashboard/leads":         "مدیریت لیدها",
-    "/dashboard/reviews":       "نظرات و امتیازها",
-    "/dashboard/customers":     "مشتریان",
-    "/dashboard/notifications": "اعلان‌ها",
-    "/dashboard/analytics":     "آمار و تحلیل‌ها",
-    "/dashboard/promotions":    "تبلیغات",
-    "/dashboard/subscription":  "اشتراک",
-    "/dashboard/settings":      "تنظیمات",
+    "/business/profile":       "پروفایل کسب‌وکار",
+    "/business/leads":         "مدیریت لیدها",
+    "/business/reviews":       "نظرات و امتیازها",
+    "/business/customers":     "مشتریان",
+    "/business/notifications": "اعلان‌ها",
+    "/business/analytics":     "آمار و تحلیل‌ها",
+    "/business/promotions":    "تبلیغات",
+    "/business/subscription":  "اشتراک",
+    "/business/settings":      "تنظیمات",
   };
 
   const key = Object.keys(SECTION_LABELS).find(k => location.startsWith(k));
   return <ComingSoon section={key ? SECTION_LABELS[key] : "این بخش"} />;
 }
 
-/* ─── Page export ─────────────────────────────────────── */
-export default function DashboardPage() {
+/* ─── Auth guard wrapper ──────────────────────────────── */
+function DashboardGuard() {
+  const [, navigate] = useLocation();
+  const { user, isLoading, isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isLoggedIn) {
+      navigate("/auth/login?redirect=/business", { replace: true });
+      return;
+    }
+    if (user && user.businessIds.length === 0) {
+      navigate("/account/create-business", { replace: true });
+    }
+  }, [isLoading, isLoggedIn, user, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center" dir="rtl">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isLoggedIn || (user && user.businessIds.length === 0)) return null;
+
   return (
     <DashboardShell>
       <DashboardContent />
     </DashboardShell>
   );
+}
+
+/* ─── Page export ─────────────────────────────────────── */
+export default function DashboardPage() {
+  return <DashboardGuard />;
 }

@@ -6,6 +6,7 @@ import {
   BellIcon, SettingsIcon, LogOutIcon,
 } from "@/components/icons";
 import type { IconProps } from "@/components/icons";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 /* ─── Icon helpers ────────────────────────────────────── */
 type IconName =
@@ -74,32 +75,32 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "عمومی",
     items: [
-      { label: "پیشخوان", path: "/dashboard", icon: "home" },
+      { label: "پیشخوان", path: "/business", icon: "home" },
     ],
   },
   {
     title: "کسب‌وکار",
     items: [
-      { label: "پروفایل", path: "/dashboard/profile", icon: "store" },
-      { label: "محصولات", path: "/dashboard/products", icon: "tag", badge: 14, badgeColor: "blue" },
-      { label: "خدمات", path: "/dashboard/services", icon: "wrench", badge: 6, badgeColor: "blue" },
+      { label: "پروفایل", path: "/business/profile", icon: "store" },
+      { label: "محصولات", path: "/business/products", icon: "tag", badge: 14, badgeColor: "blue" },
+      { label: "خدمات", path: "/business/services", icon: "wrench", badge: 6, badgeColor: "blue" },
     ],
   },
   {
     title: "بازاریابی",
     items: [
-      { label: "لیدها", path: "/dashboard/leads", icon: "trending", badge: 5, badgeColor: "red" },
-      { label: "نظرات", path: "/dashboard/reviews", icon: "star", badge: 2, badgeColor: "amber" },
-      { label: "مشتریان", path: "/dashboard/customers", icon: "user" },
-      { label: "اعلان‌ها", path: "/dashboard/notifications", icon: "bell", badge: 3, badgeColor: "red" },
+      { label: "لیدها", path: "/business/leads", icon: "trending", badge: 5, badgeColor: "red" },
+      { label: "نظرات", path: "/business/reviews", icon: "star", badge: 2, badgeColor: "amber" },
+      { label: "مشتریان", path: "/business/customers", icon: "user" },
+      { label: "اعلان‌ها", path: "/business/notifications", icon: "bell", badge: 3, badgeColor: "red" },
     ],
   },
   {
     title: "رشد",
     items: [
-      { label: "آمار و تحلیل‌ها", path: "/dashboard/analytics", icon: "chart" },
-      { label: "تبلیغات", path: "/dashboard/promotions", icon: "megaphone" },
-      { label: "اشتراک", path: "/dashboard/subscription", icon: "creditcard" },
+      { label: "آمار و تحلیل‌ها", path: "/business/analytics", icon: "chart" },
+      { label: "تبلیغات", path: "/business/promotions", icon: "megaphone" },
+      { label: "اشتراک", path: "/business/subscription", icon: "creditcard" },
     ],
   },
 ];
@@ -153,10 +154,11 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
   const [location, navigate] = useLocation();
+  const { logout } = useAuth();
 
   const isActive = (path: string) => {
-    if (path === "/dashboard") {
-      return location === "/dashboard" || location === "/dashboard/overview";
+    if (path === "/business") {
+      return location === "/business" || location === "/business/overview";
     }
     return location.startsWith(path);
   };
@@ -166,9 +168,13 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
     onNavigate?.(path);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
   return (
     <div className="flex flex-col h-full py-4 overflow-y-auto">
-      {/* Nav sections */}
       <div className="flex-1 px-3 space-y-5">
         {NAV_SECTIONS.map(section => (
           <div key={section.title}>
@@ -189,17 +195,17 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
         ))}
       </div>
 
-      {/* Bottom: Settings + Logout */}
       <div className="px-3 pt-4 border-t border-neutral-100 space-y-0.5 mt-4">
         <NavItemButton
-          item={{ label: "تنظیمات", path: "/dashboard/settings", icon: "settings" }}
-          isActive={isActive("/dashboard/settings")}
-          onClick={() => handleNav("/dashboard/settings")}
+          item={{ label: "تنظیمات", path: "/business/settings", icon: "settings" }}
+          isActive={isActive("/business/settings")}
+          onClick={() => handleNav("/business/settings")}
         />
         <motion.button
           type="button"
           className="w-full flex items-center gap-2.5 py-2 px-3 rounded-xl text-sm font-vazirmatn font-medium text-red-500 hover:bg-red-50 transition-colors text-start"
           whileTap={{ scale: 0.97 }}
+          onClick={handleLogout}
           aria-label="خروج از حساب"
         >
           <DashboardIcon name="logout" />

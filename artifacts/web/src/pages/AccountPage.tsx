@@ -73,7 +73,7 @@ export default function AccountPage() {
         <motion.button
           type="button"
           className="w-full card p-4 flex items-center gap-3 bg-gradient-to-l from-blue-50 to-teal-50 border border-blue-100"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/business")}
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         >

@@ -34,8 +34,8 @@ function ProfileDropdown({ onClose }: { onClose: () => void }) {
   const [, navigate] = useLocation();
 
   const items = [
-    { label: "پروفایل کسب‌وکار", path: "/dashboard/profile", icon: <UserIcon size={15} /> },
-    { label: "تنظیمات", path: "/dashboard/settings", icon: <SettingsIcon size={15} /> },
+    { label: "پروفایل کسب‌وکار", path: "/business/profile", icon: <UserIcon size={15} /> },
+    { label: "تنظیمات", path: "/business/settings", icon: <SettingsIcon size={15} /> },
   ];
 
   return (
@@ -97,7 +97,7 @@ export function DashboardTopbar() {
         <button
           type="button"
           className="flex items-center gap-2 shrink-0"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/business")}
           aria-label="داشبورد"
         >
           <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
@@ -136,7 +136,7 @@ export function DashboardTopbar() {
           type="button"
           className="relative w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors"
           whileTap={{ scale: 0.93 }}
-          onClick={() => navigate("/dashboard/notifications")}
+          onClick={() => navigate("/business/notifications")}
           aria-label={`اعلان‌ها — ${UNREAD_NOTIFICATIONS} خوانده نشده`}
         >
           <BellIcon size={18} className="text-white/80" />

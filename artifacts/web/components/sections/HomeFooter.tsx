@@ -6,7 +6,7 @@ const FOOTER_LINKS = [
   { label: "تماس با ما", path: "/contact" },
   { label: "قوانین", path: "/terms" },
   { label: "راهنما", path: "/help" },
-  { label: "ثبت کسب‌وکار", path: "/dashboard" },
+  { label: "ثبت کسب‌وکار", path: "/account/create-business" },
 ];
 
 export function HomeFooter() {
@@ -36,7 +36,7 @@ export function HomeFooter() {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/account/create-business")}
           className="bg-white text-blue-700 text-xs font-vazirmatn font-bold px-4 py-2 rounded-xl"
         >
           ثبت‌نام

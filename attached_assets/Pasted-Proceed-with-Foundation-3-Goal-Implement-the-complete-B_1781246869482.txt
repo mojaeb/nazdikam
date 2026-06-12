@@ -1,0 +1,142 @@
+Proceed with Foundation 3.
+
+Goal:
+Implement the complete Business Ownership layer.
+
+Requirements:
+
+1. Create Business Flow
+
+Route:
+ /account/create-business
+
+The flow must allow a logged-in user to create their first business.
+
+Required fields:
+
+- Business Name
+- Category
+- Province
+- City
+- Phone Number
+
+Optional:
+
+- Description
+- Address
+- Website
+
+After creation:
+
+- Create business record
+- Link business to authenticated user
+- Add businessId to session context
+- Redirect to /business
+
+------------------------------------------------
+
+2. Business Context
+
+Implement a Business Context layer.
+
+Rules:
+
+- One user may own multiple businesses
+- Active business must be stored in session
+- User can switch between owned businesses
+
+Endpoints:
+
+GET /api/businesses/my
+POST /api/businesses
+PATCH /api/businesses/:id
+GET /api/businesses/:slug
+
+------------------------------------------------
+
+3. Business Dashboard
+
+Rename:
+
+/dashboard
+
+to
+
+/business
+
+according to specification.
+
+All business management functionality must live under:
+
+/business
+
+Examples:
+
+/business
+/business/profile
+/business/products
+/business/services
+/business/leads
+/business/analytics
+/business/subscription
+
+------------------------------------------------
+
+4. Business Profile Pages
+
+Replace all mock business profile data.
+
+Route:
+
+/businesses/:slug
+
+Must load from database.
+
+Business profile becomes the source of truth.
+
+------------------------------------------------
+
+5. Ownership Protection
+
+All business routes require:
+
+requireBusinessOwner()
+
+A user must never access another business owner's data.
+
+------------------------------------------------
+
+6. Business Completeness
+
+Implement profile completeness calculation.
+
+Example:
+
+Business Name
+Category
+Description
+Phone
+Address
+Logo
+Cover
+Hours
+
+Show:
+
+Profile Completeness %
+
+------------------------------------------------
+
+7. Deliverables
+
+- Business creation flow
+- Business ownership model
+- Business switching
+- Live business profiles
+- Dashboard rename
+- Permission protection
+- Profile completeness system
+
+Do not start Foundation 4 yet.
+
+Stop after Foundation 3 and provide a full architecture report.

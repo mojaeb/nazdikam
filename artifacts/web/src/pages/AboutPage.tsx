@@ -80,7 +80,7 @@ export default function AboutPage() {
         <motion.div className="card p-5 bg-blue-600 text-white rounded-2xl" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <p className="text-sm font-iran-yekan-x font-bold">کسب‌وکار دارید؟</p>
           <p className="text-xs font-vazirmatn text-white/80 mt-1 mb-4">رایگان ثبت کنید و مشتریان محلی پیدا کنید.</p>
-          <button type="button" onClick={() => navigate("/dashboard")} className="w-full h-10 rounded-xl bg-white text-blue-700 text-sm font-iran-yekan-x font-bold">
+          <button type="button" onClick={() => navigate("/account/create-business")} className="w-full h-10 rounded-xl bg-white text-blue-700 text-sm font-iran-yekan-x font-bold">
             ثبت کسب‌وکار
           </button>
         </motion.div>

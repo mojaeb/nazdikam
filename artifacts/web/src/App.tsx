@@ -1,4 +1,6 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { AuthProvider } from "@/src/contexts/AuthContext";
 import Home from "./pages/Home";
 import DesignSystem from "./pages/DesignSystem";
 import SearchPage from "./pages/SearchPage";
@@ -14,6 +16,8 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import HelpPage from "./pages/HelpPage";
 import TermsPage from "./pages/TermsPage";
+import LoginPage from "./pages/LoginPage";
+import CreateBusinessPage from "./pages/CreateBusinessPage";
 
 function SmartHome() {
   if (typeof window !== "undefined" && window.innerWidth >= 1024) {
@@ -31,6 +35,16 @@ function NotFound() {
       </div>
     </div>
   );
+}
+
+/* Redirect /dashboard/* → /business/* */
+function RedirectToBusiness() {
+  const [location, navigate] = useLocation();
+  useEffect(() => {
+    const newPath = location.replace(/^\/dashboard/, "/business");
+    navigate(newPath, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
 function Router() {
@@ -57,8 +71,21 @@ function Router() {
       <Route path="/help" component={HelpPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/desktop" component={DesktopHomePage} />
-      <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/dashboard/*" component={DashboardPage} />
+
+      {/* Business owner dashboard */}
+      <Route path="/business" component={DashboardPage} />
+      <Route path="/business/*" component={DashboardPage} />
+
+      {/* Auth */}
+      <Route path="/auth/login" component={LoginPage} />
+
+      {/* Account actions */}
+      <Route path="/account/create-business" component={CreateBusinessPage} />
+
+      {/* Legacy redirect */}
+      <Route path="/dashboard" component={RedirectToBusiness} />
+      <Route path="/dashboard/*" component={RedirectToBusiness} />
+
       <Route path="/design" component={DesignSystem} />
       <Route component={NotFound} />
     </Switch>
@@ -68,7 +95,9 @@ function Router() {
 export default function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-      <Router />
+      <AuthProvider>
+        <Router />
+      </AuthProvider>
     </WouterRouter>
   );
 }
