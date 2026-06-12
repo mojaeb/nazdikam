@@ -19,19 +19,20 @@ function CreditCardIcon({ size = 22 }: { size?: number }) {
 }
 
 const TABS: MobileTab[] = [
-  { id: "home",         label: "خانه",     path: "/",                       Icon: HomeIcon },
-  { id: "search",       label: "جستجو",    path: "/search",                 Icon: SearchIcon },
-  { id: "dashboard",    label: "داشبورد",  path: "/dashboard",              Icon: StoreIcon },
-  { id: "subscription", label: "اشتراک",   path: "/dashboard/subscription", Icon: CreditCardIcon },
-  { id: "profile",      label: "پروفایل",  path: "/dashboard/profile",      Icon: UserIcon },
+  { id: "account",      label: "حساب شخصی", path: "/account",              Icon: UserIcon },
+  { id: "search",       label: "جستجو",      path: "/search",              Icon: SearchIcon },
+  { id: "dashboard",    label: "داشبورد",    path: "/business",            Icon: StoreIcon },
+  { id: "subscription", label: "اشتراک",     path: "/business/subscription", Icon: CreditCardIcon },
+  { id: "home",         label: "بازار",      path: "/",                    Icon: HomeIcon },
 ];
 
 function getActiveTab(location: string): string {
-  if (location.startsWith("/dashboard/subscription")) return "subscription";
-  if (location.startsWith("/dashboard/profile"))      return "profile";
-  if (location.startsWith("/dashboard"))              return "dashboard";
+  if (location.startsWith("/business/subscription")) return "subscription";
+  if (location.startsWith("/business"))               return "dashboard";
+  if (location.startsWith("/account"))                return "account";
   if (location.startsWith("/search"))                 return "search";
-  return "home";
+  if (location === "/")                               return "home";
+  return "dashboard";
 }
 
 export function DashboardMobileNav() {
@@ -46,11 +47,12 @@ export function DashboardMobileNav() {
       <div className="flex items-stretch h-16">
         {TABS.map(tab => {
           const isActive = tab.id === activeId;
+          const isAccountTab = tab.id === "account";
           return (
             <motion.button
               key={tab.id}
               type="button"
-              className="flex-1 flex flex-col items-center justify-center gap-1"
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
               onClick={() => navigate(tab.path)}
               whileTap={{ scale: 0.92 }}
               transition={{ duration: 0.12 }}
@@ -66,7 +68,7 @@ export function DashboardMobileNav() {
               )}
 
               <motion.div
-                animate={{ color: isActive ? "#1860DB" : "#9CA3AF" }}
+                animate={{ color: isActive ? "#1860DB" : isAccountTab ? "#0D9488" : "#9CA3AF" }}
                 transition={{ duration: 0.15 }}
               >
                 <tab.Icon size={22} />
@@ -74,7 +76,7 @@ export function DashboardMobileNav() {
 
               <motion.span
                 className="text-[10px] font-vazirmatn font-medium leading-none"
-                animate={{ color: isActive ? "#1860DB" : "#9CA3AF" }}
+                animate={{ color: isActive ? "#1860DB" : isAccountTab ? "#0D9488" : "#9CA3AF" }}
                 transition={{ duration: 0.15 }}
               >
                 {tab.label}

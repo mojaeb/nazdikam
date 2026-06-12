@@ -522,7 +522,44 @@ export default function ProductDetailPage({ slug }: Props) {
         )}
       </div>
 
-      {/* ── 4. Social Proof Strip ───────────────────────────── */}
+      {/* ── 4. Business Box ─────────────────────────────────── */}
+      <div className="px-4 py-4 bg-white mt-2">
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 text-start"
+          onClick={() => navigate(`/businesses/${product.slug}`)}
+        >
+          <div
+            className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center text-white font-iran-yekan-x font-bold text-base"
+            style={{ background: AVATAR_GRADIENTS[avatarIdx] }}
+          >
+            {product.businessName.slice(0, 1)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="font-iran-yekan-x font-bold text-neutral-900 text-sm truncate">
+                {product.businessName}
+              </span>
+              {product.businessVerified && <VerifiedIcon size={14} className="text-blue-500 shrink-0" />}
+            </div>
+            {product.city && (
+              <div className="flex items-center gap-1">
+                <MapPinIcon size={11} className="text-neutral-400" />
+                <span className="font-vazirmatn text-xs text-neutral-500">{product.city}</span>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="shrink-0 h-9 px-4 rounded-xl border-2 border-blue-500 text-blue-600 text-xs font-vazirmatn font-bold hover:bg-blue-50 transition-colors"
+            onClick={e => e.stopPropagation()}
+          >
+            + دنبال
+          </button>
+        </button>
+      </div>
+
+      {/* ── 4b. Social Proof Strip ──────────────────────────── */}
       {product.socialProof && (
         <div className="px-4 py-3 bg-white border-t border-neutral-50">
           <SocialProofStrip data={product.socialProof} variant="compact" />

@@ -1,0 +1,228 @@
+# NAZDIKAM UX/UI REDESIGN RULES (MANDATORY)
+
+## RULE 1 — Authentication Must Be Visible
+
+Current Problem:
+Users do not understand whether they are logged in or not.
+
+Requirements:
+
+* Login status must always be visible.
+* Guest users must see:
+
+  * ورود / ثبت نام
+* Logged-in users must see:
+
+  * Avatar
+  * Name
+  * Account menu
+* Any action requiring authentication must redirect to login and then return the user to the original page.
+
+Examples:
+
+* Save Business
+* Save Product
+* Save Service
+* Follow Business
+* Submit Review
+* Consultation Request
+* Price Inquiry
+
+---
+
+## RULE 2 — User Dashboard And Business Dashboard Must Be Connected
+
+Current Problem:
+Business owners cannot easily return to their personal account area.
+
+Requirements:
+
+Account Structure:
+
+User Account
+├── Profile
+├── Saved Items
+├── Following
+├── Reviews
+├── Requests
+└── My Businesses
+
+If the user owns at least one business:
+
+User Account
+└── My Businesses
+├── Business A
+├── Business B
+└── Create Business
+
+Business Dashboard must always contain:
+
+← Return To Personal Account
+
+Personal Account must always contain:
+
+→ Go To Business Dashboard
+
+Users must never feel trapped in one dashboard.
+
+---
+
+## RULE 3 — Mobile First Design
+
+Target Audience:
+
+* Business Owners
+* Consumers
+
+Primary Device:
+
+Mobile Phone
+
+Requirements:
+
+* Every screen designed for mobile first.
+* Desktop is an expansion of mobile.
+* No desktop-only workflow.
+* No hidden mobile features.
+
+---
+
+## RULE 4 — Visual Consistency Across Devices
+
+Desktop and Mobile must share:
+
+* Same Design Language
+* Same Color System
+* Same Component System
+* Same Navigation Logic
+
+Desktop must not look like a different product.
+
+The user should immediately recognize the same experience on every device.
+
+---
+
+## RULE 5 — Products And Services Are One Content Type
+
+Current Problem:
+Products and Services are treated differently.
+
+New Rule:
+
+Product and Service detail pages must use exactly the same layout.
+
+Only labels and business logic differ.
+
+The user should not need to learn two interfaces.
+
+---
+
+# PRODUCT / SERVICE DETAIL PAGE STRUCTURE
+
+1. Image Slider
+
+2. Product / Service Title
+
+3. Category + Location Box
+
+Display only:
+
+* Province
+* City
+
+4. Business Box
+
+Contains:
+
+* Business Logo
+* Business Name
+* Follower Count
+* Follow Button (+)
+
+5. Pricing Box
+
+Contains:
+
+* Final Price
+* Discount Percentage
+* Original Price (strikethrough)
+
+6. Installment Section
+
+Card 1:
+
+* Number of installments
+* Installment amount
+* Total installment cost
+
+Card 2:
+
+* Eligible groups
+  Examples:
+
+  * Retirees
+  * Women
+  * Men
+
+Card 3:
+
+* Short installment conditions
+
+7. Action Buttons
+
+Two equal buttons:
+
+* Directions
+* Phone Call
+
+Both connected to the business profile.
+
+8. Description Section
+
+Full details.
+
+9. Reviews Section
+
+Users can:
+
+* Rate
+* Comment
+* Read reviews
+
+This structure must be identical for both Products and Services.
+
+---
+
+# PRODUCT / SERVICE CARD RULES
+
+Used on:
+
+* Home
+* Categories
+* Search
+* Business Profile
+* Offers
+* Any listing
+
+Cards must remain compact.
+
+Display ONLY:
+
+* Image
+* Title
+* Discount Percentage
+* Installment Count
+* Final Price
+* Original Price
+
+DO NOT display:
+
+* Long descriptions
+* Installment details
+* Business information
+* Full specifications
+* Review blocks
+
+The purpose of cards is discovery.
+
+The purpose of detail pages is evaluation.

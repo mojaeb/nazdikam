@@ -294,6 +294,20 @@ export function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
 
   return (
     <div className="flex flex-col h-full py-4 overflow-y-auto">
+      {/* ← Return to Personal Account */}
+      <div className="px-3 mb-3">
+        <button
+          type="button"
+          onClick={() => handleNav("/account")}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-vazirmatn font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors text-start"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <span>حساب شخصی</span>
+        </button>
+      </div>
+
       <BusinessSwitcher />
 
       <div className="flex-1 px-3 space-y-5">
