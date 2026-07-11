@@ -1,88 +1,236 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/sections/BottomNav";
 import { SubcategoryStrip } from "@/components/category/SubcategoryStrip";
+import { CategoryCardFeatured } from "@/components/category/CategoryCardFeatured";
 import { FeaturedBusinessesSection } from "@/components/sections/FeaturedBusinessesSection";
 import { FeaturedProductsSection } from "@/components/sections/FeaturedProductsSection";
-import { TrendingBusinessesSection } from "@/components/sections/TrendingBusinessesSection";
-import { NearbyBusinessesSection } from "@/components/sections/NearbyBusinessesSection";
-import { NewBusinessesSection } from "@/components/sections/NewBusinessesSection";
-import { PopularProductsSection } from "@/components/sections/PopularProductsSection";
-import { CategoryHighlights } from "@/components/sections/CategoryHighlights";
+import { FilterBar } from "@/components/search/FilterBar";
+import { FilterDrawer } from "@/components/search/FilterDrawer";
+import { SortSheet } from "@/components/search/SortSheet";
+import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
+import { ItemCard } from "@/components/cards/ItemCard";
 import { SearchIcon } from "@/components/icons";
-import { findCategoryBySlug, getProductCategoryKeywords, mockCategories } from "@/lib/mock-categories";
-import { toPersianNumerals } from "@/lib/utils";
+import type { Product } from "@/lib/product.types";
+import type { SearchFilters, SortOption, ViewMode } from "@/lib/search.types";
+import { DEFAULT_FILTERS } from "@/lib/search.types";
+import {
+  countActiveFilters,
+  filterAndSortBusinesses,
+  filterAndSortProducts,
+  getActiveFilterChips,
+} from "@/lib/search-utils";
+import { cn, toPersianNumerals } from "@/lib/utils";
 import { useBusinessSearch } from "@/hooks/useBusinessSearch";
-import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
+import { useListProducts } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
+import { adaptPublicService, serviceImage, type PublicServiceRow } from "@/lib/api-service-adapter";
+import { useCategoryBySlug } from "@/lib/categories-api";
 
-type FilterTab = "all" | "businesses" | "products" | "services";
+type CategoryResultTab = "all" | "businesses" | "products" | "services";
 
-const FILTER_TABS: { id: FilterTab; label: string }[] = [
-  { id: "all", label: "همه" },
-  { id: "businesses", label: "کسب‌وکارها" },
-  { id: "products", label: "محصولات" },
-  { id: "services", label: "خدمات" },
+const RESULT_TABS: Array<{ key: CategoryResultTab; label: string }> = [
+  { key: "all", label: "همه" },
+  { key: "businesses", label: "کسب‌وکارها" },
+  { key: "products", label: "محصولات" },
+  { key: "services", label: "خدمات" },
 ];
 
 interface CategoryDetailPageProps {
   slug: string;
 }
 
-function CategoryIcon({ path, size = 22 }: { path: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {path.split(/(?= M)/).map((segment, i) => (
-        <path key={i} d={segment.trim()} />
-      ))}
-    </svg>
-  );
-}
-
 export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
   const [, navigate] = useLocation();
+  const { category, isLoading: isResolvingCategory, notFound } = useCategoryBySlug(slug);
+
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
-  const [onlyInstallment, setOnlyInstallment] = useState(false);
-  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [activeTab, setActiveTab] = useState<CategoryResultTab>("all");
+  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [apiServices, setApiServices] = useState<Product[]>([]);
+  const [isServicesLoading, setIsServicesLoading] = useState(false);
 
-  const category = findCategoryBySlug(slug);
+  useEffect(() => {
+    setActiveSubcategory(null);
+    setActiveTab("all");
+    setFilters(DEFAULT_FILTERS);
+    setSortBy("relevance");
+    setViewMode("grid");
+    setIsFilterOpen(false);
+    setIsSortOpen(false);
+  }, [slug]);
 
-  /* Live products from API — fetch all, then filter client-side by product category keywords.
-     We do NOT use the API `category` param because top-level category.name (e.g. "غذا و رستوران")
-     does not match the specific product.category values in the DB ("غذای محلی", "چای", etc.). */
-  const productsApiParams = { per_page: 50 };
+  const categoryQuery = activeSubcategory ?? slug;
+
+  const { businesses: fetchedBusinesses, isLoading: isBusinessesLoading } = useBusinessSearch(
+    { category: categoryQuery, per_page: 50, sort: "newest" },
+    { enabled: !!category },
+  );
+
+  const productsApiParams = {
+    per_page: 50,
+    sort: "created_at_desc" as const,
+    // Extended server filter: products of businesses in this category
+    business_category: categoryQuery,
+  } as Record<string, string | number>;
+
   const { data: productsApiData, isLoading: isProductsLoading } = useListProducts(
-    productsApiParams,
-    { query: { enabled: !!category, queryKey: getListProductsQueryKey(productsApiParams) } }
+    productsApiParams as never,
+    {
+      query: {
+        enabled: !!category,
+        queryKey: ["/api/products", productsApiParams],
+      },
+    },
   );
 
-  const productKeywords = useMemo(
-    () => (category ? getProductCategoryKeywords(category.slug) : []),
-    [category]
+  const apiProducts = useMemo(
+    () => (productsApiData?.data ?? []).map(adaptApiProduct),
+    [productsApiData],
   );
 
-  const apiProducts = useMemo(() => {
-    const all = (productsApiData?.data ?? []).map(adaptApiProduct);
-    if (productKeywords.length === 0) return all;
-    const matched = all.filter(p =>
-      productKeywords.some(k =>
-        p.category === k || (p.subcategory ?? "") === k
+  useEffect(() => {
+    if (!category) {
+      setApiServices([]);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    setIsServicesLoading(true);
+
+    const url = new URL("/api/services", window.location.origin);
+    url.searchParams.set("per_page", "50");
+    url.searchParams.set("business_category", categoryQuery);
+
+    fetch(url.toString(), { signal: ctrl.signal })
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<{ data: PublicServiceRow[] }>)
+          : Promise.reject(new Error(`HTTP ${r.status}`)),
       )
-    );
-    return matched.length >= 2 ? matched : all;
-  }, [productsApiData, productKeywords]);
+      .then((body) => {
+        setApiServices(body.data.map(adaptPublicService));
+      })
+      .catch((err) => {
+        if ((err as Error).name === "AbortError") return;
+        setApiServices([]);
+      })
+      .finally(() => setIsServicesLoading(false));
 
-  if (!category) {
+    return () => ctrl.abort();
+  }, [category, categoryQuery]);
+
+  const filteredProducts = useMemo(
+    () => (category ? filterAndSortProducts(apiProducts, "", filters, sortBy) : []),
+    [category, apiProducts, filters, sortBy],
+  );
+
+  const filteredServices = useMemo(
+    () => (category ? filterAndSortProducts(apiServices, "", filters, sortBy) : []),
+    [category, apiServices, filters, sortBy],
+  );
+
+  const filteredBusinesses = useMemo(
+    () => (category ? filterAndSortBusinesses(fetchedBusinesses, "", filters, sortBy) : []),
+    [category, fetchedBusinesses, filters, sortBy],
+  );
+
+  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
+  const activeFilterChips = useMemo(() => getActiveFilterChips(filters), [filters]);
+
+  const applyFilters = useCallback((next: SearchFilters) => {
+    setFilters(next);
+    setIsFilterOpen(false);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+  }, []);
+
+  const removeFilter = useCallback((key: string) => {
+    setFilters((prev) => {
+      switch (key) {
+        case "categories":
+          return { ...prev, categories: [] };
+        case "priceRange":
+          return { ...prev, priceMin: null, priceMax: null };
+        case "distance":
+          return { ...prev, distance: null };
+        case "onlyOpen":
+          return { ...prev, onlyOpen: false };
+        case "onlyVerified":
+          return { ...prev, onlyVerified: false };
+        case "onlyDiscounted":
+          return { ...prev, onlyDiscounted: false };
+        case "onlyInstallment":
+          return { ...prev, onlyInstallment: false };
+        case "minRating":
+          return { ...prev, minRating: null };
+        case "provinces":
+          return { ...prev, provinces: [] };
+        default:
+          return prev;
+      }
+    });
+  }, []);
+
+  const showProducts = activeTab === "all" || activeTab === "products";
+  const showServices = activeTab === "all" || activeTab === "services";
+  const showBusinesses = activeTab === "all" || activeTab === "businesses";
+
+  const totalCount = filteredProducts.length + filteredServices.length + filteredBusinesses.length;
+  const tabCounts: Record<CategoryResultTab, number> = {
+    all: totalCount,
+    businesses: filteredBusinesses.length,
+    products: filteredProducts.length,
+    services: filteredServices.length,
+  };
+
+  const waitingForBusinesses = isBusinessesLoading;
+  const isContentLoading =
+    (showBusinesses && waitingForBusinesses) ||
+    (showProducts && isProductsLoading) ||
+    (showServices && isServicesLoading) ||
+    (activeTab === "all" && (waitingForBusinesses || isProductsLoading || isServicesLoading));
+
+  const hasVisibleContent =
+    (showProducts && filteredProducts.length > 0) ||
+    (showServices && filteredServices.length > 0) ||
+    (showBusinesses && filteredBusinesses.length > 0);
+
+  const shouldShowEmptyState = !isContentLoading && !hasVisibleContent;
+  const productLayout = viewMode === "grid" ? "grid" : "scroll";
+  const businessLayout = viewMode === "grid" ? "grid" : "scroll";
+
+  if (isResolvingCategory) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-page-bg" dir="rtl">
         <div className="text-center px-8">
-          <p className="text-5xl mb-4">🔍</p>
-          <p className="font-iran-yekan-x font-bold text-neutral-800 text-lg mb-2">دسته‌بندی یافت نشد</p>
+          <div className="mx-auto mb-3 h-10 w-10 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
+          <p className="font-vazirmatn text-neutral-500">در حال بارگذاری دسته‌بندی...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !category) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-page-bg" dir="rtl">
+        <div className="text-center px-8">
+          <p className="font-iran-yekan-x font-bold text-neutral-800 text-lg mb-2">
+            دسته‌بندی یافت نشد
+          </p>
+          <p className="text-sm font-vazirmatn text-neutral-500 mb-4">
+            این دسته در سیستم وجود ندارد یا حذف شده است.
+          </p>
           <button
             type="button"
-            className="mt-4 h-10 px-6 rounded-xl bg-blue-500 text-white font-vazirmatn text-sm font-medium"
+            className="mt-2 h-10 px-6 rounded-xl bg-blue-500 text-white font-vazirmatn text-sm font-medium"
             onClick={() => navigate("/categories")}
           >
             بازگشت به دسته‌بندی‌ها
@@ -92,42 +240,8 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
     );
   }
 
-  /* Real businesses from API — switch category when subcategory selected */
-  const { businesses: fetchedBusinesses, isLoading: isBusinessesLoading } = useBusinessSearch(
-    { category: activeSubcategory ?? slug, per_page: 50 },
-  );
-  const businesses = fetchedBusinesses;
-
-  /* Apply installment/verified filters to API products */
-  const filteredProducts = apiProducts.filter(p => {
-    if (onlyInstallment && !p.isInstallmentAvailable) return false;
-    if (onlyVerified && !p.businessVerified) return false;
-    return true;
-  });
-
-  /* Product sections */
-  const popular = filteredProducts.filter(p => p.rating >= 4.5).slice(0, 6);
-  const featuredProducts = filteredProducts.slice(0, 4);
-
-  /* Divide businesses into sections — offset slices for variety */
-  const featured = businesses.slice(0, 3);
-  const trending = businesses.length > 3 ? businesses.slice(3, 7) : businesses.slice(0, 4);
-  const nearby   = businesses.slice(0, 5);
-  const newOnes  = businesses.length > 7 ? businesses.slice(7, 11) : businesses.slice(0, 4);
-
-  /* Related categories (siblings) */
-  const related = mockCategories
-    .filter(c => c.id !== category.id && c.isPopular)
-    .slice(0, 4);
-
-  const displayBusinesses = businesses;
-
-  const showBusinesses = activeFilter === "all" || activeFilter === "businesses";
-  const showProducts = activeFilter === "all" || activeFilter === "products";
-
   return (
     <div className="flex flex-col min-h-dvh bg-page-bg" dir="rtl">
-      {/* Sticky Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-neutral-100">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
@@ -136,11 +250,22 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
             onClick={() => navigate("/categories")}
             aria-label="بازگشت"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="rtl:rotate-180"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-          <h1 className="flex-1 font-iran-yekan-x font-bold text-neutral-900 text-base">
+          <h1 className="flex-1 font-iran-yekan-x font-bold text-neutral-900 text-base truncate">
             {category.name}
           </h1>
           <button
@@ -152,79 +277,68 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
             <SearchIcon size={18} className="text-neutral-600" />
           </button>
         </div>
+
+        <FilterBar
+          activeFilterCount={activeFilterCount}
+          activeFilterChips={activeFilterChips}
+          sortBy={sortBy}
+          viewMode={viewMode}
+          onFilterOpen={() => setIsFilterOpen(true)}
+          onSortOpen={() => setIsSortOpen(true)}
+          onViewToggle={() => setViewMode((prev) => (prev === "grid" ? "list" : "grid"))}
+          onRemoveFilter={removeFilter}
+        />
+
+        <div className="flex items-center gap-1 px-4 py-2 bg-white border-b border-neutral-100 overflow-x-auto scrollbar-hide">
+          {RESULT_TABS.map((tab) => {
+            const count = tabCounts[tab.key];
+            const isActive = activeTab === tab.key;
+            return (
+              <motion.button
+                key={tab.key}
+                type="button"
+                className={cn(
+                  "relative flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-xs font-vazirmatn font-medium shrink-0 transition-colors",
+                  isActive ? "text-blue-600" : "text-neutral-500 hover:text-neutral-700",
+                )}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setActiveTab(tab.key)}
+                aria-pressed={isActive}
+              >
+                {isActive && (
+                  <motion.div
+                    className="absolute inset-0 bg-blue-50 rounded-xl"
+                    layoutId="category-tab-bg"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
+                {!isContentLoading && count > 0 && (
+                  <span
+                    className={cn(
+                      "relative z-10 text-[10px] px-1.5 py-0.5 rounded-full",
+                      isActive ? "bg-blue-100 text-blue-700" : "bg-neutral-100 text-neutral-500",
+                    )}
+                  >
+                    {toPersianNumerals(count)}
+                  </span>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-24">
-        {/* Hero */}
         <motion.div
-          className="relative overflow-hidden mx-4 mt-4 rounded-2xl elevation-2"
-          style={{ minHeight: 160 }}
+          className="mx-4 mt-4"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="absolute inset-0" style={{ background: category.coverGradient }} />
-          <div className="absolute inset-0 bg-black/20" />
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%)",
-            }}
-          />
-
-          <div className="relative z-10 p-5 flex flex-col h-full" style={{ minHeight: 160 }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-white/70 font-vazirmatn text-xs mb-1">{category.description}</p>
-                <h2 className="text-white font-iran-yekan-x font-bold text-2xl">{category.name}</h2>
-              </div>
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-              >
-                <CategoryIcon path={category.iconPath} size={24} />
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 mt-auto pt-4">
-              <div>
-                <p className="text-white font-iran-yekan-x font-bold text-lg leading-none">
-                  {toPersianNumerals(category.businessCount)}
-                </p>
-                <p className="text-white/65 font-vazirmatn text-[10px] mt-0.5">کسب‌وکار</p>
-              </div>
-              <div className="w-px h-8 bg-white/25" />
-              <div>
-                <p className="text-white font-iran-yekan-x font-bold text-lg leading-none">
-                  {toPersianNumerals(category.productCount)}
-                </p>
-                <p className="text-white/65 font-vazirmatn text-[10px] mt-0.5">محصول</p>
-              </div>
-              {category.serviceCount > 0 && (
-                <>
-                  <div className="w-px h-8 bg-white/25" />
-                  <div>
-                    <p className="text-white font-iran-yekan-x font-bold text-lg leading-none">
-                      {toPersianNumerals(category.serviceCount)}
-                    </p>
-                    <p className="text-white/65 font-vazirmatn text-[10px] mt-0.5">خدمت</p>
-                  </div>
-                </>
-              )}
-              <div className="ms-auto">
-                {category.isFeatured && (
-                  <span className="h-6 px-3 rounded-xl bg-white/25 text-white text-[11px] font-vazirmatn font-bold flex items-center">
-                    ویژه
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          <CategoryCardFeatured category={category} staticDisplay />
         </motion.div>
 
-        {/* Subcategory strip */}
         {category.subcategories.length > 0 && (
           <div className="mt-4">
             <SubcategoryStrip
@@ -236,134 +350,154 @@ export default function CategoryDetailPage({ slug }: CategoryDetailPageProps) {
           </div>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2 px-4 mt-3 mb-1">
-          {FILTER_TABS.map(tab => (
-            <motion.button
-              key={tab.id}
-              type="button"
-              className={`relative h-8 px-4 rounded-2xl font-vazirmatn text-xs font-medium border transition-colors ${
-                activeFilter === tab.id
-                  ? "bg-blue-500 text-white border-blue-500"
-                  : "bg-white text-neutral-600 border-neutral-200"
-              }`}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveFilter(tab.id)}
-              aria-pressed={activeFilter === tab.id}
-            >
-              {tab.label}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Product-level filter chips */}
-        {showProducts && (
-          <div className="flex items-center gap-2 px-4 mt-2">
-            <button
-              type="button"
-              onClick={() => setOnlyInstallment(v => !v)}
-              className={`h-7 px-3 rounded-2xl font-vazirmatn text-xs font-medium border transition-colors ${
-                onlyInstallment
-                  ? "bg-blue-500 text-white border-blue-500"
-                  : "bg-white text-neutral-600 border-neutral-200"
-              }`}
-            >
-              💳 دارای اقساط
-            </button>
-            <button
-              type="button"
-              onClick={() => setOnlyVerified(v => !v)}
-              className={`h-7 px-3 rounded-2xl font-vazirmatn text-xs font-medium border transition-colors ${
-                onlyVerified
-                  ? "bg-blue-500 text-white border-blue-500"
-                  : "bg-white text-neutral-600 border-neutral-200"
-              }`}
-            >
-              ✓ تأیید شده
-            </button>
-          </div>
-        )}
-
-        {/* Discovery sections */}
         <div className="mt-4">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeFilter + (activeSubcategory ?? "all")}
+              key={activeTab + (activeSubcategory ?? "all") + sortBy + activeFilterCount}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25 }}
             >
-              {showBusinesses && featured.length > 0 && (
-                <FeaturedBusinessesSection
-                  title="کسب‌وکارهای برگزیده"
-                  subtitle={category.name}
-                  businesses={featured}
-                  layout="featured-stack"
-                />
-              )}
-
-              {showProducts && (
-                isProductsLoading ? (
-                  <div className="px-4 mb-6">
-                    <div className="h-5 w-32 rounded-lg bg-neutral-100 animate-pulse mb-3" />
-                    <div className="flex gap-3 overflow-hidden">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="shrink-0 w-40 h-52 rounded-2xl bg-neutral-100 animate-pulse" />
-                      ))}
-                    </div>
+              {isContentLoading && (
+                <div className="px-4 pb-4">
+                  <div className="h-5 w-32 rounded-lg bg-neutral-100 animate-pulse mb-3" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="h-52 rounded-2xl bg-neutral-100 animate-pulse" />
+                    ))}
                   </div>
-                ) : featuredProducts.length > 0 ? (
+                </div>
+              )}
+
+              {!isContentLoading && showProducts && filteredProducts.length > 0 && (
+                viewMode === "list" ? (
+                  <div className="px-4 pb-6 space-y-3">
+                    <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-base mb-1">
+                      محصولات
+                    </h2>
+                    {filteredProducts.map((p) => (
+                      <ItemCard
+                        key={p.id}
+                        name={p.name}
+                        image={serviceImage(p)}
+                        discountPercent={p.discountPercent}
+                        installmentMonths={p.installmentMonths}
+                        price={p.price}
+                        originalPrice={p.originalPrice}
+                        className="w-full"
+                        onPress={() => navigate(`/products/${p.slug}`)}
+                      />
+                    ))}
+                  </div>
+                ) : (
                   <FeaturedProductsSection
-                    title="محصولات این دسته"
-                    products={featuredProducts}
-                    layout="scroll"
+                    title="محصولات"
+                    subtitle={category.name}
+                    products={filteredProducts}
+                    layout={productLayout}
                   />
-                ) : null
+                )
               )}
 
-              {showBusinesses && trending.length > 0 && (
-                <TrendingBusinessesSection
-                  title="پرطرفدار"
-                  subtitle="بیشترین بازدید این هفته"
-                  businesses={trending.slice(0, 4)}
-                />
+              {!isContentLoading && showServices && filteredServices.length > 0 && (
+                viewMode === "list" ? (
+                  <div className="px-4 pb-6 space-y-3">
+                    <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-base mb-1">
+                      خدمات
+                    </h2>
+                    {filteredServices.map((s) => (
+                      <ItemCard
+                        key={s.id}
+                        name={s.name}
+                        image={serviceImage(s)}
+                        price={s.price}
+                        className="w-full"
+                        onPress={() => navigate(`/services/${s.slug}`)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <FeaturedProductsSection
+                    title="خدمات"
+                    subtitle={category.name}
+                    products={filteredServices}
+                    layout={productLayout}
+                    detailPath={(s) => `/services/${s.slug}`}
+                  />
+                )
               )}
 
-              {showProducts && !isProductsLoading && popular.length > 0 && (
-                <PopularProductsSection
-                  title="محصولات پرطرفدار"
-                  products={popular}
-                />
+              {!isContentLoading && showBusinesses && filteredBusinesses.length > 0 && (
+                viewMode === "list" ? (
+                  <div className="px-4 pb-6 space-y-3">
+                    <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-base mb-1">
+                      کسب‌وکارها
+                    </h2>
+                    {filteredBusinesses.map((b) => (
+                      <BusinessCardHorizontal
+                        key={b.id}
+                        business={b}
+                        onPress={() => navigate(`/businesses/${b.slug}`)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <FeaturedBusinessesSection
+                    title="کسب‌وکارها"
+                    subtitle={category.name}
+                    businesses={filteredBusinesses}
+                    layout={businessLayout}
+                  />
+                )
               )}
 
-              {showBusinesses && nearby.length > 0 && (
-                <NearbyBusinessesSection
-                  title="نزدیک شما"
-                  businesses={nearby}
-                />
-              )}
-
-              {showBusinesses && newOnes.length > 0 && (
-                <NewBusinessesSection
-                  title="تازه‌واردها"
-                  businesses={newOnes.slice(0, 4)}
-                />
+              {shouldShowEmptyState && (
+                <div className="px-4 pb-4">
+                  <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center">
+                    <p className="font-iran-yekan-x font-bold text-neutral-800 mb-1">
+                      نتیجه‌ای در این دسته پیدا نشد
+                    </p>
+                    <p className="text-sm font-vazirmatn text-neutral-500">
+                      {activeFilterCount > 0
+                        ? "فیلترها را تغییر دهید یا پاک کنید."
+                        : activeSubcategory
+                          ? "یک زیردسته دیگر را انتخاب کنید یا «همه» را بزنید."
+                          : "هنوز کسب‌وکار یا کالایی در این دسته ثبت نشده است."}
+                    </p>
+                    {activeFilterCount > 0 && (
+                      <button
+                        type="button"
+                        className="mt-4 h-9 px-4 rounded-xl bg-neutral-100 text-neutral-700 font-vazirmatn text-sm"
+                        onClick={resetFilters}
+                      >
+                        پاک کردن فیلترها
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Related categories */}
-        {related.length > 0 && (
-          <CategoryHighlights
-            title="دسته‌بندی‌های مرتبط"
-            categories={related}
-            layout="scroll"
-            onViewAll={() => navigate("/categories")}
-          />
-        )}
       </main>
+
+      <FilterDrawer
+        isOpen={isFilterOpen}
+        filters={filters}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+      />
+      <SortSheet
+        isOpen={isSortOpen}
+        sortBy={sortBy}
+        onSelect={(s) => {
+          setSortBy(s);
+          setIsSortOpen(false);
+        }}
+        onClose={() => setIsSortOpen(false)}
+      />
 
       <BottomNav />
     </div>

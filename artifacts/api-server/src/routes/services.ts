@@ -2,8 +2,9 @@ import { Router, type IRouter } from "express";
 import { z } from "zod/v4";
 import { db } from "@workspace/db";
 import { servicesTable, businessesTable, businessCategoriesTable } from "@workspace/db";
-import { eq, ilike, and, or, desc, sql } from "drizzle-orm";
+import { eq, ilike, and, or, desc, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireBusinessOwner } from "../middlewares/auth";
+import { assertCanCreate } from "../lib/entitlements";
 
 const router: IRouter = Router();
 
@@ -17,12 +18,47 @@ function slugify(name: string): string {
   return `${base}-${Date.now().toString(36)}`;
 }
 
+async function resolveBusinessIdsForCategorySlug(slug: string): Promise<number[]> {
+  const [cat] = await db
+    .select({
+      id: businessCategoriesTable.id,
+      parentId: businessCategoriesTable.parentId,
+    })
+    .from(businessCategoriesTable)
+    .where(eq(businessCategoriesTable.slug, slug))
+    .limit(1);
+
+  if (!cat) return [];
+
+  let categoryIds = [cat.id];
+  if (cat.parentId == null) {
+    const children = await db
+      .select({ id: businessCategoriesTable.id })
+      .from(businessCategoriesTable)
+      .where(eq(businessCategoriesTable.parentId, cat.id));
+    categoryIds = [cat.id, ...children.map((c) => c.id)];
+  }
+
+  const rows = await db
+    .select({ id: businessesTable.id })
+    .from(businessesTable)
+    .where(
+      and(
+        eq(businessesTable.status, "active"),
+        inArray(businessesTable.categoryId, categoryIds),
+      ),
+    );
+
+  return rows.map((r) => r.id);
+}
+
 /* ─── GET /api/services — public list ────────────────── */
 const PublicServicesQuerySchema = z.object({
   page:        z.coerce.number().int().min(1).default(1),
   per_page:    z.coerce.number().int().min(1).max(50).default(20),
   q:           z.string().optional(),
   business_id: z.coerce.number().int().positive().optional(),
+  business_category: z.string().optional(),
   featured:    z.enum(["true", "false"]).optional(),
 });
 
@@ -33,13 +69,22 @@ router.get("/services", async (req, res) => {
     return;
   }
 
-  const { page, per_page, q, business_id, featured } = parsed.data;
+  const { page, per_page, q, business_id, business_category, featured } = parsed.data;
 
   try {
     const conditions = [eq(servicesTable.status, "published")];
     if (q)           conditions.push(or(ilike(servicesTable.name, `%${q}%`), ilike(servicesTable.description ?? servicesTable.name, `%${q}%`))!);
     if (business_id) conditions.push(eq(servicesTable.businessId, business_id));
     if (featured === "true") conditions.push(eq(servicesTable.isFeatured, true));
+
+    if (business_category) {
+      const bizIds = await resolveBusinessIdsForCategorySlug(business_category);
+      if (bizIds.length === 0) {
+        conditions.push(sql`false`);
+      } else {
+        conditions.push(inArray(servicesTable.businessId, bizIds));
+      }
+    }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -207,6 +252,12 @@ router.post(
     const parsed = CreateServiceSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(422).json({ error: { code: "VALIDATION_ERROR", message: parsed.error.message } });
+      return;
+    }
+
+    const gate = await assertCanCreate(businessId, "services");
+    if (!gate.ok) {
+      res.status(403).json({ error: { code: gate.code, message: gate.message } });
       return;
     }
 

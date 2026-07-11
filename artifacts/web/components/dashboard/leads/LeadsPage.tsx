@@ -342,6 +342,7 @@ export function LeadsPage({ initialLeadId }: { initialLeadId?: string }) {
       <DashboardPageHeader
         title={`لیدها ${counts.new > 0 ? `(${toPersianNumerals(counts.new)} جدید)` : ""}`}
         subtitle="مدیریت و پیگیری مشتریان بالقوه"
+        backPath="/business"
       />
 
       {/* Bulk action bar */}

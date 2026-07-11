@@ -213,7 +213,7 @@ export function ReviewsPage() {
 
   return (
     <div className="p-5 lg:p-8 max-w-[900px]">
-      <DashboardPageHeader title="نظرات" subtitle="مدیریت و پاسخ به نظرات مشتریان" />
+      <DashboardPageHeader title="نظرات" subtitle="مدیریت و پاسخ به نظرات مشتریان" backPath="/business" />
 
       <ReviewSummaryBar reviews={reviews} />
 

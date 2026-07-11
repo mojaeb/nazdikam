@@ -28,13 +28,16 @@ export function filterAndSortBusinesses(
 
   /* Filters */
   if (filters.categories.length > 0) {
-    results = results.filter(b => filters.categories.includes(b.category));
+    results = results.filter((b) =>
+      filters.categories.some(
+        (c) => b.category === c || b.category.includes(c) || c.includes(b.category),
+      ),
+    );
   }
-  if (filters.onlyOpen) results = results.filter(b => b.isOpen);
-  if (filters.onlyVerified) results = results.filter(b => b.verificationStatus === "verified");
-  if (filters.minRating !== null) results = results.filter(b => b.rating >= filters.minRating!);
+  /* onlyOpen / minRating skipped — API adapter has no real open hours / ratings yet */
+  if (filters.onlyVerified) results = results.filter((b) => b.verificationStatus === "verified");
   if (filters.provinces.length > 0) {
-    results = results.filter(b => filters.provinces.includes(b.province));
+    results = results.filter((b) => filters.provinces.includes(b.province));
   }
 
   /* Sort */
@@ -80,21 +83,28 @@ export function filterAndSortProducts(
     );
   }
 
-  /* Filters */
+  /* Filters — category usually applied server-side via business_category */
   if (filters.categories.length > 0) {
-    results = results.filter(p => filters.categories.includes(p.category));
+    results = results.filter((p) =>
+      filters.categories.some(
+        (c) => p.category === c || p.category.includes(c) || c.includes(p.category),
+      ),
+    );
   }
-  if (filters.priceMin !== null) results = results.filter(p => p.price >= filters.priceMin!);
-  if (filters.priceMax !== null) results = results.filter(p => p.price <= filters.priceMax!);
-  if (filters.onlyDiscounted) results = results.filter(p => (p.discountPercent ?? 0) > 0);
-  if (filters.onlyInstallment) results = results.filter(p => p.isInstallmentAvailable);
-  if (filters.onlyVerified) results = results.filter(p => !!p.businessVerified);
-  if (filters.minRating !== null) results = results.filter(p => p.rating >= filters.minRating!);
+  if (filters.priceMin !== null) results = results.filter((p) => p.price >= filters.priceMin!);
+  if (filters.priceMax !== null) results = results.filter((p) => p.price <= filters.priceMax!);
+  if (filters.onlyDiscounted) results = results.filter((p) => (p.discountPercent ?? 0) > 0);
+  if (filters.onlyInstallment) results = results.filter((p) => p.isInstallmentAvailable);
+  if (filters.onlyVerified) results = results.filter((p) => !!p.businessVerified);
+  if (filters.minRating !== null) {
+    results = results.filter((p) => (p.rating ?? 0) >= filters.minRating!);
+  }
   if (filters.provinces.length > 0) {
-    /* Products inherit province from business — filter by businessName matching province businesses */
-    const cities = NORTHERN_IRAN_CITIES.filter(c => filters.provinces.includes(c.province));
-    const cityNames = cities.map(c => c.name);
-    results = results.filter(p => cityNames.some(city => p.businessName.includes(city)));
+    const cities = NORTHERN_IRAN_CITIES.filter((c) => filters.provinces.includes(c.province));
+    const cityNames = new Set(cities.map((c) => c.name));
+    results = results.filter(
+      (p) => (p.city && cityNames.has(p.city)) || cityNames.has(p.businessName),
+    );
   }
 
   /* Sort */

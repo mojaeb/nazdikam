@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { BottomNav } from "@/components/sections/BottomNav";
-import { featuredBusinesses, type FeaturedBusiness } from "@/lib/mock-data";
+import { mockBusinesses } from "@/lib/mock-businesses";
 import { avatarGradientIndex } from "@/lib/utils";
 import { toPersianNumerals } from "@/lib/utils";
 import { MapPinIcon } from "@/components/icons";
+import { getFollowedBusinesses, setBusinessFollowed } from "@/lib/followed-businesses";
+
+interface FollowedBusinessItem {
+  id: string;
+  slug: string;
+  name: string;
+  city: string;
+  followersCount: number;
+}
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#1860DB,#0A3FA0)",
@@ -20,9 +29,6 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#E11D48,#881337)",
 ];
 
-/* mock followed businesses */
-const FOLLOWED = featuredBusinesses.slice(0, 5);
-
 function BackIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -31,10 +37,15 @@ function BackIcon() {
   );
 }
 
-function BusinessFollowCard({ biz, onUnfollow }: { biz: FeaturedBusiness; onUnfollow: () => void }) {
+function BusinessFollowCard({
+  biz,
+  onUnfollow,
+}: {
+  biz: FollowedBusinessItem;
+  onUnfollow: () => void;
+}) {
   const [, navigate] = useLocation();
   const idx = avatarGradientIndex(biz.name);
-  const [following, setFollowing] = useState(true);
   return (
     <motion.div
       className="bg-white rounded-2xl p-4 flex items-center gap-3"
@@ -43,33 +54,33 @@ function BusinessFollowCard({ biz, onUnfollow }: { biz: FeaturedBusiness; onUnfo
       <motion.div
         className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-iran-yekan-x font-bold text-xl shrink-0 cursor-pointer"
         style={{ background: AVATAR_GRADIENTS[idx % 10] }}
-        onClick={() => navigate(`/businesses/${biz.id}`)}
+        onClick={() => navigate(`/businesses/${biz.slug}`)}
         whileTap={{ scale: 0.96 }}
       >
         {biz.name.slice(0, 1)}
       </motion.div>
 
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/businesses/${biz.id}`)}>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/businesses/${biz.slug}`)}>
         <p className="font-iran-yekan-x font-bold text-neutral-900 text-[14px] truncate">{biz.name}</p>
         <div className="flex items-center gap-1 mt-0.5">
           <MapPinIcon size={11} className="text-neutral-400" />
           <span className="font-vazirmatn text-xs text-neutral-400">{biz.city}</span>
         </div>
         <p className="font-vazirmatn text-xs text-neutral-500 mt-0.5">
-          {toPersianNumerals(biz.followerCount.toString())} دنبال‌کننده
+          {toPersianNumerals(biz.followersCount)} دنبال‌کننده
         </p>
       </div>
 
       <motion.button
         type="button"
-        className={following
-          ? "shrink-0 h-8 px-3 rounded-xl border border-teal-200 bg-teal-50 text-teal-700 text-xs font-vazirmatn font-medium"
-          : "shrink-0 h-8 px-3 rounded-xl border border-neutral-200 text-neutral-500 text-xs font-vazirmatn font-medium"
-        }
+        className="shrink-0 h-8 px-3 rounded-xl border border-teal-200 bg-teal-50 text-teal-700 text-xs font-vazirmatn font-medium"
         whileTap={{ scale: 0.96 }}
-        onClick={() => { setFollowing(f => !f); if (following) onUnfollow(); }}
+        onClick={() => {
+          setBusinessFollowed(biz.slug, false);
+          onUnfollow();
+        }}
       >
-        {following ? "دنبال شده" : "دنبال کنید"}
+        دنبال شده
       </motion.button>
     </motion.div>
   );
@@ -98,7 +109,72 @@ function EmptyFollowing() {
 
 export default function FollowingPage() {
   const [, navigate] = useLocation();
-  const [followed, setFollowed] = useState(FOLLOWED);
+  const [followed, setFollowed] = useState<FollowedBusinessItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const followedSlugs = getFollowedBusinesses();
+
+    async function loadFollowed() {
+      if (followedSlugs.length === 0) {
+        if (!cancelled) {
+          setFollowed([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const fromMock = new Map(
+        mockBusinesses.map((b) => [
+          b.slug,
+          {
+            id: b.id,
+            slug: b.slug,
+            name: b.name,
+            city: b.city,
+            followersCount: b.followersCount,
+          } satisfies FollowedBusinessItem,
+        ]),
+      );
+
+      const rows = await Promise.all(
+        followedSlugs.map(async (slug) => {
+          const mock = fromMock.get(slug);
+          if (mock) return mock;
+          try {
+            const res = await fetch(`/api/businesses/${encodeURIComponent(slug)}`, {
+              credentials: "include",
+            });
+            if (!res.ok) return null;
+            const json = (await res.json()) as {
+              data?: { id: number; slug: string; name: string; city: string; followerCount?: number };
+            };
+            if (!json.data) return null;
+            return {
+              id: String(json.data.id),
+              slug: json.data.slug,
+              name: json.data.name,
+              city: json.data.city,
+              followersCount: json.data.followerCount ?? 0,
+            } satisfies FollowedBusinessItem;
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      if (!cancelled) {
+        setFollowed(rows.filter((r): r is FollowedBusinessItem => r !== null));
+        setLoading(false);
+      }
+    }
+
+    void loadFollowed();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F7F8FA] pb-24">
@@ -121,7 +197,7 @@ export default function FollowingPage() {
       </header>
 
       <div className="pt-16 px-4 pb-4 max-w-2xl mx-auto space-y-3">
-        {followed.length === 0
+        {loading ? null : followed.length === 0
           ? <EmptyFollowing />
           : followed.map((biz, i) => (
             <motion.div

@@ -16,6 +16,7 @@ export const businessCategoriesTable = pgTable("business_categories", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   icon: text("icon"),
+  color: text("color"),
   parentId: integer("parent_id"),
 });
 
@@ -41,6 +42,10 @@ export const businessesTable = pgTable("businesses", {
   coverImage: text("cover_image"),
   logo: text("logo"),
   isVerified: boolean("is_verified").default(false).notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  featuredSortOrder: integer("featured_sort_order").default(0).notNull(),
+  viewsCount: integer("views_count").default(0).notNull(),
+  followerCount: integer("follower_count").default(0).notNull(),
   subscriptionId: integer("subscription_id"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

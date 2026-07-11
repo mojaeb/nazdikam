@@ -1,18 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ReelCard } from "@/components/reels/ReelCard";
 import { ReelViewer } from "@/components/reels/ReelViewer";
-import { videoItems } from "@/lib/mock-data";
+import type { VideoItem } from "@/lib/mock-data";
+import { fetchPublicVideos, videoDtoToItem } from "@/lib/video-api";
 
 export function VideoDiscoveryRow() {
   const [reelOpen, setReelOpen] = useState(false);
   const [reelStartIndex, setReelStartIndex] = useState(0);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPublicVideos(1, { sort: "popular", perPage: 12, recentDays: 45 })
+      .then((rows) => {
+        if (!cancelled) setVideos(rows.map(videoDtoToItem));
+      })
+      .catch(() => {
+        if (!cancelled) setVideos([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openReel = (index: number) => {
     setReelStartIndex(index);
     setReelOpen(true);
   };
+
+  if (videos.length === 0) return null;
 
   return (
     <>
@@ -26,7 +44,7 @@ export function VideoDiscoveryRow() {
         <div className="px-4 mb-3">
           <SectionHeader
             title="ویدیوهای محبوب"
-            subtitle="از کسب‌وکارهای شمال ایران"
+            subtitle="جدیدترین‌ها با بیشترین بازدید"
             actionLabel="بیشتر"
             onAction={() => openReel(0)}
             size="md"
@@ -34,7 +52,7 @@ export function VideoDiscoveryRow() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x lg:grid lg:grid-cols-4 lg:overflow-visible lg:snap-none lg:pb-0">
-          {videoItems.map((item, i) => (
+          {videos.map((item, i) => (
             <motion.div
               key={item.id}
               className="snap-start shrink-0 lg:shrink-0"
@@ -51,7 +69,7 @@ export function VideoDiscoveryRow() {
 
       {reelOpen && (
         <ReelViewer
-          videos={videoItems}
+          videos={videos}
           startIndex={reelStartIndex}
           onClose={() => setReelOpen(false)}
         />

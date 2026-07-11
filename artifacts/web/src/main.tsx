@@ -1,7 +1,10 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setDefaultCredentials } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
+
+setDefaultCredentials("include");
 
 const queryClient = new QueryClient({
   defaultOptions: {

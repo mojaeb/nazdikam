@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { cn, avatarGradientIndex, avatarInitial } from "@/lib/utils";
 import { SaveButton } from "@/components/business/SaveButton";
 import type { Service } from "@/lib/mock-data";
+import { serviceSaveTarget } from "@/lib/saved-items";
 
 interface ServiceCardProps {
   service: Service;
@@ -36,7 +37,17 @@ export function ServiceCard({ service, className, onPress }: ServiceCardProps) {
 
         {/* Save button */}
         <div className="absolute top-2.5 end-2.5">
-          <SaveButton variant="icon" size="sm" />
+          <SaveButton
+            variant="icon"
+            size="sm"
+            target={serviceSaveTarget({
+              id: service.id,
+              name: service.name,
+              providerName: service.providerName,
+              providerCity: service.providerCity,
+              priceRange: service.priceRange,
+            })}
+          />
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { InstallmentBadge } from "./InstallmentBadge";
 import { SaveButton } from "@/components/business/SaveButton";
 import { RatingRow } from "@/components/business/RatingRow";
 import type { Product } from "@/lib/product.types";
+import { productSaveTarget } from "@/lib/saved-items";
 
 interface ProductCardHorizontalProps {
   product: Product;
@@ -108,6 +109,7 @@ export function ProductCardHorizontal({
             variant="icon"
             size="sm"
             className="!bg-transparent !text-neutral-400 hover:!text-rose-500 shrink-0 ms-auto"
+            target={productSaveTarget(product)}
           />
         </div>
 

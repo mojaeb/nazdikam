@@ -9,6 +9,7 @@ import { usersTable } from "./users";
 import { businessesTable } from "./businesses";
 import { productsTable } from "./products";
 import { servicesTable } from "./services";
+import { videosTable } from "./content";
 
 export const savedBusinessesTable = pgTable(
   "saved_businesses",
@@ -68,4 +69,19 @@ export const businessFollowersTable = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [unique().on(t.userId, t.businessId)],
+);
+
+export const savedVideosTable = pgTable(
+  "saved_videos",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    videoId: integer("video_id")
+      .notNull()
+      .references(() => videosTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.videoId)],
 );

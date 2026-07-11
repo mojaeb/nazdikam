@@ -1,17 +1,26 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { CatalogPage } from "@/components/dashboard/catalog/CatalogPage";
 import { ListingForm } from "@/components/dashboard/listings/ListingForm";
-import { ProfilePage } from "@/components/dashboard/profile/ProfilePage";
+import { ProfilePage, BusinessContactPage, BusinessLocationPage } from "@/components/dashboard/profile/ProfilePage";
+import { BusinessAnnouncementsPage } from "@/components/dashboard/announcements/BusinessAnnouncementsPage";
+import { BusinessVerificationPage } from "@/components/dashboard/verification/BusinessVerificationPage";
+import { BusinessSupportPage } from "@/components/dashboard/support/BusinessSupportPage";
 import { SubscriptionPage } from "@/components/dashboard/subscription/SubscriptionPage";
 import { LeadsPage } from "@/components/dashboard/leads/LeadsPage";
 import { ReviewsPage } from "@/components/dashboard/reviews/ReviewsPage";
 import { NotificationsPage } from "@/components/dashboard/notifications/NotificationsPage";
 import { AnalyticsPage } from "@/components/dashboard/analytics/AnalyticsPage";
 import { VideosPage } from "@/components/dashboard/videos/VideosPage";
-import { mockSubscription } from "@/lib/dashboard-mock-data";
+import { SubscriptionOverviewCard } from "@/components/dashboard/subscription/SubscriptionOverviewCard";
+import {
+  businessAnalyticsQueryKey,
+  fetchBusinessAnalytics,
+  formatCompactFa,
+} from "@/lib/analytics-api";
 import { toPersianNumerals } from "@/lib/utils";
 import { StoreIcon } from "@/components/icons";
 import { useAuth } from "@/src/contexts/AuthContext";
@@ -38,7 +47,13 @@ function NavIcon({ type }: { type: "tag" | "video" | "phone" | "info" | "map" | 
 function DashboardOverview() {
   const [, navigate] = useLocation();
   const { business, isLoading } = useActiveBusiness();
-  const sub = mockSubscription;
+
+  const { data: analytics } = useQuery({
+    queryKey: businessAnalyticsQueryKey(business?.id ?? 0),
+    queryFn: () => fetchBusinessAnalytics(business!.id),
+    enabled: Boolean(business?.id),
+    staleTime: 30_000,
+  });
 
   if (isLoading) {
     return (
@@ -52,6 +67,17 @@ function DashboardOverview() {
   }
 
   if (!business) return null;
+
+  const summary = analytics?.summary;
+  const metricTiles = [
+    { label: "محصولات", value: toPersianNumerals(summary?.productsCount ?? 0) },
+    { label: "خدمات", value: toPersianNumerals(summary?.servicesCount ?? 0) },
+    { label: "ویدیوها", value: toPersianNumerals(summary?.videosCount ?? 0) },
+    {
+      label: "بازدید",
+      value: toPersianNumerals(formatCompactFa(summary?.viewsCount ?? 0)),
+    },
+  ];
 
   const NAV_CARDS = [
     {
@@ -71,28 +97,76 @@ function DashboardOverview() {
       cardCls: "bg-purple-50 border-purple-100",
     },
     {
-      label: "تماس و شبکه‌های اجتماعی",
-      desc: "تلفن، واتساپ، اینستاگرام، وبسایت",
-      path: "/business/profile",
-      icon: "phone" as const,
-      iconCls: "bg-teal-100 text-teal-600",
-      cardCls: "bg-teal-50 border-teal-100",
-    },
-    {
-      label: "اطلاعات کسب‌وکار",
-      desc: "نام، دسته‌بندی، توضیحات",
+      label: "اطلاعات و رسانه",
+      desc: "نام، دسته‌بندی، توضیحات و تصاویر",
       path: "/business/profile",
       icon: "info" as const,
       iconCls: "bg-amber-100 text-amber-600",
       cardCls: "bg-amber-50 border-amber-100",
     },
     {
+      label: "تماس و شبکه‌های اجتماعی",
+      desc: "تلفن، واتساپ، اینستاگرام، وبسایت",
+      path: "/business/contact",
+      icon: "phone" as const,
+      iconCls: "bg-teal-100 text-teal-600",
+      cardCls: "bg-teal-50 border-teal-100",
+    },
+    {
       label: "آدرس و لوکیشن",
       desc: "نقشه و آدرس دقیق",
-      path: "/business/profile",
+      path: "/business/location",
       icon: "map" as const,
       iconCls: "bg-rose-100 text-rose-600",
       cardCls: "bg-rose-50 border-rose-100",
+    },
+    {
+      label: "اطلاعیه‌ها",
+      desc: "رویدادها، استخدام و اخبار",
+      path: "/business/announcements",
+      icon: "info" as const,
+      iconCls: "bg-orange-100 text-orange-600",
+      cardCls: "bg-orange-50 border-orange-100",
+    },
+    {
+      label: "احراز هویت",
+      desc: "دریافت تیک تأیید در صفحه عمومی",
+      path: "/business/verification",
+      icon: "info" as const,
+      iconCls: "bg-cyan-100 text-cyan-600",
+      cardCls: "bg-cyan-50 border-cyan-100",
+    },
+    {
+      label: "لیدها",
+      desc: "درخواست‌ها و تماس‌های مشتریان",
+      path: "/business/leads",
+      icon: "phone" as const,
+      iconCls: "bg-red-100 text-red-600",
+      cardCls: "bg-red-50 border-red-100",
+    },
+    {
+      label: "نظرات",
+      desc: "مدیریت نظرات مشتریان",
+      path: "/business/reviews",
+      icon: "tag" as const,
+      iconCls: "bg-yellow-100 text-yellow-700",
+      cardCls: "bg-yellow-50 border-yellow-100",
+    },
+    {
+      label: "آمار",
+      desc: "گزارش بازدید و عملکرد",
+      path: "/business/analytics",
+      icon: "info" as const,
+      iconCls: "bg-indigo-100 text-indigo-600",
+      cardCls: "bg-indigo-50 border-indigo-100",
+    },
+    {
+      label: "اشتراک",
+      desc: "پلن و محدودیت‌های حساب",
+      path: "/business/subscription",
+      icon: "tag" as const,
+      iconCls: "bg-slate-100 text-slate-600",
+      cardCls: "bg-slate-50 border-slate-100",
     },
   ];
 
@@ -100,31 +174,10 @@ function DashboardOverview() {
     <div className="px-4 py-5 pb-28 max-w-2xl mx-auto space-y-4" dir="rtl">
 
       {/* ① Subscription card */}
-      <motion.div
-        className="rounded-2xl p-5 text-white"
-        style={{ background: "linear-gradient(135deg,#1860DB,#0A3FA0)" }}
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-vazirmatn text-blue-200 text-xs mb-0.5">اشتراک فعال</p>
-            <p className="font-iran-yekan-x font-bold text-xl leading-tight">{sub.planName}</p>
-            <p className="font-vazirmatn text-blue-200 text-sm mt-1">
-              {toPersianNumerals(sub.daysRemaining)} روز مانده
-            </p>
-          </div>
-          <motion.button
-            type="button"
-            className="shrink-0 h-10 px-4 rounded-xl bg-white/20 hover:bg-white/30 border border-white/20 text-white font-vazirmatn text-sm font-medium transition-colors"
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/business/subscription")}
-          >
-            ارتقاء اشتراک
-          </motion.button>
-        </div>
-      </motion.div>
+      <SubscriptionOverviewCard
+        businessId={business.id}
+        onManage={() => navigate("/business/subscription")}
+      />
 
       {/* ② Business card */}
       <motion.div
@@ -161,12 +214,7 @@ function DashboardOverview() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.08 }}
       >
-        {[
-          { label: "محصولات", value: "۲۰" },
-          { label: "خدمات",   value: "۵"  },
-          { label: "ویدیوها", value: "۳"  },
-          { label: "بازدید",  value: "۱.۲k" },
-        ].map(m => (
+        {metricTiles.map(m => (
           <div
             key={m.label}
             className="bg-white rounded-2xl p-3 text-center"
@@ -227,7 +275,7 @@ function DashboardOverview() {
         type="button"
         className="w-full h-12 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 font-vazirmatn text-sm font-medium flex items-center justify-center gap-2 transition-colors"
         whileTap={{ scale: 0.97 }}
-        onClick={() => navigate("/help")}
+        onClick={() => navigate("/business/support")}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.36 }}
@@ -274,6 +322,11 @@ function DashboardContent() {
   }
 
   if (location === "/business/profile")      return <ProfilePage />;
+  if (location === "/business/contact")      return <BusinessContactPage />;
+  if (location === "/business/location")     return <BusinessLocationPage />;
+  if (location === "/business/announcements") return <BusinessAnnouncementsPage />;
+  if (location === "/business/verification") return <BusinessVerificationPage />;
+  if (location === "/business/support")      return <BusinessSupportPage />;
   if (location === "/business/subscription") return <SubscriptionPage />;
 
   if (location === "/business/leads")        return <LeadsPage />;

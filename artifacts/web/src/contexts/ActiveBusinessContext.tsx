@@ -15,6 +15,7 @@ export interface BusinessRow {
   province: string;
   city: string;
   phone: string;
+  whatsapp: string | null;
   logo: string | null;
   coverImage: string | null;
   description: string | null;
@@ -23,6 +24,8 @@ export interface BusinessRow {
   ownerId: number;
   address: string | null;
   website: string | null;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: string;
   updatedAt: string;
 }

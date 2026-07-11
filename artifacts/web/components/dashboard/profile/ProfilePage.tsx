@@ -1,28 +1,29 @@
-import { useState, useRef } from "react";
-import { useLocation } from "wouter";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals } from "@/lib/utils";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
 import { ImageUploader } from "@/components/dashboard/shared/ImageUploader";
+import { ApiErrorBanner } from "@/components/dashboard/shared/ApiErrorBanner";
 import { Input } from "@/components/ui/input";
-import { CheckIcon, MapPinIcon, PhoneIcon, StoreIcon, VerifiedIcon } from "@/components/icons";
+import { CheckIcon, MapPinIcon, PhoneIcon } from "@/components/icons";
 import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 import {
-  mockProfileInitial, PROVINCES, CITIES, BUSINESS_CATEGORIES,
+  PROVINCES, CITIES,
   type ProfileFormValues,
 } from "@/lib/dashboard-profile-data";
+import {
+  businessToProfileForm,
+  buildUpdatePayload,
+  emptyProfileForm,
+  fetchCategoryOptions,
+  updateBusiness,
+  type CategoryOption,
+} from "@/lib/business-profile-api";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 
-/* ─── Tab config ──────────────────────────────────────── */
-const TABS = [
-  { id: 0, label: "اطلاعات",   icon: "🏪" },
-  { id: 1, label: "تماس",      icon: "📞" },
-  { id: 2, label: "موقعیت",    icon: "📍" },
-  { id: 3, label: "رسانه‌ها",  icon: "🖼" },
-  { id: 4, label: "سئو",       icon: "🔍" },
-] as const;
-
-/* ─── Reusable UI helpers ─────────────────────────────── */
+/* ─── Tab sections ────────────────────────────────────── */
 function Section({ title, description, children }: {
   title: string; description?: string; children: React.ReactNode;
 }) {
@@ -164,7 +165,15 @@ function ChipInput({
 }
 
 /* ─── Tab sections ────────────────────────────────────── */
-function BusinessInfoTab({ v, set }: { v: ProfileFormValues; set: <K extends keyof ProfileFormValues>(k: K, val: ProfileFormValues[K]) => void }) {
+function BusinessInfoTab({
+  v,
+  set,
+  categories,
+}: {
+  v: ProfileFormValues;
+  set: <K extends keyof ProfileFormValues>(k: K, val: ProfileFormValues[K]) => void;
+  categories: CategoryOption[];
+}) {
   return (
     <motion.div className="space-y-5" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
       <Section title="اطلاعات اصلی" description="اطلاعات اساسی کسب‌وکار شما که در صفحه عمومی نمایش داده می‌شود">
@@ -176,15 +185,15 @@ function BusinessInfoTab({ v, set }: { v: ProfileFormValues; set: <K extends key
         </Field>
         <Field label="دسته‌بندی اصلی">
           <BottomSheetSelect
-            value={v.category}
-            onChange={val => set("category", val)}
-            options={BUSINESS_CATEGORIES.map(c => ({ value: c, label: c }))}
+            value={v.categoryId}
+            onChange={val => set("categoryId", val)}
+            options={categories.map(c => ({ value: String(c.id), label: c.name }))}
             title="انتخاب دسته‌بندی"
-            searchable={false}
+            searchable
             placeholder="انتخاب دسته‌بندی"
           />
         </Field>
-        <Field label="برچسب‌ها" hint="Enter یا کاما بزنید تا برچسب اضافه شود">
+        <Field label="برچسب‌ها" hint="فعلاً فقط در داشبورد نمایش داده می‌شود">
           <ChipInput values={v.tags} onChange={t => set("tags", t)} placeholder="برچسب بنویسید..." />
         </Field>
       </Section>
@@ -374,37 +383,133 @@ function SEOTab({ v, set }: { v: ProfileFormValues; set: <K extends keyof Profil
 }
 
 /* ─── Main page ───────────────────────────────────────── */
-export function ProfilePage() {
-  const [, navigate]    = useLocation();
-  const [values, setValues] = useState<ProfileFormValues>(mockProfileInitial);
-  const initialRef          = useRef(JSON.stringify(mockProfileInitial));
-  const [activeTab, setActiveTab]       = useState(0);
-  const [saveSuccess, setSaveSuccess]   = useState(false);
+export type ProfileSection = "info-media" | "contact" | "location";
+
+const SECTION_META: Record<ProfileSection, { title: string; subtitle: string }> = {
+  "info-media": {
+    title: "اطلاعات و رسانه",
+    subtitle: "نام، دسته‌بندی، توضیحات و تصاویر کسب‌وکار",
+  },
+  contact: {
+    title: "تماس و شبکه‌های اجتماعی",
+    subtitle: "تلفن، واتساپ، وب‌سایت و راه‌های ارتباطی",
+  },
+  location: {
+    title: "آدرس و لوکیشن",
+    subtitle: "استان، شهر، آدرس و موقعیت روی نقشه",
+  },
+};
+
+function ProfileFormSection({ section }: { section: ProfileSection }) {
+  const { business, isLoading: bizLoading, reload } = useActiveBusiness();
+  const [values, setValues] = useState<ProfileFormValues>(emptyProfileForm());
+  const initialRef = useRef(JSON.stringify(emptyProfileForm()));
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [hydratedId, setHydratedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    void fetchCategoryOptions().then(setCategories);
+  }, []);
+
+  useEffect(() => {
+    if (!business) return;
+    if (hydratedId === business.id) return;
+    const form = businessToProfileForm(business);
+    setValues(form);
+    initialRef.current = JSON.stringify(form);
+    setHydratedId(business.id);
+  }, [business, hydratedId]);
 
   const isDirty = JSON.stringify(values) !== initialRef.current;
+  const meta = SECTION_META[section];
 
   const set = <K extends keyof ProfileFormValues>(key: K, val: ProfileFormValues[K]) => {
     setValues(prev => ({ ...prev, [key]: val }));
   };
 
-  const handleSave = () => {
-    setSaveSuccess(true);
-    initialRef.current = JSON.stringify(values);
-    setTimeout(() => setSaveSuccess(false), 3000);
+  const handleSave = async () => {
+    if (!business || saving) return;
+    if (!values.name.trim()) {
+      setSaveError("نام کسب‌وکار الزامی است");
+      return;
+    }
+    if (!values.slug.trim()) {
+      setSaveError("شناسه (slug) الزامی است");
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const payload = await buildUpdatePayload(business.id, values);
+      const updated = await updateBusiness(business.id, payload);
+      const form = businessToProfileForm({ ...business, ...updated });
+      setValues(form);
+      initialRef.current = JSON.stringify(form);
+      setSaveSuccess(true);
+      reload();
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(getApiErrorMessage(err, "ذخیره اطلاعات ناموفق بود"));
+    } finally {
+      setSaving(false);
+    }
   };
 
+  const handleReset = () => {
+    if (!business) {
+      setValues(emptyProfileForm());
+    } else {
+      const form = businessToProfileForm(business);
+      setValues(form);
+      initialRef.current = JSON.stringify(form);
+    }
+    setLeaveConfirm(false);
+  };
+
+  if (bizLoading || (business && hydratedId !== business.id)) {
+    return (
+      <div className="px-4 py-4 max-w-2xl mx-auto space-y-4 animate-pulse" dir="rtl">
+        <div className="h-12 bg-neutral-100 rounded-2xl" />
+        <div className="h-48 bg-neutral-100 rounded-2xl" />
+        <div className="h-32 bg-neutral-100 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!business) {
+    return (
+      <div className="px-4 py-8 max-w-2xl mx-auto text-center" dir="rtl">
+        <p className="font-vazirmatn text-sm text-neutral-500">کسب‌وکاری برای ویرایش یافت نشد</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-5 lg:p-8 max-w-[900px]">
+    <div className="px-4 py-4 pb-28 max-w-2xl mx-auto" dir="rtl">
       <DashboardPageHeader
-        title="پروفایل کسب‌وکار"
-        subtitle="اطلاعات کسب‌وکار خود را مدیریت کنید"
+        title={meta.title}
+        subtitle={meta.subtitle}
+        backPath="/business"
         isDirty={isDirty}
-        action={{ label: saveSuccess ? "✓ ذخیره شد" : "ذخیره تغییرات", onClick: handleSave, disabled: saveSuccess }}
+        action={{
+          label: saving ? "در حال ذخیره..." : saveSuccess ? "✓ ذخیره شد" : "ذخیره تغییرات",
+          onClick: () => void handleSave(),
+          disabled: saveSuccess || saving,
+        }}
         secondaryAction={isDirty ? { label: "لغو", onClick: () => setLeaveConfirm(true) } : undefined}
       />
 
-      {/* Success banner */}
+      {saveError && (
+        <div className="mb-4">
+          <ApiErrorBanner error={new Error(saveError)} fallback="ذخیره اطلاعات ناموفق بود" />
+        </div>
+      )}
+
       <AnimatePresence>
         {saveSuccess && (
           <motion.div
@@ -412,48 +517,33 @@ export function ProfilePage() {
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
           >
             <CheckIcon size={18} className="text-green-600" />
-            <p className="font-vazirmatn text-sm text-green-700 font-medium">پروفایل با موفقیت ذخیره شد</p>
+            <p className="font-vazirmatn text-sm text-green-700 font-medium">اطلاعات با موفقیت ذخیره شد</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-neutral-100 shadow-sm p-1.5 mb-5 overflow-x-auto">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            type="button"
-            className={cn(
-              "flex items-center gap-2 h-9 px-4 rounded-xl font-vazirmatn text-sm font-medium whitespace-nowrap transition-all",
-              activeTab === tab.id
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-neutral-600 hover:bg-neutral-100"
-            )}
-            onClick={() => setActiveTab(tab.id)}
-            aria-selected={activeTab === tab.id}
-          >
-            <span className="text-base">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {section === "info-media" && (
+        <div className="space-y-5">
+          <BusinessInfoTab v={values} set={set} categories={categories} />
+          <MediaTab v={values} set={set} />
+        </div>
+      )}
+      {section === "contact" && <ContactTab v={values} set={set} />}
+      {section === "location" && <LocationTab v={values} set={set} />}
 
-      {/* Tab content */}
-      {activeTab === 0 && <BusinessInfoTab v={values} set={set} />}
-      {activeTab === 1 && <ContactTab      v={values} set={set} />}
-      {activeTab === 2 && <LocationTab     v={values} set={set} />}
-      {activeTab === 3 && <MediaTab        v={values} set={set} />}
-      {activeTab === 4 && <SEOTab          v={values} set={set} />}
-
-      {/* Sticky save (mobile) */}
       {isDirty && (
         <motion.div
-          className="fixed bottom-20 lg:bottom-6 start-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-neutral-900 text-white px-5 py-3 rounded-2xl shadow-xl"
+          className="fixed bottom-20 start-4 end-4 z-40 flex items-center justify-between gap-3 bg-neutral-900 text-white px-5 py-3 rounded-2xl shadow-xl max-w-md mx-auto"
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         >
           <span className="font-vazirmatn text-sm">تغییرات ذخیره نشده</span>
-          <button type="button" className="h-8 px-4 bg-white text-neutral-900 rounded-xl font-vazirmatn text-xs font-bold hover:bg-neutral-100 transition-colors" onClick={handleSave}>
-            ذخیره
+          <button
+            type="button"
+            className="h-8 px-4 bg-white text-neutral-900 rounded-xl font-vazirmatn text-xs font-bold disabled:opacity-60"
+            disabled={saving}
+            onClick={() => void handleSave()}
+          >
+            {saving ? "..." : "ذخیره"}
           </button>
         </motion.div>
       )}
@@ -461,7 +551,7 @@ export function ProfilePage() {
       <ConfirmDialog
         isOpen={leaveConfirm}
         onClose={() => setLeaveConfirm(false)}
-        onConfirm={() => { setValues(mockProfileInitial); setLeaveConfirm(false); }}
+        onConfirm={handleReset}
         title="لغو تغییرات"
         message="تمام تغییرات اعمال نشده لغو می‌شود. آیا مطمئن هستید؟"
         confirmLabel="بله، لغو شود"
@@ -470,4 +560,16 @@ export function ProfilePage() {
       />
     </div>
   );
+}
+
+export function ProfilePage() {
+  return <ProfileFormSection section="info-media" />;
+}
+
+export function BusinessContactPage() {
+  return <ProfileFormSection section="contact" />;
+}
+
+export function BusinessLocationPage() {
+  return <ProfileFormSection section="location" />;
 }

@@ -37,6 +37,8 @@ function adaptService(s: ServiceDetail): ItemDetailData {
   const gi = s.name.charCodeAt(0) % SERVICE_GRADIENTS.length;
   return {
     type: "service",
+    id: String(s.id),
+    slug: s.slug,
     name: s.name,
     images: [SERVICE_GRADIENTS[gi]!],
     category: s.categoryName,

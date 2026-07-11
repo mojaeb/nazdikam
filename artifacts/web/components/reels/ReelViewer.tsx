@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn, toPersianNumerals, avatarGradientIndex } from "@/lib/utils";
 import type { VideoItem } from "@/lib/mock-data";
+import {
+  getLikedItems,
+  isVideoLiked,
+  removeLikedVideo,
+  upsertLikedVideo,
+  videoItemToLiked,
+} from "@/lib/liked-items";
+import { recordVideoView, setVideoLiked } from "@/lib/video-api";
 
 const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#14b8a6,#0f766e)",
@@ -88,6 +96,61 @@ const slideVariants = {
   }),
 };
 
+/* ─── Video background ──────────────────────────────── */
+function VideoBackground({
+  videoUrl,
+  thumbnailUrl,
+  gradient,
+}: {
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  gradient: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+    const el = videoRef.current;
+    if (!el || !videoUrl) return;
+
+    el.load();
+    void el.play().catch(() => {
+      /* autoplay blocked — muted playback usually succeeds on retry */
+    });
+  }, [videoUrl]);
+
+  if (!videoUrl || failed) {
+    if (thumbnailUrl) {
+      return <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />;
+    }
+    return (
+      <div className="w-full h-full flex items-center justify-center px-8" style={{ background: gradient }}>
+        {failed && (
+          <p className="text-white/80 text-sm font-vazirmatn text-center">
+            فایل ویدیو در دسترس نیست
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      key={videoUrl}
+      src={videoUrl}
+      className="w-full h-full object-cover"
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 /* ─── Props ─────────────────────────────────────────── */
 export interface ReelViewerProps {
   videos: VideoItem[];
@@ -98,11 +161,17 @@ export interface ReelViewerProps {
 export function ReelViewer({ videos, startIndex, onClose }: ReelViewerProps) {
   const [index, setIndex] = useState(startIndex);
   const [direction, setDirection] = useState(0);
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [likedIds, setLikedIds] = useState<Set<string>>(
+    () => new Set(getLikedItems().videos.map((item) => item.id)),
+  );
   const [followedSlugs, setFollowedSlugs] = useState<Set<string>>(new Set());
+  const [viewCounts, setViewCounts] = useState<Record<string, string>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, string>>({});
   const [, navigate] = useLocation();
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
+  const recordedViewsRef = useRef<Set<string>>(new Set());
+  const likeInFlightRef = useRef<Set<string>>(new Set());
 
   const goNext = useCallback(() => {
     setDirection(1);
@@ -129,18 +198,65 @@ export function ReelViewer({ videos, startIndex, onClose }: ReelViewerProps) {
   }, [onClose, goNext, goPrev]);
 
   const video = videos[index];
+
+  useEffect(() => {
+    if (!video?.id) return;
+    if (recordedViewsRef.current.has(video.id)) return;
+    recordedViewsRef.current.add(video.id);
+
+    void recordVideoView(video.id).then((nextCount) => {
+      if (nextCount == null) return;
+      setViewCounts((prev) => ({ ...prev, [video.id]: String(nextCount) }));
+    });
+  }, [video?.id]);
+
   if (!video) return null;
 
   const isLiked = likedIds.has(video.id);
   const isFollowed = followedSlugs.has(video.businessSlug);
   const hasNext = index < videos.length - 1;
+  const displayViewCount = viewCounts[video.id] ?? video.viewCount;
+  const displayLikeCount = likeCounts[video.id] ?? video.likeCount;
 
   const toggleLike = () => {
-    setLikedIds(prev => {
+    if (likeInFlightRef.current.has(video.id)) return;
+
+    const nextLiked = !isVideoLiked(video.id);
+    const currentCount = Number(String(displayLikeCount).replace(/[^\d]/g, "")) || 0;
+    const optimistic = Math.max(0, currentCount + (nextLiked ? 1 : -1));
+
+    if (nextLiked) {
+      upsertLikedVideo({
+        ...videoItemToLiked(video),
+        likeCount: String(optimistic),
+      });
+    } else {
+      removeLikedVideo(video.id);
+    }
+
+    setLikedIds((prev) => {
       const s = new Set(prev);
-      s.has(video.id) ? s.delete(video.id) : s.add(video.id);
+      if (nextLiked) s.add(video.id);
+      else s.delete(video.id);
       return s;
     });
+    setLikeCounts((prev) => ({ ...prev, [video.id]: String(optimistic) }));
+
+    likeInFlightRef.current.add(video.id);
+    void setVideoLiked(video.id, nextLiked)
+      .then((serverCount) => {
+        if (serverCount == null) return;
+        setLikeCounts((prev) => ({ ...prev, [video.id]: String(serverCount) }));
+        if (nextLiked && isVideoLiked(video.id)) {
+          upsertLikedVideo({
+            ...videoItemToLiked(video),
+            likeCount: String(serverCount),
+          });
+        }
+      })
+      .finally(() => {
+        likeInFlightRef.current.delete(video.id);
+      });
   };
 
   const toggleFollow = () => {
@@ -185,8 +301,13 @@ export function ReelViewer({ videos, startIndex, onClose }: ReelViewerProps) {
           exit="exit"
           transition={{ type: "spring", stiffness: 380, damping: 36, mass: 0.8 }}
           className="absolute inset-0"
-          style={{ background: video.gradient }}
-        />
+        >
+          <VideoBackground
+            videoUrl={video.videoUrl}
+            thumbnailUrl={video.thumbnailUrl}
+            gradient={video.gradient}
+          />
+        </motion.div>
       </AnimatePresence>
 
       {/* Gradient overlay */}
@@ -245,7 +366,7 @@ export function ReelViewer({ videos, startIndex, onClose }: ReelViewerProps) {
         >
           <HeartIcon filled={isLiked} />
           <span className="text-white text-[11px] font-vazirmatn leading-none">
-            {toPersianNumerals(video.likeCount)}
+            {toPersianNumerals(displayLikeCount)}
           </span>
         </motion.button>
 
@@ -301,7 +422,8 @@ export function ReelViewer({ videos, startIndex, onClose }: ReelViewerProps) {
               {video.businessName}
             </p>
             <p className="text-white/60 text-xs font-vazirmatn mt-0.5">
-              {video.category} · {video.city}
+              {toPersianNumerals(displayViewCount)} بازدید
+              {video.city ? ` · ${video.city}` : ""}
             </p>
           </div>
           <motion.button

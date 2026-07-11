@@ -19,6 +19,7 @@ export interface Category {
   color: string;          /* primary stroke/text color */
   bgColor: string;        /* light chip background */
   coverGradient: string;  /* hero/card gradient (simulates photo) */
+  icon?: string | null;   /* lucide-react icon name (kebab-case) */
   iconPath: string;       /* SVG path(s), space-separated M commands */
   subcategories: SubCategory[];
   businessCount: number;

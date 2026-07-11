@@ -1,30 +1,12 @@
 import { motion } from "framer-motion";
 import { toPersianNumerals } from "@/lib/utils";
 import type { Category } from "@/lib/category.types";
-
-function CategoryIcon({ path, size = 22 }: { path: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {path.split(/(?= M)/).map((segment, i) => (
-        <path key={i} d={segment.trim()} />
-      ))}
-    </svg>
-  );
-}
+import { CategoryVisualIcon } from "@/lib/category-icons";
 
 function StoreSmallIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 9l1-6h16l1 6" /><path d="M5 9v12h14V9" /><rect x="9" y="14" width="6" height="7" />
-    </svg>
-  );
-}
-
-function TagSmallIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-      <line x1="7" y1="7" x2="7.01" y2="7" />
     </svg>
   );
 }
@@ -62,7 +44,7 @@ export function CategoryCardStandard({ category, onSelect, className }: Category
           className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ backgroundColor: "rgba(255,255,255,0.18)" }}
         >
-          <CategoryIcon path={category.iconPath} size={20} />
+          <CategoryVisualIcon icon={category.icon} iconPath={category.iconPath} color="white" size={20} />
         </div>
       </div>
 
@@ -79,12 +61,6 @@ export function CategoryCardStandard({ category, onSelect, className }: Category
             <StoreSmallIcon />
             {toPersianNumerals(category.businessCount)} کسب‌وکار
           </span>
-          {category.productCount > 0 && (
-            <span className="flex items-center gap-1 text-white/70 text-[10px] font-vazirmatn">
-              <TagSmallIcon />
-              {toPersianNumerals(category.productCount)}
-            </span>
-          )}
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import { InstallmentBadge } from "./InstallmentBadge";
 import { SaveButton } from "@/components/business/SaveButton";
 import { RatingRow } from "@/components/business/RatingRow";
 import type { Product } from "@/lib/product.types";
+import { productSaveTarget } from "@/lib/saved-items";
 
 interface ProductCardFeaturedProps {
   product: Product;
@@ -79,7 +80,7 @@ export function ProductCardFeatured({
           >
             <ShareIcon size={16} />
           </motion.button>
-          <SaveButton variant="icon" size="md" />
+          <SaveButton variant="icon" size="md" target={productSaveTarget(product)} />
         </div>
 
         {/* Inventory bottom-start */}

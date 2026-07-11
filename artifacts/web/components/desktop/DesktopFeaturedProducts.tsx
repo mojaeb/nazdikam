@@ -7,7 +7,7 @@ import { TagIcon } from "@/components/icons";
 import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
 
-const PARAMS = { featured: "true" as const, per_page: 8 };
+const PARAMS = { per_page: 8, sort: "created_at_desc" as const };
 
 export function DesktopFeaturedProducts() {
   const [, navigate] = useLocation();
@@ -22,7 +22,7 @@ export function DesktopFeaturedProducts() {
   );
 
   return (
-    <section className="py-16 bg-white" aria-label="محصولات محلی">
+    <section className="py-16 bg-white" aria-label="جدیدترین کالاها">
       <div className="max-w-[1440px] mx-auto px-10">
         <motion.div
           className="mb-8"
@@ -32,10 +32,10 @@ export function DesktopFeaturedProducts() {
           transition={{ duration: 0.4 }}
         >
           <SectionHeader
-            title="محصولات محلی شمال ایران"
-            subtitle="دستچین شده از بهترین تولیدکنندگان"
+            title="جدیدترین کالاها"
+            subtitle="تازه‌ترین محصولات منتشرشده"
             actionLabel="همه محصولات"
-            onAction={() => navigate("/search")}
+            onAction={() => navigate("/search?type=product")}
             icon={<TagIcon size={18} />}
             size="lg"
           />

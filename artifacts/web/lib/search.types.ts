@@ -2,7 +2,7 @@
 export type QueryIntent = "location" | "category" | "business" | "product";
 
 /* ─── Tabs & View ─────────────────────────────────────── */
-export type ResultTabType = "all" | "businesses" | "products";
+export type ResultTabType = "all" | "businesses" | "products" | "services" | "announcements";
 export type ViewMode = "grid" | "list";
 
 /* ─── Sort ────────────────────────────────────────────── */

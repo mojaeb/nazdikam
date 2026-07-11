@@ -20,6 +20,10 @@ export interface ApiBusinessRaw {
   logo?: string | null;
   categoryName?: string | null;
   distanceKm?: number | null;
+  isFeatured?: boolean | null;
+  followerCount?: number | null;
+  viewsCount?: number | null;
+  isFollowing?: boolean | null;
 }
 
 const DB_GRADIENTS = [
@@ -57,10 +61,10 @@ export function adaptDbBusiness(raw: ApiBusinessRaw): Business {
     website: raw.website ?? undefined,
     rating: 0,
     reviewCount: 0,
-    followersCount: 0,
+    followersCount: raw.followerCount ?? 0,
     verificationStatus: raw.isVerified ? "verified" : "unverified",
     promoted: false,
-    featured: false,
+    featured: Boolean(raw.isFeatured),
     isOpen: true,
     opensAt: "09:00",
     closesAt: "21:00",

@@ -25,6 +25,7 @@ import TermsPage from "./pages/TermsPage";
 import LoginPage from "./pages/LoginPage";
 import CreateBusinessPage from "./pages/CreateBusinessPage";
 import ServiceDetailPage from "./pages/ServiceDetailPage";
+import AdminPage from "./pages/AdminPage";
 
 function SmartHome() {
   return <Home />;
@@ -85,6 +86,8 @@ function Router() {
       <Route path="/terms" component={TermsPage} />
       <Route path="/business" component={DashboardPage} />
       <Route path="/business/*" component={DashboardPage} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/admin/:section" component={AdminPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/account/create-business" component={CreateBusinessPage} />
       <Route path="/dashboard" component={RedirectToBusiness} />

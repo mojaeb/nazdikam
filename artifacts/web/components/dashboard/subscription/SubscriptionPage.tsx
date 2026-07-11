@@ -1,16 +1,23 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { cn, formatPrice, toPersianNumerals } from "@/lib/utils";
+import { cn, toPersianNumerals } from "@/lib/utils";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
 import { ConfirmDialog } from "@/components/dashboard/shared/ConfirmDialog";
-import { mockSubscription } from "@/lib/dashboard-mock-data";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
 import {
-  PLAN_CONFIG, FEATURE_ROWS, mockPlanUsage, mockBillingHistory,
-  usagePercent, isAtLimit,
-  type PlanId,
-} from "@/lib/dashboard-subscription-data";
+  fetchEntitlements,
+  fetchPayments,
+  fetchSubscriptionPlans,
+  isAtLimit,
+  isFreePlanPrice,
+  planPriceLabel,
+  purchasePlan,
+  usagePercent,
+  type PaymentDto,
+  type SubscriptionPlanDto,
+  type EntitlementsDto,
+} from "@/lib/subscription-api";
 
-/* ─── Icons ───────────────────────────────────────────── */
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -18,6 +25,7 @@ function CheckIcon() {
     </svg>
   );
 }
+
 function LockIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -25,80 +33,127 @@ function LockIcon() {
     </svg>
   );
 }
-function InvoiceIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
-    </svg>
-  );
-}
 
-/* ─── Current plan banner ─────────────────────────────── */
-function CurrentPlanBanner({ planId }: { planId: PlanId }) {
-  const plan = PLAN_CONFIG[planId];
-  const { daysRemaining, endDate } = mockSubscription;
-  const urgency = daysRemaining < 7 ? "red" : daysRemaining < 15 ? "amber" : "blue";
+function PlanCard({
+  plan,
+  currentPlanId,
+  onSelect,
+  busy,
+}: {
+  plan: SubscriptionPlanDto;
+  currentPlanId: number | null;
+  onSelect: (id: number) => void;
+  busy: boolean;
+}) {
+  const isCurrent = currentPlanId === plan.id;
+  const accent = plan.color ?? "#1860DB";
+  const isFree = isFreePlanPrice(plan.price);
 
   return (
     <motion.div
-      className="rounded-2xl overflow-hidden"
-      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        "flex flex-col h-full min-w-[220px] min-h-[340px] rounded-2xl border p-5",
+        isCurrent ? "border-2 shadow-md" : "border border-neutral-200",
+      )}
+      style={isCurrent ? { borderColor: accent, boxShadow: `0 4px 24px ${accent}20` } : {}}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
     >
-      <div className="p-6 border" style={{ background: `linear-gradient(135deg, ${plan.color}15 0%, ${plan.color}08 100%)`, borderColor: `${plan.color}30` }}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-sm" style={{ backgroundColor: plan.color }}>
-              {plan.name[0]}
-            </div>
-            <div>
-              <p className="font-vazirmatn text-xs text-neutral-500 mb-0.5">اشتراک فعلی</p>
-              <p className="font-iran-yekan-x font-bold text-neutral-900 text-xl">{plan.name}</p>
-              <p className="font-vazirmatn text-sm text-neutral-500 mt-0.5">
-                انقضا: {endDate} ·{" "}
-                <span className={cn(
-                  "font-bold",
-                  urgency === "red" ? "text-red-600" : urgency === "amber" ? "text-amber-600" : "text-blue-600"
-                )}>
-                  {toPersianNumerals(daysRemaining)} روز مانده
-                </span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {plan.id !== "professional" && (
-              <button type="button" className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-vazirmatn text-sm font-bold shadow-sm transition-colors">
-                ارتقای پلان
-              </button>
-            )}
-            <button type="button" className="h-10 px-4 border border-neutral-200 rounded-xl font-vazirmatn text-sm text-neutral-600 hover:bg-neutral-50 transition-colors">
-              تمدید
-            </button>
-          </div>
+      {plan.badge_text && !isFree && (
+        <div className="flex justify-center mb-3">
+          <span
+            className="inline-flex items-center font-vazirmatn text-[11px] font-bold px-3 py-1 rounded-full text-white whitespace-nowrap"
+            style={{ backgroundColor: accent }}
+          >
+            {plan.badge_text}
+          </span>
         </div>
+      )}
+
+      <div className="min-h-[22px] mb-2">
+        {isCurrent && (
+          <div className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: accent }}>
+            <CheckIcon />
+            پلان فعلی
+          </div>
+        )}
+      </div>
+
+      <h3 className="font-iran-yekan-x font-bold text-neutral-900 text-lg leading-snug">{plan.name}</h3>
+
+      <div className="mt-2 mb-4 min-h-[56px]">
+        {isFree ? (
+          <>
+            <p className="font-iran-yekan-x font-bold text-2xl text-neutral-900 leading-tight">رایگان</p>
+            <p className="font-vazirmatn text-xs text-neutral-500 mt-1">
+              {plan.duration_label ?? "بدون هزینه ماهانه"}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-iran-yekan-x font-bold text-xl text-neutral-900 leading-tight">
+              {planPriceLabel(plan.price)}
+            </p>
+            {plan.duration_label && (
+              <p className="font-vazirmatn text-xs text-neutral-400 mt-1">{plan.duration_label}</p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="flex-1 space-y-2 mb-4">
+        {(plan.highlights ?? []).map(h => (
+          <div key={h} className="flex items-start gap-2">
+            <span className="text-green-600 shrink-0 mt-0.5"><CheckIcon /></span>
+            <p className="font-vazirmatn text-xs text-neutral-600 leading-relaxed">{h}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-auto">
+      {isCurrent ? (
+        <button type="button" disabled
+          className="w-full h-10 rounded-xl border-2 font-vazirmatn text-sm font-bold cursor-default"
+          style={{ borderColor: accent, color: accent }}>
+          پلان فعلی
+        </button>
+      ) : (
+        <motion.button
+          type="button"
+          disabled={busy}
+          className="w-full h-10 rounded-xl text-white font-vazirmatn text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: accent }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => onSelect(plan.id)}
+        >
+          {isFree
+            ? (currentPlanId ? "بازگشت به پلان رایگان" : "شروع رایگان")
+            : (currentPlanId ? `تغییر به ${plan.name}` : `انتخاب ${plan.name}`)}
+        </motion.button>
+      )}
       </div>
     </motion.div>
   );
 }
 
-/* ─── Usage metrics ───────────────────────────────────── */
-function UsageMetrics({ planId }: { planId: PlanId }) {
+function UsageMetrics({ entitlements }: { entitlements: EntitlementsDto }) {
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
       <h2 className="font-iran-yekan-x font-bold text-neutral-800 text-sm mb-4">مصرف پلان</h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockPlanUsage.map((metric, i) => {
-          const pct      = usagePercent(metric);
-          const atLimit  = isAtLimit(metric);
+        {entitlements.usage.map((metric, i) => {
+          const pct = usagePercent(metric.used, metric.limit);
+          const atLimit = isAtLimit(metric.used, metric.limit);
           const isLocked = metric.limit === 0;
 
           return (
             <motion.div
-              key={metric.label}
+              key={metric.key}
               className={cn(
                 "rounded-xl p-4 border",
                 atLimit && !isLocked ? "border-amber-200 bg-amber-50" :
-                isLocked            ? "border-neutral-200 bg-neutral-50" :
-                                      "border-neutral-100 bg-neutral-50"
+                isLocked ? "border-neutral-200 bg-neutral-50" :
+                "border-neutral-100 bg-neutral-50",
               )}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -107,7 +162,9 @@ function UsageMetrics({ planId }: { planId: PlanId }) {
               <div className="flex items-center justify-between mb-2">
                 <p className="font-vazirmatn text-xs font-medium text-neutral-600">{metric.label}</p>
                 {isLocked && <LockIcon />}
-                {atLimit && !isLocked && <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">تکمیل</span>}
+                {atLimit && !isLocked && (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">تکمیل</span>
+                )}
               </div>
 
               {isLocked ? (
@@ -116,8 +173,10 @@ function UsageMetrics({ planId }: { planId: PlanId }) {
                 <>
                   <p className="font-iran-yekan-x font-bold text-lg text-neutral-900 leading-none mb-2">
                     {toPersianNumerals(metric.used)}
-                    {metric.limit !== null && (
-                      <span className="font-vazirmatn text-xs text-neutral-400 font-normal ms-1">/ {toPersianNumerals(metric.limit)}</span>
+                    {metric.limit >= 0 && (
+                      <span className="font-vazirmatn text-xs text-neutral-400 font-normal ms-1">
+                        / {metric.limit < 0 ? "∞" : toPersianNumerals(metric.limit)}
+                      </span>
                     )}
                   </p>
                   <div className="h-1.5 rounded-full bg-neutral-200 overflow-hidden">
@@ -138,240 +197,237 @@ function UsageMetrics({ planId }: { planId: PlanId }) {
   );
 }
 
-/* ─── Plan comparison ─────────────────────────────────── */
-function PlanCard({ planId, currentPlanId, onSelect }: {
-  planId: PlanId; currentPlanId: PlanId; onSelect: (id: PlanId) => void;
-}) {
-  const plan      = PLAN_CONFIG[planId];
-  const isCurrent = planId === currentPlanId;
-  const isUpgrade = ["basic","advanced","professional"].indexOf(planId) > ["basic","advanced","professional"].indexOf(currentPlanId);
-
-  return (
-    <motion.div
-      className={cn(
-        "flex-1 min-w-[220px] rounded-2xl border p-5 relative",
-        isCurrent ? "border-2 shadow-md" : "border border-neutral-200"
-      )}
-      style={isCurrent ? { borderColor: plan.color, boxShadow: `0 4px 24px ${plan.color}20` } : {}}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: ["basic","advanced","professional"].indexOf(planId) * 0.1 }}
-    >
-      {/* Popular badge */}
-      {plan.badge && (
-        <div className="absolute -top-3 start-1/2 -translate-x-1/2">
-          <span className="font-vazirmatn text-[11px] font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: plan.color }}>
-            {plan.badge}
-          </span>
-        </div>
-      )}
-
-      {/* Current badge */}
-      {isCurrent && (
-        <div className="flex items-center gap-1.5 text-[11px] font-bold mb-3" style={{ color: plan.color }}>
-          <CheckIcon />
-          پلان فعلی
-        </div>
-      )}
-
-      {/* Plan name + price */}
-      <h3 className="font-iran-yekan-x font-bold text-neutral-900 text-lg">{plan.name}</h3>
-      <div className="mt-1 mb-4">
-        {plan.price === 0 ? (
-          <p className="font-iran-yekan-x font-bold text-2xl text-neutral-900">رایگان</p>
-        ) : (
-          <div>
-            <p className="font-iran-yekan-x font-bold text-xl text-neutral-900">{formatPrice(plan.price)}</p>
-            <p className="font-vazirmatn text-xs text-neutral-400">در ماه</p>
-          </div>
-        )}
-      </div>
-
-      {/* Features */}
-      <div className="space-y-2.5 mb-5">
-        {FEATURE_ROWS.map(row => {
-          const val = row.getValue(plan.features);
-          const isDisabled = val === "—";
-          return (
-            <div key={row.label} className={cn("flex items-center justify-between gap-2", isDisabled && "opacity-40")}>
-              <p className="font-vazirmatn text-xs text-neutral-600">{row.label}</p>
-              <span className={cn(
-                "font-vazirmatn text-xs font-bold",
-                isDisabled ? "text-neutral-400" : val === "✓" ? "text-green-600" : "text-neutral-800"
-              )}>
-                {val}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* CTA */}
-      {isCurrent ? (
-        <button type="button" disabled
-          className="w-full h-10 rounded-xl border-2 font-vazirmatn text-sm font-bold cursor-default"
-          style={{ borderColor: plan.color, color: plan.color }}>
-          پلان فعلی
-        </button>
-      ) : isUpgrade ? (
-        <motion.button
-          type="button"
-          className="w-full h-10 rounded-xl text-white font-vazirmatn text-sm font-bold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: plan.color }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onSelect(planId)}
-        >
-          ارتقا به {plan.name}
-        </motion.button>
-      ) : (
-        <button type="button"
-          className="w-full h-10 rounded-xl border border-neutral-200 text-neutral-500 font-vazirmatn text-sm font-medium cursor-not-allowed opacity-50"
-          disabled>
-          پلان پایین‌تر
-        </button>
-      )}
-    </motion.div>
-  );
-}
-
-/* ─── Billing history ─────────────────────────────────── */
-function BillingHistory() {
-  const STATUS_CFG = {
-    paid:    { label: "پرداخت شده", cls: "bg-green-100 text-green-700" },
-    pending: { label: "در انتظار",  cls: "bg-amber-100 text-amber-700" },
-    failed:  { label: "ناموفق",     cls: "bg-red-100 text-red-700" },
+function BillingHistory({ payments }: { payments: PaymentDto[] }) {
+  const STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    paid: { label: "پرداخت شده", cls: "bg-green-100 text-green-700" },
+    pending: { label: "در انتظار", cls: "bg-amber-100 text-amber-700" },
+    failed: { label: "ناموفق", cls: "bg-red-100 text-red-700" },
   };
+
+  if (payments.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 text-center">
+        <p className="font-vazirmatn text-sm text-neutral-500">هنوز پرداختی ثبت نشده است</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-neutral-100">
         <h2 className="font-iran-yekan-x font-bold text-neutral-800 text-sm">تاریخچه پرداخت</h2>
-        <button type="button" className="font-vazirmatn text-xs text-blue-600 hover:underline">مشاهده همه</button>
       </div>
       <table className="w-full">
         <thead>
           <tr className="border-b border-neutral-50">
-            {["تاریخ", "پلان", "مبلغ", "وضعیت", ""].map(h => (
+            {["تاریخ", "پلان", "مبلغ", "وضعیت"].map(h => (
               <th key={h} className="py-3 px-4 text-start font-vazirmatn text-xs font-bold text-neutral-400">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {mockBillingHistory.map((entry, i) => (
-            <motion.tr
-              key={entry.id}
-              className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.06 }}
-            >
-              <td className="py-3 px-4 font-vazirmatn text-sm text-neutral-700">{entry.date}</td>
-              <td className="py-3 px-4 font-vazirmatn text-sm text-neutral-700">{entry.plan}</td>
-              <td className="py-3 px-4 font-iran-yekan-x text-sm font-bold text-neutral-800">
-                {entry.amount === 0 ? "رایگان" : formatPrice(entry.amount)}
-              </td>
-              <td className="py-3 px-4">
-                <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-lg", STATUS_CFG[entry.status].cls)}>
-                  {STATUS_CFG[entry.status].label}
-                </span>
-              </td>
-              <td className="py-3 pe-4">
-                {entry.invoice && (
-                  <button type="button" className="flex items-center gap-1 text-neutral-400 hover:text-blue-600 transition-colors">
-                    <InvoiceIcon />
-                    <span className="font-mono text-xs">{entry.invoice}</span>
-                  </button>
-                )}
-              </td>
-            </motion.tr>
-          ))}
+          {payments.map((entry, i) => {
+            const st = STATUS_CFG[entry.status] ?? { label: entry.status, cls: "bg-neutral-100 text-neutral-600" };
+            return (
+              <motion.tr
+                key={entry.id}
+                className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <td className="py-3 px-4 font-vazirmatn text-sm text-neutral-700">
+                  {new Date(entry.created_at).toLocaleDateString("fa-IR")}
+                </td>
+                <td className="py-3 px-4 font-vazirmatn text-sm text-neutral-700">{entry.plan_name ?? "—"}</td>
+                <td className="py-3 px-4 font-iran-yekan-x text-sm font-bold text-neutral-800">
+                  {entry.amount.display_value}
+                </td>
+                <td className="py-3 px-4">
+                  <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-lg", st.cls)}>
+                    {st.label}
+                  </span>
+                </td>
+              </motion.tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-/* ─── Main page ───────────────────────────────────────── */
 export function SubscriptionPage() {
-  const currentPlanId = mockSubscription.plan as PlanId;
-  const [upgradeTarget, setUpgradeTarget] = useState<PlanId | null>(null);
+  const { business } = useActiveBusiness();
+  const [plans, setPlans] = useState<SubscriptionPlanDto[]>([]);
+  const [entitlements, setEntitlements] = useState<EntitlementsDto | null>(null);
+  const [payments, setPayments] = useState<PaymentDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<SubscriptionPlanDto | null>(null);
   const [upgradeConfirm, setUpgradeConfirm] = useState(false);
 
-  const handleSelectPlan = (id: PlanId) => {
-    setUpgradeTarget(id);
-    setUpgradeConfirm(true);
+  const load = useCallback(async () => {
+    if (!business) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [planList, ent, pay] = await Promise.all([
+        fetchSubscriptionPlans(),
+        fetchEntitlements(business.id),
+        fetchPayments(business.id),
+      ]);
+      setPlans(planList);
+      setEntitlements(ent);
+      setPayments(pay);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطا در بارگذاری اشتراک");
+    } finally {
+      setLoading(false);
+    }
+  }, [business?.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const currentPlanId = entitlements?.subscription?.plan_id ?? null;
+  const sub = entitlements?.subscription;
+  const currentPlan = plans.find(p => p.id === currentPlanId);
+  const accent = currentPlan?.color ?? "#1860DB";
+  const currentIsFree = currentPlan ? isFreePlanPrice(currentPlan.price) : false;
+
+  const handlePurchase = async () => {
+    if (!business || !upgradeTarget) return;
+    setBusy(true);
+    try {
+      await purchasePlan(business.id, upgradeTarget.id);
+      setUpgradeConfirm(false);
+      setUpgradeTarget(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطا در خرید اشتراک");
+    } finally {
+      setBusy(false);
+    }
   };
+
+  if (!business) {
+    return (
+      <div className="p-8 text-center font-vazirmatn text-neutral-500">
+        ابتدا یک کسب‌وکار ایجاد کنید
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-5 lg:p-8 max-w-[1200px] space-y-4 animate-pulse">
+        <div className="h-10 bg-neutral-100 rounded-xl w-48" />
+        <div className="h-32 bg-neutral-100 rounded-2xl" />
+        <div className="h-48 bg-neutral-100 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-5 lg:p-8 max-w-[1200px]">
-      <DashboardPageHeader
-        title="اشتراک"
-        subtitle="مدیریت پلان و سابقه پرداخت"
-      />
+      <DashboardPageHeader title="اشتراک" subtitle="مدیریت پلان و سابقه پرداخت" backPath="/business" />
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-700 font-vazirmatn text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-5">
-        {/* Current plan banner */}
-        <div
-          className="rounded-2xl border p-6"
-          style={{ background: `linear-gradient(135deg, ${PLAN_CONFIG[currentPlanId].color}12 0%, ${PLAN_CONFIG[currentPlanId].color}06 100%)`, borderColor: `${PLAN_CONFIG[currentPlanId].color}25` }}
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-sm"
-                style={{ backgroundColor: PLAN_CONFIG[currentPlanId].color }}>
-                {PLAN_CONFIG[currentPlanId].name[0]}
+        {sub ? (
+          <div
+            className="rounded-2xl border p-6"
+            style={{
+              background: `linear-gradient(135deg, ${accent}12 0%, ${accent}06 100%)`,
+              borderColor: `${accent}25`,
+            }}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-sm"
+                  style={{ backgroundColor: accent }}
+                >
+                  {sub.plan_name?.[0] ?? "?"}
+                </div>
+                <div>
+                  <p className="font-vazirmatn text-xs text-neutral-500 mb-0.5">اشتراک فعلی</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-iran-yekan-x font-bold text-neutral-900 text-xl">{sub.plan_name}</p>
+                    {currentIsFree && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-green-100 text-green-700 font-vazirmatn">
+                        رایگان
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-vazirmatn text-sm text-neutral-500 mt-0.5">
+                    انقضا: {new Date(sub.expires_at).toLocaleDateString("fa-IR")} ·{" "}
+                    <span className={cn(
+                      "font-bold",
+                      (sub.days_remaining ?? 0) < 7 ? "text-red-600" :
+                      (sub.days_remaining ?? 0) < 15 ? "text-amber-600" : "text-blue-600",
+                    )}>
+                      {toPersianNumerals(sub.days_remaining ?? 0)} روز مانده
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-vazirmatn text-xs text-neutral-500 mb-0.5">اشتراک فعلی</p>
-                <p className="font-iran-yekan-x font-bold text-neutral-900 text-xl">{PLAN_CONFIG[currentPlanId].name}</p>
-                <p className="font-vazirmatn text-sm text-neutral-500 mt-0.5">
-                  انقضا: {mockSubscription.endDate} ·{" "}
-                  <span className={cn("font-bold", mockSubscription.daysRemaining < 15 ? "text-amber-600" : "text-blue-600")}>
-                    {toPersianNumerals(mockSubscription.daysRemaining)} روز مانده
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button type="button" whileTap={{ scale: 0.97 }}
-                className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-vazirmatn text-sm font-bold shadow-sm transition-colors">
-                ارتقای پلان
-              </motion.button>
-              <button type="button" className="h-10 px-4 border border-neutral-200 rounded-xl font-vazirmatn text-sm text-neutral-600 hover:bg-neutral-50 transition-colors">
-                تمدید
-              </button>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+            <p className="font-vazirmatn text-sm text-amber-800">
+              اشتراک فعالی ندارید. یکی از پلان‌های زیر را انتخاب کنید.
+            </p>
+          </div>
+        )}
 
-        {/* Usage metrics */}
-        <UsageMetrics planId={currentPlanId} />
+        {entitlements && <UsageMetrics entitlements={entitlements} />}
 
-        {/* Plan comparison */}
         <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-iran-yekan-x font-bold text-neutral-800 text-sm">مقایسه پلان‌ها</h2>
-            <span className="font-vazirmatn text-xs text-neutral-400">قیمت‌ها ماهانه</span>
+            <h2 className="font-iran-yekan-x font-bold text-neutral-800 text-sm">پلان‌های اشتراک</h2>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 overflow-x-auto pb-1">
-            {(["basic", "advanced", "professional"] as PlanId[]).map(id => (
-              <PlanCard key={id} planId={id} currentPlanId={currentPlanId} onSelect={handleSelectPlan} />
+          <div className="flex items-stretch gap-4 overflow-x-auto pb-2 pt-1">
+            {plans.map(plan => (
+              <div key={plan.id} className="flex-1 min-w-[220px] max-w-full sm:max-w-[320px]">
+              <PlanCard
+                plan={plan}
+                currentPlanId={currentPlanId}
+                busy={busy}
+                onSelect={(id) => {
+                  const target = plans.find(p => p.id === id) ?? null;
+                  setUpgradeTarget(target);
+                  setUpgradeConfirm(true);
+                }}
+              />
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Billing history */}
-        <BillingHistory />
+        <BillingHistory payments={payments} />
       </div>
 
-      {/* Upgrade confirmation */}
       <ConfirmDialog
         isOpen={upgradeConfirm}
         onClose={() => { setUpgradeConfirm(false); setUpgradeTarget(null); }}
-        onConfirm={() => { /* simulate */ }}
-        title={`ارتقا به پلان ${upgradeTarget ? PLAN_CONFIG[upgradeTarget].name : ""}`}
+        onConfirm={() => void handlePurchase()}
+        title={upgradeTarget ? (isFreePlanPrice(upgradeTarget.price) ? `فعال‌سازی ${upgradeTarget.name}` : `خرید پلان ${upgradeTarget.name}`) : ""}
         message={upgradeTarget
-          ? `با ارتقا به پلان ${PLAN_CONFIG[upgradeTarget].name} ماهانه ${PLAN_CONFIG[upgradeTarget].price === 0 ? "رایگان" : formatPrice(PLAN_CONFIG[upgradeTarget].price)} پرداخت خواهید کرد.`
+          ? (isFreePlanPrice(upgradeTarget.price)
+            ? `پلان ${upgradeTarget.name} به‌صورت رایگان فعال می‌شود.`
+            : `با انتخاب پلان ${upgradeTarget.name} مبلغ ${planPriceLabel(upgradeTarget.price)} پرداخت خواهد شد. (در حالت توسعه، پرداخت به‌صورت آزمایشی انجام می‌شود)`)
           : ""}
-        confirmLabel="تأیید و پرداخت"
+        confirmLabel={busy ? "در حال پردازش..." : (upgradeTarget && isFreePlanPrice(upgradeTarget.price) ? "فعال‌سازی رایگان" : "تأیید و پرداخت")}
         variant="info"
       />
     </div>

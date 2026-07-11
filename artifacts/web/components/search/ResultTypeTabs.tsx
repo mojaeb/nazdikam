@@ -8,12 +8,16 @@ interface ResultTypeTabsProps {
   totalCount: number;
   businessCount: number;
   productCount: number;
+  serviceCount: number;
+  announcementCount: number;
 }
 
 const TABS: Array<{ key: ResultTabType; label: string }> = [
   { key: "all", label: "همه" },
   { key: "businesses", label: "کسب‌وکارها" },
   { key: "products", label: "محصولات" },
+  { key: "services", label: "خدمات" },
+  { key: "announcements", label: "اطلاعیه‌ها" },
 ];
 
 export function ResultTypeTabs({
@@ -22,15 +26,19 @@ export function ResultTypeTabs({
   totalCount,
   businessCount,
   productCount,
+  serviceCount,
+  announcementCount,
 }: ResultTypeTabsProps) {
   const counts: Record<ResultTabType, number> = {
     all: totalCount,
     businesses: businessCount,
     products: productCount,
+    services: serviceCount,
+    announcements: announcementCount,
   };
 
   return (
-    <div className="flex items-center gap-1 px-4 py-2 bg-white border-b border-neutral-100">
+    <div className="flex items-center gap-1 px-4 py-2 bg-white border-b border-neutral-100 overflow-x-auto scrollbar-hide">
       {TABS.map(tab => {
         const count = counts[tab.key];
         const isActive = activeTab === tab.key;
@@ -39,7 +47,7 @@ export function ResultTypeTabs({
             key={tab.key}
             type="button"
             className={cn(
-              "relative flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-xs font-vazirmatn font-medium transition-colors",
+              "relative flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-xs font-vazirmatn font-medium transition-colors shrink-0",
               isActive ? "text-blue-600" : "text-neutral-500 hover:text-neutral-700"
             )}
             whileTap={{ scale: 0.96 }}

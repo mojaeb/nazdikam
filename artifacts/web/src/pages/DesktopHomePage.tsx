@@ -13,11 +13,13 @@ import { DesktopFooter } from "@/components/desktop/DesktopFooter";
 import { CategoryCardFeatured } from "@/components/category/CategoryCardFeatured";
 import { SectionHeader } from "@/components/ui/section-header";
 import { GridIcon } from "@/components/icons";
-import { getPopularCategories } from "@/lib/mock-categories";
+import { useHomeCategories } from "@/lib/categories-api";
 
 function DesktopCategoryHighlights() {
   const [, navigate] = useLocation();
-  const categories = getPopularCategories().slice(0, 8);
+  const { categories } = useHomeCategories(8);
+
+  if (categories.length === 0) return null;
 
   return (
     <section className="py-16 bg-white" aria-label="کشف بر اساس دسته‌بندی">

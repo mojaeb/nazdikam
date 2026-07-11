@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { heroSlides } from "@/lib/mock-data";
-import { Button } from "@/components/ui/button";
+import { heroSlides as mockHeroSlides } from "@/lib/mock-data";
+import {
+  fetchPublicHeroSlides,
+  heroSlideBackgroundStyle,
+  type HeroSlide,
+} from "@/lib/hero-slides";
 import { ChevronEndIcon } from "@/components/icons";
 
 const SLIDE_DURATION = 4500;
@@ -18,17 +23,76 @@ function NorthernIranDecoration() {
   );
 }
 
+function mockAsHeroSlides(): HeroSlide[] {
+  return mockHeroSlides.map((s, i) => ({
+    id: i + 1,
+    title: s.title,
+    subtitle: s.subtitle,
+    cta: s.cta,
+    tag: s.tag,
+    linkUrl: "/categories",
+    backgroundType: "gradient",
+    backgroundImage: null,
+    backgroundColor: null,
+    backgroundGradient: s.accentGradient,
+    sortOrder: i,
+    isActive: true,
+  }));
+}
+
+function useHeroSlides() {
+  const [slides, setSlides] = useState<HeroSlide[]>(() => mockAsHeroSlides());
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPublicHeroSlides()
+      .then((data) => {
+        if (!cancelled && data.length > 0) setSlides(data);
+      })
+      .catch(() => {
+        /* keep mock fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return slides;
+}
+
+function navigateToLink(navigate: (to: string) => void, linkUrl: string | null) {
+  if (!linkUrl) {
+    navigate("/categories");
+    return;
+  }
+  if (linkUrl.startsWith("http://") || linkUrl.startsWith("https://")) {
+    window.open(linkUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+  navigate(linkUrl.startsWith("/") ? linkUrl : `/${linkUrl}`);
+}
+
 export function HeroBanner() {
+  const [, navigate] = useLocation();
+  const slides = useHeroSlides();
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused) return;
+    setCurrent(0);
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (paused || slides.length === 0) return;
     const timer = setInterval(() => {
-      setCurrent(prev => (prev + 1) % heroSlides.length);
+      setCurrent((prev) => (prev + 1) % slides.length);
     }, SLIDE_DURATION);
     return () => clearInterval(timer);
-  }, [paused]);
+  }, [paused, slides.length]);
+
+  if (slides.length === 0) return null;
+
+  const slide = slides[current]!;
 
   return (
     <div className="px-4 pb-4 max-w-[1440px] mx-auto">
@@ -41,62 +105,69 @@ export function HeroBanner() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={heroSlides[current].id}
+            key={slide.id}
             className="absolute inset-0 flex flex-col justify-between p-5"
-            style={{ background: heroSlides[current].accentGradient }}
+            style={heroSlideBackgroundStyle(slide)}
             initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.5, ease: [0.25, 0, 0, 1] }}
           >
-            {/* Tag */}
-            <div className="self-start">
-              <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-vazirmatn px-2.5 py-1 rounded-full">
-                {heroSlides[current].tag}
-              </span>
-            </div>
+            {slide.tag ? (
+              <div className="self-start">
+                <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-vazirmatn px-2.5 py-1 rounded-full">
+                  {slide.tag}
+                </span>
+              </div>
+            ) : (
+              <div />
+            )}
 
-            {/* Decoration */}
             <div className="absolute top-4 start-0">
               <NorthernIranDecoration />
             </div>
 
-            {/* Text content */}
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-10">
               <h2 className="text-title-lg font-iran-yekan-x font-bold text-white leading-snug">
-                {heroSlides[current].title}
+                {slide.title}
               </h2>
-              <p className="text-xs font-vazirmatn text-white/75 leading-relaxed line-clamp-2">
-                {heroSlides[current].subtitle}
-              </p>
+              {slide.subtitle ? (
+                <p className="text-xs font-vazirmatn text-white/75 leading-relaxed line-clamp-2">
+                  {slide.subtitle}
+                </p>
+              ) : null}
               <motion.button
+                type="button"
                 className="mt-1 flex items-center gap-1.5 bg-white text-blue-700 text-xs font-vazirmatn font-bold px-4 py-2 rounded-xl"
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
+                onClick={() => navigateToLink(navigate, slide.linkUrl)}
               >
-                {heroSlides[current].cta}
+                {slide.cta}
                 <ChevronEndIcon size={13} />
               </motion.button>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Dot indicators */}
-        <div className="absolute bottom-4 end-5 flex gap-1.5">
-          {heroSlides.map((_, i) => (
-            <motion.button
-              key={i}
-              className="rounded-full bg-white transition-all duration-300"
-              animate={{
-                width: i === current ? 20 : 6,
-                opacity: i === current ? 1 : 0.4,
-              }}
-              style={{ height: 6 }}
-              onClick={() => setCurrent(i)}
-              aria-label={`اسلاید ${i + 1}`}
-            />
-          ))}
-        </div>
+        {slides.length > 1 ? (
+          <div className="absolute bottom-4 end-5 flex gap-1.5 z-10">
+            {slides.map((_, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                className="rounded-full bg-white transition-all duration-300"
+                animate={{
+                  width: i === current ? 20 : 6,
+                  opacity: i === current ? 1 : 0.4,
+                }}
+                style={{ height: 6 }}
+                onClick={() => setCurrent(i)}
+                aria-label={`اسلاید ${i + 1}`}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );

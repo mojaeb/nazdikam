@@ -55,16 +55,29 @@ export function ImageUploader({ images, onChange, maxImages = 6 }: ImageUploader
     if (!files || !canAddMore) return;
     const remaining = maxImages - images.length;
     const toProcess = Array.from(files).slice(0, remaining).filter(f => f.type.startsWith("image/"));
+    if (toProcess.length === 0) return;
 
-    toProcess.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const url = e.target?.result as string;
-        if (url) {
-          onChange([...images, { id: genId(), url }]);
-        }
-      };
-      reader.readAsDataURL(file);
+    Promise.all(
+      toProcess.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const url = e.target?.result as string;
+              if (url) resolve(url);
+              else reject(new Error("read failed"));
+            };
+            reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+            reader.readAsDataURL(file);
+          }),
+      ),
+    ).then((urls) => {
+      onChange([
+        ...images,
+        ...urls.map((url) => ({ id: genId(), url })),
+      ]);
+    }).catch(() => {
+      /* ignore read errors */
     });
   };
 

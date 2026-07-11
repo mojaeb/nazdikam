@@ -1,16 +1,7 @@
 import { motion } from "framer-motion";
 import { toPersianNumerals } from "@/lib/utils";
 import type { Category } from "@/lib/category.types";
-
-function CategoryIcon({ path, color, size = 26 }: { path: string; color: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {path.split(/(?= M)/).map((segment, i) => (
-        <path key={i} d={segment.trim()} />
-      ))}
-    </svg>
-  );
-}
+import { CategoryVisualIcon } from "@/lib/category-icons";
 
 interface CategoryCardCompactProps {
   category: Category;
@@ -35,8 +26,9 @@ export function CategoryCardCompact({ category, onSelect, isActive = false }: Ca
         animate={{ backgroundColor: isActive ? category.color : category.bgColor }}
         transition={{ duration: 0.2 }}
       >
-        <CategoryIcon
-          path={category.iconPath}
+        <CategoryVisualIcon
+          icon={category.icon}
+          iconPath={category.iconPath}
           color={isActive ? "#fff" : category.color}
           size={26}
         />

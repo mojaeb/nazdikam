@@ -58,6 +58,8 @@ export interface VideoItem {
   gradient: string;
   duration: string;
   isFeatured?: boolean;
+  videoUrl?: string;
+  thumbnailUrl?: string;
 }
 
 export interface Deal {

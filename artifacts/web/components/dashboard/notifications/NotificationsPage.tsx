@@ -124,6 +124,7 @@ export function NotificationsPage() {
       <DashboardPageHeader
         title={`اعلان‌ها${unreadCount > 0 ? ` (${toPersianNumerals(unreadCount)} خوانده نشده)` : ""}`}
         subtitle="مرکز اطلاع‌رسانی کسب‌وکار"
+        backPath="/business"
         action={unreadCount > 0 ? { label: "همه را خواندم", onClick: markAllRead } : undefined}
       />
 

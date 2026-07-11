@@ -60,7 +60,7 @@ export function BottomNav() {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 px-3 pb-3 pb-safe pointer-events-none">
+    <div className="fixed bottom-[2px] inset-x-0 z-50 px-3 pb-3 pb-safe pointer-events-none">
       <div className="max-w-lg mx-auto">
       <div
         className="pointer-events-auto flex items-stretch h-[62px] rounded-[22px] border border-neutral-200/70 px-1 gap-0.5"

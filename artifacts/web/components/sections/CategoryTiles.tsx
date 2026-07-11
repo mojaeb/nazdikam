@@ -1,33 +1,14 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getPopularCategories } from "@/lib/mock-categories";
+import { CategoryVisualIcon } from "@/lib/category-icons";
+import { useHomeCategories } from "@/lib/categories-api";
 
 const VISIBLE_COUNT = 8;
 
-function CategoryIcon({ path, color }: { path: string; color: string }) {
-  return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {path.split(/(?= M)/).map((segment, i) => (
-        <path key={i} d={segment.trim()} />
-      ))}
-    </svg>
-  );
-}
-
 export function CategoryTiles() {
   const [, navigate] = useLocation();
-  const categories = getPopularCategories().slice(0, VISIBLE_COUNT);
+  const { categories, isLoading } = useHomeCategories(VISIBLE_COUNT);
 
   return (
     <motion.section
@@ -47,28 +28,39 @@ export function CategoryTiles() {
       </div>
 
       <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4 pb-1 snap-x snap-mandatory lg:grid lg:grid-cols-4 xl:grid-cols-9 lg:overflow-visible lg:snap-none lg:pb-0 lg:gap-4">
-        {categories.map((cat) => (
-          <motion.button
-            key={cat.id}
-            className="flex flex-col items-center gap-2 shrink-0 snap-start lg:shrink-0"
-            whileTap={{ scale: 0.94 }}
-            transition={{ duration: 0.12 }}
-            onClick={() => navigate(`/categories/${cat.slug}`)}
-            aria-label={cat.name}
-          >
-            <div
-              className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center elevation-1"
-              style={{ backgroundColor: cat.bgColor }}
-            >
-              <CategoryIcon path={cat.iconPath} color={cat.color} />
-            </div>
-            <span className="text-[11px] font-vazirmatn font-medium text-neutral-700 text-center leading-tight max-w-[72px]">
-              {cat.name}
-            </span>
-          </motion.button>
-        ))}
+        {isLoading && categories.length === 0
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 shrink-0 snap-start">
+                <div className="w-[72px] h-[72px] rounded-2xl bg-neutral-100 animate-pulse" />
+                <div className="h-3 w-12 rounded bg-neutral-100 animate-pulse" />
+              </div>
+            ))
+          : categories.map((cat) => (
+              <motion.button
+                key={cat.id}
+                className="flex flex-col items-center gap-2 shrink-0 snap-start lg:shrink-0"
+                whileTap={{ scale: 0.94 }}
+                transition={{ duration: 0.12 }}
+                onClick={() => navigate(`/categories/${cat.slug}`)}
+                aria-label={cat.name}
+              >
+                <div
+                  className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center elevation-1"
+                  style={{ backgroundColor: cat.bgColor }}
+                >
+                  <CategoryVisualIcon
+                    icon={cat.icon}
+                    iconPath={cat.iconPath}
+                    color={cat.color}
+                    size={28}
+                  />
+                </div>
+                <span className="text-[11px] font-vazirmatn font-medium text-neutral-700 text-center leading-tight max-w-[72px]">
+                  {cat.name}
+                </span>
+              </motion.button>
+            ))}
 
-        {/* "See all" tile */}
         <motion.button
           className="flex flex-col items-center gap-2 shrink-0 snap-start lg:shrink-0"
           whileTap={{ scale: 0.94 }}

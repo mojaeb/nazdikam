@@ -7,6 +7,8 @@ import { BestInstallmentsSection } from "@/components/sections/BestInstallmentsS
 import { AdBannerSection } from "@/components/sections/AdBannerSection";
 import { NearYouSection } from "@/components/sections/NearYouSection";
 import { FeaturedBusinesses } from "@/components/sections/FeaturedBusinesses";
+import { BusinessAnnouncementsSection } from "@/components/sections/BusinessAnnouncementsSection";
+import { PopularBusinessesSection } from "@/components/sections/PopularBusinessesSection";
 import { VideoDiscoveryRow } from "@/components/sections/VideoDiscoveryRow";
 import { LatestSection } from "@/components/sections/LatestSection";
 import { RegisterBizBanner } from "@/components/sections/RegisterBizBanner";
@@ -40,16 +42,22 @@ export default function Home() {
       {/* S7: Near You — only when city is selected */}
       <NearYouSection />
 
-      {/* S8: Popular Businesses */}
+      {/* S8: Featured Businesses */}
       <FeaturedBusinesses />
 
-      {/* S9: Business Videos — discovery content, not at top */}
+      {/* S9: Business Announcements */}
+      <BusinessAnnouncementsSection />
+
+      {/* S10: Business Videos */}
       <VideoDiscoveryRow />
 
-      {/* S10: Latest Products & Services */}
+      {/* S11: Popular Businesses */}
+      <PopularBusinessesSection />
+
+      {/* S12: Newest products */}
       <LatestSection />
 
-      {/* S11: Register Your Business Banner */}
+      {/* S13: Register Your Business Banner */}
       <RegisterBizBanner />
 
       <HomeFooter />

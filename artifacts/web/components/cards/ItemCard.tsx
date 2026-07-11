@@ -18,6 +18,16 @@ export interface ItemCardProps {
   className?: string;
 }
 
+function isImageUrl(value: string): boolean {
+  const src = value.trim().toLowerCase();
+  return (
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("/") ||
+    src.startsWith("data:image/")
+  );
+}
+
 export function ItemCard({
   name,
   image,
@@ -31,6 +41,7 @@ export function ItemCard({
 }: ItemCardProps) {
   const hasDiscount = discountPercent != null && discountPercent > 0;
   const hasInstallment = installmentMonths != null && installmentMonths > 0;
+  const showImage = isImageUrl(image);
 
   const finalPriceDisplay =
     priceLabel ??
@@ -55,7 +66,11 @@ export function ItemCard({
     >
       {/* Image / gradient area */}
       <div className="relative bg-neutral-100" style={{ height: 144 }}>
-        <div className="absolute inset-0" style={{ background: image }} />
+        {showImage ? (
+          <img src={image} alt={name} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0" style={{ background: image }} />
+        )}
 
         {/* Discount badge — top start */}
         {hasDiscount && (

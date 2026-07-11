@@ -33,6 +33,19 @@ export interface ReelCardProps {
   className?: string;
 }
 
+function ReelBackground({ item }: { item: VideoItem }) {
+  if (item.thumbnailUrl) {
+    return (
+      <img
+        src={item.thumbnailUrl}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+    );
+  }
+  return <div className="absolute inset-0" style={{ background: item.gradient }} />;
+}
+
 export function ReelCard({ item, mode = "story", onPress, className }: ReelCardProps) {
   /* ── Grid mode: square Instagram-style cell ── */
   if (mode === "grid") {
@@ -46,7 +59,7 @@ export function ReelCard({ item, mode = "story", onPress, className }: ReelCardP
         transition={{ duration: 0.15 }}
         aria-label={`ویدیو ${item.businessName}`}
       >
-        <div className="absolute inset-0" style={{ background: item.gradient }} />
+        <ReelBackground item={item} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
         <div className="absolute inset-0 flex items-center justify-center">
@@ -80,7 +93,7 @@ export function ReelCard({ item, mode = "story", onPress, className }: ReelCardP
       transition={{ duration: 0.15 }}
       aria-label={`ویدیو ${item.businessName}`}
     >
-      <div className="absolute inset-0" style={{ background: item.gradient }} />
+      <ReelBackground item={item} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/20" />
 
       <div className="absolute inset-0 flex items-center justify-center">

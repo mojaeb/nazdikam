@@ -17,6 +17,14 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _defaultCredentials: RequestCredentials | undefined;
+
+/**
+ * Set default `credentials` for every fetch (e.g. `"include"` for cookie sessions in web).
+ */
+export function setDefaultCredentials(credentials: RequestCredentials | undefined): void {
+  _defaultCredentials = credentials;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -148,7 +156,21 @@ function truncate(text: string, maxLength = 300): string {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
+function getNestedApiError(data: unknown): { message?: string; code?: string } | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const nested = (data as Record<string, unknown>).error;
+  if (!nested || typeof nested !== "object") return undefined;
+  const rec = nested as Record<string, unknown>;
+  const message = typeof rec.message === "string" ? rec.message.trim() : undefined;
+  const code = typeof rec.code === "string" ? rec.code : undefined;
+  if (!message && !code) return undefined;
+  return { message: message || undefined, code };
+}
+
 function buildErrorMessage(response: Response, data: unknown): string {
+  const nested = getNestedApiError(data);
+  if (nested?.message) return nested.message;
+
   const prefix = `HTTP ${response.status} ${response.statusText}`;
 
   if (typeof data === "string") {
@@ -360,7 +382,9 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const credentials = init.credentials ?? _defaultCredentials;
+
+  const response = await fetch(input, { ...init, method, headers, credentials });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

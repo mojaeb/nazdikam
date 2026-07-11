@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { avatarGradientIndex } from "@/lib/utils";
 import {
   LogOutIcon, UserIcon, StarIcon,
-  BookmarkIcon, StoreIcon, MapPinIcon, SettingsIcon,
+  BookmarkIcon, StoreIcon, MapPinIcon,
 } from "@/components/icons";
 import { BottomNav } from "@/components/sections/BottomNav";
 import { UnifiedHeader } from "@/components/shared/UnifiedHeader";
@@ -156,7 +156,7 @@ function SectionRow({ icon, label, onClick }: { icon: React.ReactNode; label: st
 export default function AccountPage() {
   const [, navigate] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, isLoggedIn, isLoading, logout } = useAuth();
+  const { user, isLoggedIn, isLoading, logout, refresh } = useAuth();
   const { show: showLoginModal } = useLoginModal();
   const { selectedCity } = useCity();
   const [businesses, setBusinesses] = useState<ApiBusiness[]>([]);
@@ -214,6 +214,17 @@ export default function AccountPage() {
     navigate("/");
   };
 
+  const enterBusinessDashboard = async (businessId: number) => {
+    await fetch("/api/businesses/switch-active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ businessId }),
+    });
+    await refresh();
+    navigate("/business");
+  };
+
   const bizSummaries = businesses.map(b => ({
     id: b.id,
     name: b.name,
@@ -260,15 +271,6 @@ export default function AccountPage() {
               </div>
             )}
           </div>
-
-          <motion.button
-            type="button"
-            className="h-9 px-6 rounded-xl border border-neutral-200 text-sm font-vazirmatn font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-            whileTap={{ scale: 0.97 }}
-            onClick={() => navigate("/account/edit")}
-          >
-            ویرایش پروفایل
-          </motion.button>
         </motion.div>
 
         {/* ── Business section ── */}
@@ -277,29 +279,37 @@ export default function AccountPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.05 }}
         >
+          <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1 mb-2">کسب‌وکارهای شما</p>
           {bizLoading ? (
             <div className="h-20 bg-white rounded-2xl animate-pulse" style={{ boxShadow: "var(--shadow-elevation-1)" }} />
           ) : businesses.length === 0 ? (
-            <motion.button
-              type="button"
-              className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-iran-yekan-x font-bold text-[15px] flex items-center justify-center gap-3 transition-colors"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate("/account/create-business")}
+            <div
+              className="bg-white rounded-2xl p-5 text-center space-y-3"
+              style={{ boxShadow: "var(--shadow-elevation-1)" }}
             >
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                <StoreIcon size={18} className="text-white" />
-              </div>
-              ثبت کسب‌وکار
-            </motion.button>
+              <p className="font-vazirmatn text-sm text-neutral-500 leading-relaxed">
+                هنوز کسب‌وکاری ثبت نکرده‌اید. برای فروش محصولات و خدمات، یک کسب‌وکار جدید ایجاد کنید.
+              </p>
+              <motion.button
+                type="button"
+                className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-iran-yekan-x font-bold text-[15px] flex items-center justify-center gap-3 transition-colors"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate("/account/create-business")}
+              >
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                  <StoreIcon size={18} className="text-white" />
+                </div>
+                ایجاد کسب‌وکار جدید
+              </motion.button>
+            </div>
           ) : (
             <div className="space-y-3">
-              <p className="font-iran-yekan-x font-bold text-neutral-700 text-sm px-1">کسب‌وکارهای شما</p>
               {businesses.map(biz => (
                 <AccountBusinessCard
                   key={biz.id}
                   business={biz}
                   categoryName={biz.categoryId ? (categoryMap.get(biz.categoryId) ?? null) : null}
-                  onEnter={() => navigate("/business")}
+                  onEnter={() => void enterBusinessDashboard(biz.id)}
                 />
               ))}
             </div>
@@ -326,7 +336,7 @@ export default function AccountPage() {
             label="پسندیده‌ها"
             onClick={() => navigate("/account/liked")}
           />
-          <SectionRow icon={<SettingsIcon size={18} />} label="تنظیمات" onClick={() => navigate("/account/settings")} />
+          <SectionRow icon={<UserIcon size={18} />} label="ویرایش پروفایل" onClick={() => navigate("/account/edit")} />
         </motion.div>
 
         {/* ── Logout ── */}
@@ -353,7 +363,7 @@ export default function AccountPage() {
         businesses={bizSummaries}
         activeBusinessId={null}
         onSwitchToPersonal={() => setMenuOpen(false)}
-        onSwitchToBusiness={() => { navigate("/business"); setMenuOpen(false); }}
+        onSwitchToBusiness={id => { setMenuOpen(false); void enterBusinessDashboard(id); }}
         onAddBusiness={() => { navigate("/account/create-business"); setMenuOpen(false); }}
         onLogout={handleLogout}
       />

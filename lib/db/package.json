@@ -8,8 +8,12 @@
     "./schema": "./src/schema/index.ts"
   },
   "scripts": {
-    "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push": "node ./scripts/push.mjs && node ./scripts/ensure-sessions.mjs && node ./scripts/ensure-admin-audit.mjs && node ./scripts/ensure-subscription-plans.mjs && node ./scripts/ensure-videos.mjs && node ./scripts/ensure-announcements.mjs && node ./scripts/ensure-verifications.mjs && node ./scripts/ensure-support-tickets.mjs && node ./scripts/ensure-category-color.mjs && node ./scripts/ensure-hero-slides.mjs && node ./scripts/ensure-business-featured.mjs && node ./scripts/ensure-business-popularity.mjs && node ./scripts/ensure-saved-items.mjs && node ./scripts/reconcile-subscriptions.mjs",
+    "push-force": "node ./scripts/push.mjs --force && node ./scripts/ensure-sessions.mjs && node ./scripts/ensure-admin-audit.mjs && node ./scripts/ensure-subscription-plans.mjs && node ./scripts/ensure-videos.mjs && node ./scripts/ensure-announcements.mjs && node ./scripts/ensure-verifications.mjs && node ./scripts/ensure-support-tickets.mjs && node ./scripts/ensure-category-color.mjs && node ./scripts/ensure-hero-slides.mjs && node ./scripts/ensure-business-featured.mjs && node ./scripts/ensure-business-popularity.mjs && node ./scripts/ensure-saved-items.mjs && node ./scripts/reconcile-subscriptions.mjs",
+    "reconcile-subscriptions": "node ./scripts/reconcile-subscriptions.mjs",
+    "ensure-subscription-plans": "node ./scripts/ensure-subscription-plans.mjs",
+    "ensure-sessions": "node ./scripts/ensure-sessions.mjs",
+    "ensure-admin-audit": "node ./scripts/ensure-admin-audit.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

@@ -143,10 +143,14 @@ export const mockProductEngagement: ProductEngagementMetric[] = [
 /* ─── Helpers ─────────────────────────────────────────── */
 export function funnelPct(steps: FunnelStep[]): FunnelStep[] {
   if (!steps.length) return steps;
-  const top = steps[0].value;
   return steps.map((s, i) => ({
     ...s,
-    pct: i === 0 ? 100 : Math.round(s.value / steps[i - 1].value * 100),
+    pct:
+      i === 0
+        ? 100
+        : steps[i - 1].value > 0
+          ? Math.round((s.value / steps[i - 1].value) * 100)
+          : 0,
   }));
 }
 

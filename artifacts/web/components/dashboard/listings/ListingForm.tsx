@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatPrice } from "@/lib/utils";
 import { DashboardPageHeader } from "@/components/dashboard/shared/DashboardPageHeader";
@@ -9,9 +10,39 @@ import { Input } from "@/components/ui/input";
 import { BottomSheetSelect } from "@/components/ui/bottom-sheet-select";
 import { PlusIcon, CloseIcon } from "@/components/icons";
 import {
-  mockListings, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, INSTALLMENT_COUNTS,
-  type Listing, type ListingType,
+  PRODUCT_CATEGORIES, SERVICE_CATEGORIES, INSTALLMENT_COUNTS,
+  type ListingType,
 } from "@/lib/listing-data";
+import type { Product } from "@workspace/api-client-react";
+import { useActiveBusiness } from "@/src/contexts/ActiveBusinessContext";
+import {
+  useCreateBusinessProduct,
+  useUpdateBusinessProduct,
+  useListBusinessProductsOwner,
+  getListBusinessProductsOwnerQueryKey,
+} from "@workspace/api-client-react";
+import {
+  createOwnerService,
+  ownerServicesQueryKey,
+  parsePersianInt,
+  parseListingRef,
+  uploadProductImage,
+  deleteOwnerProduct,
+  deleteOwnerService,
+  fetchOwnerServices,
+  type OwnerService,
+} from "@/lib/catalog-api";
+import { ApiErrorBanner } from "@/components/dashboard/shared/ApiErrorBanner";
+
+const DEFAULT_COVER_GRADIENT = "linear-gradient(135deg,#1860DB,#0A3FA0)";
+
+function isPersistableImageUrl(url: string): boolean {
+  const value = url.trim();
+  if (!value) return false;
+  if (value.startsWith("data:image/")) return true;
+  if (value.startsWith("blob:")) return false;
+  return true;
+}
 
 /* ─── Form values ────────────────────────────────────── */
 interface ListingFormValues {
@@ -41,6 +72,10 @@ function genSlug(): string {
   return `listing-${Date.now().toString(36).slice(-6)}`;
 }
 
+function genId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function validate(v: ListingFormValues): FormErrors {
   const e: FormErrors = {};
   if (!v.name.trim()) e.name = "عنوان الزامی است";
@@ -58,26 +93,136 @@ function emptyValues(listingType: ListingType = "product"): ListingFormValues {
     hasDiscount: false, discountPercent: "", discountExpiry: "",
     hasInstallment: false, installmentCount: "۳", installmentMonthly: "",
     installmentTotal: "", installmentEligible: "", installmentTerms: "",
-    images: [], isPublished: false,
+    images: [], isPublished: true,
   };
 }
 
-function fromListing(listing: Listing): ListingFormValues {
+function isGradientValue(url: string): boolean {
+  return url.trim().startsWith("linear-gradient");
+}
+
+function dataUrlToFile(dataUrl: string): File {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header?.match(/data:(.*?);/)?.[1] ?? "image/jpeg";
+  const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+  const binary = atob(base64 ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], `image.${ext}`, { type: mime });
+}
+
+async function prepareProductGallery(
+  businessId: string,
+  images: GalleryImage[],
+): Promise<{ gallery: string[]; coverGradient: string }> {
+  const gallery: string[] = [];
+  let placeholderGradient: string | undefined;
+
+  for (const img of images) {
+    if (img.isPlaceholder || (img.gradient && isGradientValue(img.url))) {
+      placeholderGradient ??= img.gradient ?? img.url;
+      continue;
+    }
+    if (!img.url?.trim()) continue;
+
+    if (img.url.startsWith("data:image/")) {
+      const file = dataUrlToFile(img.url);
+      gallery.push(await uploadProductImage(businessId, file, file.name));
+    } else if (isPersistableImageUrl(img.url)) {
+      gallery.push(img.url.trim());
+    }
+  }
+
   return {
-    listingType: listing.listingType,
-    name: listing.name, slug: listing.slug, description: listing.description,
-    category: listing.category, tags: listing.tags,
-    price: String(listing.price),
-    hasDiscount: !!listing.discountPercent,
-    discountPercent: listing.discountPercent ? String(listing.discountPercent) : "",
-    discountExpiry: listing.discountExpiry ?? "",
-    hasInstallment: listing.hasInstallment,
-    installmentCount: listing.installmentCount ? String(listing.installmentCount) : "۳",
-    installmentMonthly: listing.installmentMonthly ? String(listing.installmentMonthly) : "",
-    installmentTotal: "", installmentEligible: "",
-    installmentTerms: listing.installmentTerms ?? "",
-    images: [], isPublished: listing.status === "published",
+    gallery,
+    coverGradient: gallery[0] ?? placeholderGradient ?? DEFAULT_COVER_GRADIENT,
   };
+}
+
+function galleryImagesFromProduct(p: Product): GalleryImage[] {
+  if (p.gallery && p.gallery.length > 0) {
+    return p.gallery.map((url) => ({ id: genId(), url }));
+  }
+  if (p.coverGradient) {
+    if (isGradientValue(p.coverGradient)) {
+      return [{
+        id: genId(),
+        url: p.coverGradient,
+        isPlaceholder: true,
+        gradient: p.coverGradient,
+      }];
+    }
+    return [{ id: genId(), url: p.coverGradient }];
+  }
+  return [];
+}
+
+function productToFormValues(p: Product): ListingFormValues {
+  return {
+    listingType: "product",
+    name: p.name,
+    slug: p.slug,
+    description: p.description ?? "",
+    category: p.category,
+    tags: p.tags ?? [],
+    price: String(p.price),
+    hasDiscount: !!p.discountPercent,
+    discountPercent: p.discountPercent ? String(p.discountPercent) : "",
+    discountExpiry: p.expiresAt ? p.expiresAt.slice(0, 10) : "",
+    hasInstallment: p.isInstallmentAvailable ?? false,
+    installmentCount: p.installmentMonths ? String(p.installmentMonths) : "۳",
+    installmentMonthly: p.installmentMonthlyAmount ? String(p.installmentMonthlyAmount) : "",
+    installmentTotal: "",
+    installmentEligible: "",
+    installmentTerms: p.terms ?? "",
+    images: galleryImagesFromProduct(p),
+    isPublished: p.isPublished ?? false,
+  };
+}
+
+function serviceToFormValues(s: OwnerService): ListingFormValues {
+  return {
+    listingType: "service",
+    name: s.name,
+    slug: s.slug,
+    description: s.description ?? "",
+    category: SERVICE_CATEGORIES[0],
+    tags: [],
+    price: String(s.price ?? 0),
+    hasDiscount: false,
+    discountPercent: "",
+    discountExpiry: "",
+    hasInstallment: false,
+    installmentCount: "۳",
+    installmentMonthly: "",
+    installmentTotal: "",
+    installmentEligible: "",
+    installmentTerms: "",
+    images: s.coverImage ? [{ id: genId(), url: s.coverImage }] : [],
+    isPublished: s.status === "published",
+  };
+}
+
+function resolveEditRef(
+  listingId: string | undefined,
+  products: Product[] | undefined,
+  services: OwnerService[] | undefined,
+): { type: "product" | "service"; id: number } | null {
+  if (!listingId) return null;
+  const parsed = parseListingRef(listingId);
+  if (parsed) return parsed;
+
+  const numeric = Number(listingId);
+  if (Number.isInteger(numeric) && numeric > 0) {
+    if (products?.some((p) => p.id === numeric)) return { type: "product", id: numeric };
+    if (services?.some((s) => s.id === numeric)) return { type: "service", id: numeric };
+  }
+
+  const productBySlug = products?.find((p) => p.slug === listingId);
+  if (productBySlug) return { type: "product", id: productBySlug.id };
+  const serviceBySlug = services?.find((s) => s.slug === listingId);
+  if (serviceBySlug) return { type: "service", id: serviceBySlug.id };
+  return null;
 }
 
 /* ─── UI atoms ───────────────────────────────────────── */
@@ -191,15 +336,51 @@ interface ListingFormProps {
 
 export function ListingForm({ mode, listingId, initialType = "product" }: ListingFormProps) {
   const [, navigate] = useLocation();
-  const existing = listingId ? mockListings.find(l => l.id === listingId) : undefined;
-  const [values, setValues] = useState<ListingFormValues>(
-    existing ? fromListing(existing) : emptyValues(initialType)
+  const queryClient = useQueryClient();
+  const { business } = useActiveBusiness();
+  const createProduct = useCreateBusinessProduct();
+  const updateProduct = useUpdateBusinessProduct();
+  const businessIdStr = business ? String(business.id) : "";
+
+  const { data: ownerProducts } = useListBusinessProductsOwner(
+    businessIdStr,
+    { per_page: 50 },
+    { query: { enabled: mode === "edit" && !!businessIdStr } },
   );
+
+  const { data: ownerServices } = useQuery({
+    queryKey: ownerServicesQueryKey(businessIdStr),
+    queryFn: () => fetchOwnerServices(businessIdStr),
+    enabled: mode === "edit" && !!businessIdStr,
+  });
+  const listingRef = resolveEditRef(listingId, ownerProducts?.data, ownerServices);
+
+  const [values, setValues] = useState<ListingFormValues>(emptyValues(initialType));
+  const [loadedEditId, setLoadedEditId] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [saveError, setSaveError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const firstErrorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (mode !== "edit" || !listingId || loadedEditId === listingId) return;
+
+    if (listingRef?.type === "product") {
+      const product = ownerProducts?.data?.find((p) => p.id === listingRef.id);
+      if (product) {
+        setValues(productToFormValues(product));
+        setLoadedEditId(listingId);
+      }
+    } else if (listingRef?.type === "service" && ownerServices) {
+      const service = ownerServices.find((s) => s.id === listingRef.id);
+      if (service) {
+        setValues(serviceToFormValues(service));
+        setLoadedEditId(listingId);
+      }
+    }
+  }, [mode, listingId, listingRef, ownerProducts, ownerServices, loadedEditId]);
 
   const set = <K extends keyof ListingFormValues>(k: K, val: ListingFormValues[K]) =>
     setValues(prev => ({ ...prev, [k]: val }));
@@ -220,18 +401,108 @@ export function ListingForm({ mode, listingId, initialType = "product" }: Listin
       firstErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    if (!business) {
+      setSaveError("کسب‌وکار فعال یافت نشد");
+      return;
+    }
+
+    if (mode !== "create" && !listingRef) {
+      setSaveError("آیتم برای ویرایش یافت نشد");
+      return;
+    }
+
     setErrors({});
+    setSaveError(null);
     setSaving(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => { setSaved(false); navigate("/business/catalog"); }, 1200);
-    void publish;
+
+    const shouldPublish = publish || values.isPublished;
+    const businessId = String(business.id);
+
+    try {
+      if (values.listingType === "product") {
+        const price = Number(values.price);
+        const discountPercent = values.hasDiscount ? parsePersianInt(values.discountPercent) : undefined;
+        const { gallery, coverGradient } = await prepareProductGallery(businessId, values.images);
+
+        const productPayload = {
+          name: values.name,
+          description: values.description,
+          category: values.category,
+          tags: values.tags,
+          price,
+          discountPercent,
+          expiresAt: values.discountExpiry || undefined,
+          isInstallmentAvailable: values.hasInstallment,
+          installmentMonths: values.hasInstallment ? parsePersianInt(values.installmentCount) : undefined,
+          installmentMonthlyAmount: values.hasInstallment && values.installmentMonthly
+            ? Number(values.installmentMonthly)
+            : undefined,
+          gallery,
+          coverGradient,
+          isPublished: shouldPublish,
+          inventoryStatus: "in-stock" as const,
+        };
+
+        if (mode === "create") {
+          await createProduct.mutateAsync({
+            businessId,
+            data: {
+              ...productPayload,
+              slug: values.slug,
+              businessName: business.name,
+            },
+          });
+        } else if (listingRef?.type === "product") {
+          await updateProduct.mutateAsync({
+            businessId,
+            productId: String(listingRef.id),
+            data: productPayload,
+          });
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: getListBusinessProductsOwnerQueryKey(businessId, { per_page: 50 }),
+        });
+      } else {
+        const price = Number(values.price);
+        await createOwnerService(business.id, {
+          name: values.name,
+          description: values.description || undefined,
+          price: price > 0 ? price : undefined,
+          status: shouldPublish ? "published" : "draft",
+        });
+
+        await queryClient.invalidateQueries({ queryKey: ownerServicesQueryKey(business.id) });
+      }
+
+      setSaved(true);
+      setTimeout(() => { setSaved(false); navigate("/business/catalog"); }, 1200);
+    } catch (e) {
+      setSaveError(e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    await new Promise(r => setTimeout(r, 600));
-    navigate("/business/catalog");
+    if (!business || !listingRef) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (listingRef.type === "product") {
+        await deleteOwnerProduct(String(business.id), listingRef.id);
+        await queryClient.invalidateQueries({
+          queryKey: getListBusinessProductsOwnerQueryKey(String(business.id), { per_page: 50 }),
+        });
+      } else {
+        await deleteOwnerService(String(business.id), listingRef.id);
+        await queryClient.invalidateQueries({ queryKey: ownerServicesQueryKey(business.id) });
+      }
+      navigate("/business/catalog");
+    } catch (e) {
+      setSaveError(e);
+      setSaving(false);
+    }
   };
 
   const titleLabel = values.listingType === "product" ? "محصول" : "خدمت";
@@ -249,6 +520,10 @@ export function ListingForm({ mode, listingId, initialType = "product" }: Listin
       />
 
       <div className="px-4 py-5 max-w-2xl mx-auto space-y-4" ref={firstErrorRef}>
+
+        {saveError && (
+          <ApiErrorBanner error={saveError} fallback="خطا در ذخیره آیتم" />
+        )}
 
         {/* ① Type */}
         <Section title="نوع آیتم">

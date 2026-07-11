@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useLocation } from "wouter";
 import { toPersianNumerals } from "@/lib/utils";
 import { ProductCardStandard } from "@/components/product/ProductCardStandard";
 import { TagIcon } from "@/components/icons";
@@ -19,6 +20,7 @@ interface ProductsBlockProps {
 }
 
 export function ProductsBlock({ products, onTabChange }: ProductsBlockProps) {
+  const [, navigate] = useLocation();
   if (products.length === 0) return null;
   const preview = products.slice(0, 6);
 
@@ -29,7 +31,6 @@ export function ProductsBlock({ products, onTabChange }: ProductsBlockProps) {
       transition={{ duration: 0.3, delay: 0.15 }}
       className="pb-4"
     >
-      {/* Section header */}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-1.5">
           <TagIcon size={15} className="text-amber-500" />
@@ -53,7 +54,6 @@ export function ProductsBlock({ products, onTabChange }: ProductsBlockProps) {
         )}
       </div>
 
-      {/* 2-column grid */}
       <div className="grid grid-cols-2 gap-3 px-4">
         {preview.map((product, i) => (
           <motion.div
@@ -62,7 +62,11 @@ export function ProductsBlock({ products, onTabChange }: ProductsBlockProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <ProductCardStandard product={product} className="w-full" />
+            <ProductCardStandard
+              product={product}
+              className="w-full"
+              onPress={() => navigate(`/products/${product.slug}`)}
+            />
           </motion.div>
         ))}
       </div>

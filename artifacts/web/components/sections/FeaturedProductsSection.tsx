@@ -5,6 +5,12 @@ import { ItemCard } from "@/components/cards/ItemCard";
 import { TagIcon } from "@/components/icons";
 import type { Product } from "@/lib/product.types";
 
+function productImage(p: Product): string {
+  const first = p.gallery?.[0];
+  if (first?.trim()) return first;
+  return p.coverGradient;
+}
+
 interface FeaturedProductsSectionProps {
   title?: string;
   subtitle?: string;
@@ -12,6 +18,7 @@ interface FeaturedProductsSectionProps {
   layout?: "scroll" | "grid";
   onViewAll?: () => void;
   actionLabel?: string;
+  detailPath?: (product: Product) => string;
 }
 
 export function FeaturedProductsSection({
@@ -21,6 +28,7 @@ export function FeaturedProductsSection({
   layout = "scroll",
   onViewAll,
   actionLabel = "همه",
+  detailPath = (p) => `/products/${p.slug}`,
 }: FeaturedProductsSectionProps) {
   const [, navigate] = useLocation();
   if (products.length === 0) return null;
@@ -56,13 +64,13 @@ export function FeaturedProductsSection({
             >
               <ItemCard
                 name={p.name}
-                image={p.coverGradient}
+                image={productImage(p)}
                 discountPercent={p.discountPercent}
                 installmentMonths={p.installmentMonths}
                 price={p.price}
                 originalPrice={p.originalPrice}
                 className="w-full"
-                onPress={() => navigate(`/products/${p.slug}`)}
+                onPress={() => navigate(detailPath(p))}
               />
             </motion.div>
           ))}
@@ -80,12 +88,12 @@ export function FeaturedProductsSection({
             >
               <ItemCard
                 name={p.name}
-                image={p.coverGradient}
+                image={productImage(p)}
                 discountPercent={p.discountPercent}
                 installmentMonths={p.installmentMonths}
                 price={p.price}
                 originalPrice={p.originalPrice}
-                onPress={() => navigate(`/products/${p.slug}`)}
+                onPress={() => navigate(detailPath(p))}
               />
             </motion.div>
           ))}

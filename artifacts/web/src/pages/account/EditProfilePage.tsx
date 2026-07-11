@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/sections/BottomNav";
@@ -35,8 +35,7 @@ function CameraIcon() {
   );
 }
 
-/* ─── Toast ──────────────────────────────────────────── */
-function Toast({ visible }: { visible: boolean }) {
+function Toast({ visible, message }: { visible: boolean; message: string }) {
   return (
     <AnimatePresence>
       {visible && (
@@ -47,7 +46,7 @@ function Toast({ visible }: { visible: boolean }) {
           exit={{ opacity: 0, y: -12 }}
         >
           <div className="bg-neutral-900 text-white font-vazirmatn text-sm px-5 py-3 rounded-2xl shadow-xl">
-            پروفایل با موفقیت ذخیره شد ✓
+            {message}
           </div>
         </motion.div>
       )}
@@ -55,38 +54,145 @@ function Toast({ visible }: { visible: boolean }) {
   );
 }
 
-/* ─── Edit Profile Page ───────────────────────────────── */
+function DeleteAccountModal({
+  open,
+  deleting,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  deleting: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={deleting ? undefined : onClose}
+          />
+          <motion.div
+            className="fixed inset-x-4 top-1/2 z-50 -translate-y-1/2 bg-white rounded-2xl p-5 max-w-sm mx-auto"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            <h2 className="font-iran-yekan-x font-bold text-neutral-900 text-base mb-2">حذف حساب کاربری</h2>
+            <p className="font-vazirmatn text-sm text-neutral-500 leading-relaxed mb-5">
+              با حذف حساب، تمامی اطلاعات شخصی شما از نزدیکام پاک می‌شود. این عمل قابل بازگشت نیست.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="flex-1 h-11 rounded-xl bg-neutral-100 text-neutral-700 font-vazirmatn text-sm font-medium"
+                disabled={deleting}
+                onClick={onClose}
+              >
+                انصراف
+              </button>
+              <button
+                type="button"
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white font-vazirmatn text-sm font-bold disabled:opacity-60"
+                disabled={deleting}
+                onClick={onConfirm}
+              >
+                {deleting ? "در حال حذف..." : "حذف حساب"}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function EditProfilePage() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, refresh, logout } = useAuth();
 
   const displayName = user?.name ?? user?.phone ?? "کاربر";
   const avatarIdx = user?.name ? avatarGradientIndex(user.name) : 0;
 
-  const [name, setName] = useState(displayName === user?.phone ? "" : displayName);
-  const [bio, setBio] = useState("");
-  const [city, setCity] = useState("");
+  const [name, setName] = useState("");
   const [phone] = useState(user?.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initial = user?.name?.trim() || "";
+    setName(initial);
+    setDirty(false);
+  }, [user?.id, user?.name]);
 
   const handleSave = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSaveError("نام الزامی است");
+      return;
+    }
+
     setSaving(true);
-    await new Promise(r => setTimeout(r, 700));
-    setSaving(false);
-    setSaved(true);
-    setDirty(false);
-    setTimeout(() => setSaved(false), 2500);
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+        throw new Error(body.error?.message ?? "ذخیره پروفایل ناموفق بود");
+      }
+      await refresh();
+      setDirty(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "ذخیره پروفایل ناموفق بود");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const mark = () => setDirty(true);
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/auth/me", { method: "DELETE", credentials: "include" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+        throw new Error(body.error?.message ?? "حذف حساب انجام نشد.");
+      }
+      await logout();
+      navigate("/");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "حذف حساب انجام نشد.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F7F8FA] pb-24">
-      <Toast visible={saved} />
+      <Toast visible={saved} message="پروفایل با موفقیت ذخیره شد ✓" />
+      <DeleteAccountModal
+        open={deleteOpen}
+        deleting={deleting}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
 
-      {/* Top bar */}
       <header className="fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-neutral-100 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <motion.button
@@ -106,11 +212,11 @@ export default function EditProfilePage() {
             "h-9 px-5 rounded-xl font-vazirmatn font-bold text-sm transition-colors",
             dirty
               ? "bg-teal-600 text-white shadow-sm"
-              : "bg-neutral-100 text-neutral-400 cursor-default"
+              : "bg-neutral-100 text-neutral-400 cursor-default",
           ].join(" ")}
           whileTap={dirty ? { scale: 0.97 } : {}}
-          onClick={dirty ? handleSave : undefined}
-          disabled={saving}
+          onClick={dirty ? () => void handleSave() : undefined}
+          disabled={saving || !dirty}
           aria-disabled={!dirty}
         >
           {saving ? "در حال ذخیره..." : "ذخیره"}
@@ -118,8 +224,6 @@ export default function EditProfilePage() {
       </header>
 
       <div className="pt-16 px-4 pb-6 max-w-md mx-auto space-y-5">
-
-        {/* ── Avatar ── */}
         <div className="flex justify-center pt-4 pb-2">
           <div className="relative">
             <div
@@ -139,48 +243,23 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* ── Fields ── */}
         <div className="space-y-3">
-          {/* Name */}
           <div className="space-y-1.5">
             <label className="block font-vazirmatn text-xs font-medium text-neutral-500 px-1">نام و نام خانوادگی</label>
             <input
               type="text"
               value={name}
-              onChange={e => { setName(e.target.value); mark(); }}
+              onChange={(e) => {
+                setName(e.target.value);
+                setDirty(true);
+                setSaveError(null);
+              }}
               placeholder="نام خود را وارد کنید"
               className="w-full h-12 bg-white rounded-2xl border border-neutral-200 px-4 font-vazirmatn text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-400 transition-all"
               style={{ boxShadow: "var(--shadow-elevation-1)" }}
             />
           </div>
 
-          {/* Bio */}
-          <div className="space-y-1.5">
-            <label className="block font-vazirmatn text-xs font-medium text-neutral-500 px-1">درباره من</label>
-            <textarea
-              value={bio}
-              onChange={e => { setBio(e.target.value); mark(); }}
-              placeholder="چند جمله درباره خودتان..."
-              rows={3}
-              className="w-full bg-white rounded-2xl border border-neutral-200 px-4 py-3 font-vazirmatn text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-400 transition-all resize-none"
-              style={{ boxShadow: "var(--shadow-elevation-1)" }}
-            />
-          </div>
-
-          {/* City */}
-          <div className="space-y-1.5">
-            <label className="block font-vazirmatn text-xs font-medium text-neutral-500 px-1">شهر</label>
-            <input
-              type="text"
-              value={city}
-              onChange={e => { setCity(e.target.value); mark(); }}
-              placeholder="شهر محل سکونت"
-              className="w-full h-12 bg-white rounded-2xl border border-neutral-200 px-4 font-vazirmatn text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-400 transition-all"
-              style={{ boxShadow: "var(--shadow-elevation-1)" }}
-            />
-          </div>
-
-          {/* Phone (read-only) */}
           {phone && (
             <div className="space-y-1.5">
               <label className="block font-vazirmatn text-xs font-medium text-neutral-500 px-1">شماره موبایل</label>
@@ -196,19 +275,47 @@ export default function EditProfilePage() {
           )}
         </div>
 
-        {/* Save button (bottom) */}
+        {saveError && (
+          <p className="font-vazirmatn text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            {saveError}
+          </p>
+        )}
+
         <motion.button
           type="button"
           className={[
             "w-full h-12 rounded-2xl font-vazirmatn font-bold text-sm transition-colors",
-            dirty ? "bg-teal-600 text-white shadow-sm" : "bg-neutral-100 text-neutral-400"
+            dirty ? "bg-teal-600 text-white shadow-sm" : "bg-neutral-100 text-neutral-400",
           ].join(" ")}
           whileTap={dirty ? { scale: 0.97 } : {}}
-          onClick={dirty ? handleSave : undefined}
-          disabled={saving}
+          onClick={dirty ? () => void handleSave() : undefined}
+          disabled={saving || !dirty}
         >
           {saving ? "در حال ذخیره..." : "ذخیره تغییرات"}
         </motion.button>
+
+        <div
+          className="bg-white rounded-2xl p-4 border border-red-100 space-y-3"
+          style={{ boxShadow: "var(--shadow-elevation-1)" }}
+        >
+          <div>
+            <h2 className="font-iran-yekan-x font-bold text-red-700 text-sm">حذف حساب کاربری</h2>
+            <p className="font-vazirmatn text-xs text-neutral-500 mt-1 leading-relaxed">
+              با حذف حساب، دسترسی شما به ذخیره‌شده‌ها، دنبال‌شده‌ها و کسب‌وکارهای مرتبط از بین می‌رود.
+            </p>
+          </div>
+          {deleteError && (
+            <p className="font-vazirmatn text-xs text-red-600">{deleteError}</p>
+          )}
+          <motion.button
+            type="button"
+            className="w-full h-11 rounded-xl bg-red-50 border border-red-200 text-red-600 font-vazirmatn text-sm font-medium"
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setDeleteOpen(true)}
+          >
+            حذف حساب
+          </motion.button>
+        </div>
       </div>
 
       <BottomNav />

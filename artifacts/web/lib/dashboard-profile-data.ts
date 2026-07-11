@@ -6,7 +6,7 @@ export interface ProfileFormValues {
   name: string;
   slug: string;
   description: string;
-  category: string;
+  categoryId: string;
   tags: string[];
 
   /* Contact */
@@ -27,7 +27,7 @@ export interface ProfileFormValues {
   cover: GalleryImage[];
   gallery: GalleryImage[];
 
-  /* SEO */
+  /* SEO (UI only — not persisted yet) */
   metaTitle: string;
   metaDescription: string;
   keywords: string[];
@@ -64,7 +64,7 @@ export const mockProfileInitial: ProfileFormValues = {
   name:        "کافه کتاب آرمان",
   slug:        "arman-cafe",
   description: "کافه‌ای دنج در قلب لاهیجان با فضایی آرام برای خواندن کتاب و نوشیدن قهوه. ما ترکیبی از بهترین قهوه‌های دنیا و کتاب‌های برگزیده ایرانی را در یک محیط گرم ارائه می‌دهیم.",
-  category:    "کافه و فروشگاه کتاب",
+  categoryId:  "",
   tags:        ["کافه", "کتاب", "لاهیجان", "قهوه", "گیلان"],
 
   phone:    "۰۱۱۴۲۲۳۳۴۴۵",

@@ -12,6 +12,41 @@ import { VoiceSearchOverlay } from "@/components/search/VoiceSearchOverlay";
 import { EmptySearch } from "@/components/search/EmptySearch";
 import { BusinessCardHorizontal } from "@/components/business/BusinessCardHorizontal";
 import { ItemCard } from "@/components/cards/ItemCard";
+import { serviceImage } from "@/lib/api-service-adapter";
+
+function productImage(p: { gallery?: string[]; coverGradient: string }): string {
+  const first = p.gallery?.[0];
+  if (first?.trim()) return first;
+  return p.coverGradient;
+}
+
+function ResultsSkeleton({ grid = false }: { grid?: boolean }) {
+  if (grid) {
+    return (
+      <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-2xl bg-neutral-100 animate-pulse h-52" />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="px-4 pt-3 pb-24 space-y-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-24 rounded-2xl bg-neutral-100 animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
+function ResultsError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+      <p className="font-iran-yekan-x font-bold text-neutral-800 text-sm mb-1">خطا در دریافت نتایج</p>
+      <p className="font-vazirmatn text-neutral-500 text-sm">{message}</p>
+    </div>
+  );
+}
 
 export default function SearchPage() {
   const [, navigate] = useLocation();
@@ -21,7 +56,6 @@ export default function SearchPage() {
 
   return (
     <div dir="rtl" className="flex flex-col bg-white" style={{ height: "100dvh" }}>
-      {/* ─── Sticky top controls ──────────────────────── */}
       <div className="shrink-0 bg-white z-20">
         <SearchHeader
           query={search.query}
@@ -67,16 +101,16 @@ export default function SearchPage() {
                 totalCount={search.totalCount}
                 businessCount={search.businessResults.length}
                 productCount={search.productResults.length}
+                serviceCount={search.serviceResults.length}
+                announcementCount={search.announcementResults.length}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ─── Scrollable content ────────────────────────── */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         <AnimatePresence mode="wait" initial={false}>
-          {/* Idle state */}
           {search.isIdle && (
             <motion.div
               key="idle"
@@ -87,14 +121,16 @@ export default function SearchPage() {
             >
               <SearchIdleState
                 recentSearches={search.recentSearches}
-                onSearch={q => { search.setQuery(q); search.addRecentSearch(q); }}
+                onSearch={(q) => {
+                  search.setQuery(q);
+                  search.addRecentSearch(q);
+                }}
                 onRemoveRecent={search.removeRecentSearch}
                 onClearRecent={search.clearRecentSearches}
               />
             </motion.div>
           )}
 
-          {/* Active: All tab */}
           {!search.isIdle && search.activeTab === "all" && (
             <motion.div
               key="all"
@@ -110,13 +146,17 @@ export default function SearchPage() {
                 categoryResults={search.categoryResults}
                 businessResults={search.businessResults}
                 productResults={search.productResults}
+                serviceResults={search.serviceResults}
+                announcementResults={search.announcementResults}
                 onTabChange={search.setActiveTab}
-                onSearch={q => { search.setQuery(q); }}
+                onSearch={(q) => {
+                  search.setQuery(q);
+                }}
+                isLoading={search.isResultsLoading}
               />
             </motion.div>
           )}
 
-          {/* Active: Businesses tab */}
           {!search.isIdle && search.activeTab === "businesses" && (
             <motion.div
               key="businesses"
@@ -125,7 +165,11 @@ export default function SearchPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              {search.businessResults.length === 0 ? (
+              {search.isBusinessesLoading ? (
+                <ResultsSkeleton />
+              ) : search.isBusinessesError ? (
+                <ResultsError message="خطا در دریافت کسب‌وکارها. لطفاً دوباره تلاش کنید." />
+              ) : search.businessResults.length === 0 ? (
                 <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
               ) : (
                 <div className="px-4 pt-3 pb-24 space-y-3">
@@ -136,7 +180,10 @@ export default function SearchPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
-                      <BusinessCardHorizontal business={b} onPress={() => navigate(`/businesses/${b.slug}`)} />
+                      <BusinessCardHorizontal
+                        business={b}
+                        onPress={() => navigate(`/businesses/${b.slug}`)}
+                      />
                     </motion.div>
                   ))}
                 </div>
@@ -144,7 +191,6 @@ export default function SearchPage() {
             </motion.div>
           )}
 
-          {/* Active: Products tab */}
           {!search.isIdle && search.activeTab === "products" && (
             <motion.div
               key="products"
@@ -154,16 +200,9 @@ export default function SearchPage() {
               transition={{ duration: 0.15 }}
             >
               {search.isProductsLoading ? (
-                <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl bg-neutral-100 animate-pulse h-52" />
-                  ))}
-                </div>
+                <ResultsSkeleton grid />
               ) : search.isProductsError ? (
-                <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-                  <p className="text-3xl mb-3">⚠️</p>
-                  <p className="font-vazirmatn text-neutral-500 text-sm">خطا در دریافت نتایج. لطفاً دوباره تلاش کنید.</p>
-                </div>
+                <ResultsError message="خطا در دریافت نتایج. لطفاً دوباره تلاش کنید." />
               ) : search.productResults.length === 0 ? (
                 <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
               ) : (
@@ -177,7 +216,7 @@ export default function SearchPage() {
                     >
                       <ItemCard
                         name={p.name}
-                        image={p.coverGradient}
+                        image={productImage(p)}
                         discountPercent={p.discountPercent}
                         installmentMonths={p.installmentMonths}
                         price={p.price}
@@ -191,10 +230,89 @@ export default function SearchPage() {
               )}
             </motion.div>
           )}
+
+          {!search.isIdle && search.activeTab === "services" && (
+            <motion.div
+              key="services"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {search.isServicesLoading ? (
+                <ResultsSkeleton grid />
+              ) : search.isServicesError ? (
+                <ResultsError message="خطا در دریافت خدمات. لطفاً دوباره تلاش کنید." />
+              ) : search.serviceResults.length === 0 ? (
+                <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
+              ) : (
+                <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-24">
+                  {search.serviceResults.map((s, i) => (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <ItemCard
+                        name={s.name}
+                        image={serviceImage(s)}
+                        price={s.price}
+                        className="w-full"
+                        onPress={() => navigate(`/services/${s.slug}`)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {!search.isIdle && search.activeTab === "announcements" && (
+            <motion.div
+              key="announcements"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {search.isAnnouncementsLoading ? (
+                <ResultsSkeleton />
+              ) : search.isAnnouncementsError ? (
+                <ResultsError message="خطا در دریافت اطلاعیه‌ها. لطفاً دوباره تلاش کنید." />
+              ) : search.announcementResults.length === 0 ? (
+                <EmptySearch query={search.debouncedQuery} onSuggestionClick={search.setQuery} />
+              ) : (
+                <div className="px-4 pt-3 pb-24 space-y-3">
+                  {search.announcementResults.map((item, i) => (
+                    <motion.button
+                      key={item.id}
+                      type="button"
+                      className="w-full text-start bg-white rounded-2xl border border-neutral-100 p-4 space-y-2"
+                      style={{ boxShadow: "var(--shadow-elevation-1)" }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => navigate(`/businesses/${item.businessSlug}`)}
+                    >
+                      <p className="text-[11px] font-vazirmatn text-blue-600 font-medium truncate">
+                        {item.businessName}
+                      </p>
+                      <p className="text-[14px] font-iran-yekan-x font-bold text-neutral-900">
+                        {item.title}
+                      </p>
+                      <p className="text-[13px] font-vazirmatn text-neutral-500 leading-relaxed">
+                        {item.description}
+                      </p>
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      {/* ─── Overlays ──────────────────────────────────── */}
       <FilterDrawer
         isOpen={search.isFilterOpen}
         filters={search.filters}

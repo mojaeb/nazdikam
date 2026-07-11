@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { ItemCard } from "@/components/cards/ItemCard";
 import { useListProducts, getListProductsQueryKey } from "@workspace/api-client-react";
 import { adaptApiProduct } from "@/lib/api-product-adapter";
+import { serviceImage } from "@/lib/api-service-adapter";
 
 const PARAMS = { per_page: 12, sort: "created_at_desc" as const };
 
@@ -40,12 +41,18 @@ export function LatestSection() {
     >
       <div className="px-4 pt-2 pb-3 flex items-center justify-between">
         <SectionHeader
-          title="جدیدترین‌ها"
-          subtitle="تازه وارد"
+          title="جدیدترین کالاها"
+          subtitle="تازه‌ترین محصولات منتشرشده"
           icon={<SparklesIcon />}
           size="md"
         />
-        <span className="text-[12px] font-vazirmatn text-teal-600 font-semibold">مشاهده همه ›</span>
+        <button
+          type="button"
+          className="text-[12px] font-vazirmatn text-teal-600 font-semibold shrink-0"
+          onClick={() => navigate("/search?type=product")}
+        >
+          مشاهده همه ›
+        </button>
       </div>
 
       {isLoading ? (
@@ -66,11 +73,12 @@ export function LatestSection() {
             >
               <ItemCard
                 name={product.name}
-                image={product.coverGradient}
+                image={serviceImage(product)}
                 discountPercent={product.discountPercent}
                 installmentMonths={product.installmentMonths}
                 price={product.price}
                 originalPrice={product.originalPrice}
+                className="w-full"
                 onPress={() => navigate(`/products/${product.slug}`)}
               />
             </motion.div>

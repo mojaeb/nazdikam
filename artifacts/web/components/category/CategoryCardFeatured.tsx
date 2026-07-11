@@ -1,34 +1,18 @@
 import { motion } from "framer-motion";
 import { toPersianNumerals } from "@/lib/utils";
 import type { Category } from "@/lib/category.types";
-
-function CategoryIcon({ path, size = 28 }: { path: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {path.split(/(?= M)/).map((segment, i) => (
-        <path key={i} d={segment.trim()} />
-      ))}
-    </svg>
-  );
-}
+import { CategoryVisualIcon } from "@/lib/category-icons";
 
 interface CategoryCardFeaturedProps {
   category: Category;
-  onSelect: (slug: string) => void;
+  onSelect?: (slug: string) => void;
   className?: string;
+  staticDisplay?: boolean;
 }
 
-export function CategoryCardFeatured({ category, onSelect, className }: CategoryCardFeaturedProps) {
-  return (
-    <motion.button
-      type="button"
-      className={`relative w-full rounded-2xl overflow-hidden elevation-3 ${className ?? ""}`}
-      style={{ minHeight: 176 }}
-      whileTap={{ scale: 0.985 }}
-      transition={{ duration: 0.15 }}
-      onClick={() => onSelect(category.slug)}
-      aria-label={`کشف ${category.name}`}
-    >
+export function CategoryCardFeatured({ category, onSelect, className, staticDisplay = false }: CategoryCardFeaturedProps) {
+  const inner = (
+    <>
       {/* Gradient background */}
       <div className="absolute inset-0" style={{ background: category.coverGradient }} />
       <div className="absolute inset-0 bg-black/15" />
@@ -47,7 +31,7 @@ export function CategoryCardFeatured({ category, onSelect, className }: Category
           className="w-11 h-11 rounded-2xl flex items-center justify-center"
           style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
         >
-          <CategoryIcon path={category.iconPath} size={24} />
+          <CategoryVisualIcon icon={category.icon} iconPath={category.iconPath} color="white" size={24} />
         </div>
         {category.isFeatured && (
           <span className="h-5 px-2.5 rounded-lg bg-white/25 text-white text-[10px] font-vazirmatn font-bold">
@@ -74,26 +58,20 @@ export function CategoryCardFeatured({ category, onSelect, className }: Category
               </p>
               <p className="text-white/60 font-vazirmatn text-[10px]">کسب‌وکار</p>
             </div>
-            <div className="w-px h-6 bg-white/25" />
-            <div className="text-center">
-              <p className="text-white font-iran-yekan-x font-bold text-base leading-tight">
-                {toPersianNumerals(category.productCount)}
-              </p>
-              <p className="text-white/60 font-vazirmatn text-[10px]">محصول</p>
-            </div>
-            {category.serviceCount > 0 && (
+            {category.subcategories.length > 0 && (
               <>
                 <div className="w-px h-6 bg-white/25" />
                 <div className="text-center">
                   <p className="text-white font-iran-yekan-x font-bold text-base leading-tight">
-                    {toPersianNumerals(category.serviceCount)}
+                    {toPersianNumerals(category.subcategories.length)}
                   </p>
-                  <p className="text-white/60 font-vazirmatn text-[10px]">خدمت</p>
+                  <p className="text-white/60 font-vazirmatn text-[10px]">زیردسته</p>
                 </div>
               </>
             )}
           </div>
 
+          {!staticDisplay && (
           <motion.div
             className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-white/20 border border-white/30 text-white font-vazirmatn text-xs font-bold"
             whileHover={{ backgroundColor: "rgba(255,255,255,0.3)" }}
@@ -103,8 +81,35 @@ export function CategoryCardFeatured({ category, onSelect, className }: Category
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </motion.div>
+          )}
         </div>
       </div>
+    </>
+  );
+
+  if (staticDisplay) {
+    return (
+      <div
+        className={`relative w-full rounded-2xl overflow-hidden elevation-3 ${className ?? ""}`}
+        style={{ minHeight: 176 }}
+        aria-label={category.name}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <motion.button
+      type="button"
+      className={`relative w-full rounded-2xl overflow-hidden elevation-3 ${className ?? ""}`}
+      style={{ minHeight: 176 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ duration: 0.15 }}
+      onClick={() => onSelect?.(category.slug)}
+      aria-label={`کشف ${category.name}`}
+    >
+      {inner}
     </motion.button>
   );
 }

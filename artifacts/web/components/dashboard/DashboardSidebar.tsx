@@ -230,9 +230,14 @@ function NavBtn({ item, isActive, onClick }: { item: NavItem; isActive: boolean;
    ────────────────────────────────────────────────────── */
 const BUSINESS_NAV: NavItem[] = [
   { label: "پیشخوان",              path: "/business",               icon: "home" },
-  { label: "پروفایل کسب‌وکار",    path: "/business/profile",       icon: "store" },
+  { label: "اطلاعات و رسانه",       path: "/business/profile",       icon: "store" },
+  { label: "تماس و شبکه‌ها",        path: "/business/contact",       icon: "wrench" },
+  { label: "آدرس و لوکیشن",         path: "/business/location",      icon: "layers" },
   { label: "محصولات / خدمات",     path: "/business/catalog",       icon: "tag",        badge: 20, badgeColor: "blue" },
   { label: "ویدیوها",              path: "/business/videos",        icon: "video" },
+  { label: "اطلاعیه‌ها",           path: "/business/announcements", icon: "megaphone" },
+  { label: "احراز هویت",           path: "/business/verification",  icon: "user" },
+  { label: "آموزش و پشتیبانی",     path: "/business/support",       icon: "wrench" },
   { label: "پیشنهادها",            path: "/business/offers",        icon: "gift" },
   { label: "طرح‌های اقساطی",      path: "/business/installments",  icon: "layers" },
   { label: "لیدها",                path: "/business/leads",         icon: "trending",   badge: 5,  badgeColor: "red" },

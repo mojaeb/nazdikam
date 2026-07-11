@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/sections/BottomNav";
-import { videoItems, type VideoItem } from "@/lib/mock-data";
+import { ReelViewer } from "@/components/reels/ReelViewer";
+import type { VideoItem } from "@/lib/mock-data";
+import {
+  getLikedItems,
+  likedVideoToItem,
+  removeLikedItem,
+  type LikedItemsState,
+  type LikedProductItem,
+  type LikedServiceItem,
+  type LikedVideoItem,
+} from "@/lib/liked-items";
 
 type TabKey = "videos" | "products" | "services";
 
@@ -10,20 +20,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "videos",   label: "ویدیوها" },
   { key: "products", label: "محصولات" },
   { key: "services", label: "خدمات" },
-];
-
-/* ─── Mock liked data ─────────────────────────────────── */
-const LIKED_VIDEOS = videoItems.slice(0, 6);
-
-const LIKED_PRODUCTS = [
-  { id: "lp1", name: "گیتار آکوستیک یاماها F310", price: "۶٬۵۰۰٬۰۰۰", seller: "موسیقی شمال", gradient: "linear-gradient(135deg,#7C3AED,#3B0764)" },
-  { id: "lp2", name: "دوربین دیجیتال Canon EOS M50", price: "۲۴٬۰۰۰٬۰۰۰", seller: "عکاسی رشت", gradient: "linear-gradient(135deg,#1860DB,#0A3FA0)" },
-  { id: "lp3", name: "رکابی ورزشی نایکی", price: "۱٬۲۰۰٬۰۰۰", seller: "ورزشی مازندران", gradient: "linear-gradient(135deg,#059669,#064E3B)" },
-];
-
-const LIKED_SERVICES = [
-  { id: "ls1", name: "آموزش آنلاین برنامه‌نویسی", priceRange: "ماهی ۸۰۰ هزار تومان", provider: "آکادمی کد شمال", gradient: "linear-gradient(135deg,#0891B2,#164E63)" },
-  { id: "ls2", name: "عکاسی پرتره خانوادگی", priceRange: "از ۲ میلیون تومان", provider: "استودیو لحظه", gradient: "linear-gradient(135deg,#D97706,#78350F)" },
 ];
 
 /* ─── Back icon ───────────────────────────────────────── */
@@ -59,15 +55,37 @@ function EmptyTab({ label }: { label: string }) {
   );
 }
 
+function RemoveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="shrink-0 h-8 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-vazirmatn font-medium"
+    >
+      حذف
+    </button>
+  );
+}
+
 /* ─── Video card ─────────────────────────────────────── */
-function LikedVideoCard({ video }: { video: VideoItem }) {
+function LikedVideoCard({ video, onPress, onRemove }: { video: LikedVideoItem; onPress: () => void; onRemove: () => void }) {
+  const gradient = video.gradient ?? "linear-gradient(135deg,#6366f1,#4338ca)";
   return (
     <motion.div
-      className="bg-white rounded-2xl overflow-hidden flex"
+      className="bg-white rounded-2xl overflow-hidden flex cursor-pointer"
       style={{ boxShadow: "var(--shadow-elevation-1)" }}
       whileTap={{ scale: 0.98 }}
+      onClick={onPress}
     >
-      <div className="w-24 h-16 shrink-0 relative" style={{ background: video.gradient }}>
+      <div className="w-24 h-16 shrink-0 relative">
+        {video.thumbnailUrl ? (
+          <img src={video.thumbnailUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0" style={{ background: gradient }} />
+        )}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="white" aria-hidden="true">
@@ -75,61 +93,115 @@ function LikedVideoCard({ video }: { video: VideoItem }) {
             </svg>
           </div>
         </div>
-        <div className="absolute bottom-1 end-1 h-4 px-1.5 rounded bg-black/60 flex items-center">
-          <span className="text-white text-[9px] font-vazirmatn">{video.duration}</span>
-        </div>
+        {video.duration && (
+          <div className="absolute bottom-1 end-1 h-4 px-1.5 rounded bg-black/60 flex items-center">
+            <span className="text-white text-[9px] font-vazirmatn">{video.duration}</span>
+          </div>
+        )}
       </div>
       <div className="flex-1 px-3 py-3 min-w-0">
         <p className="font-iran-yekan-x font-bold text-neutral-900 text-[13px] truncate">{video.title}</p>
         <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{video.businessName}</p>
-        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{video.viewCount} بازدید</p>
+        {video.viewCount && (
+          <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{video.viewCount} بازدید</p>
+        )}
+      </div>
+      <div className="flex items-center pe-3">
+        <RemoveButton onClick={onRemove} />
       </div>
     </motion.div>
   );
 }
 
 /* ─── Product card (liked) ───────────────────────────── */
-function LikedProductCard({ item }: { item: typeof LIKED_PRODUCTS[number] }) {
+function LikedProductCard({ item, onRemove }: { item: LikedProductItem; onRemove: () => void }) {
   return (
     <motion.div
       className="bg-white rounded-2xl p-4 flex items-center gap-3"
       style={{ boxShadow: "var(--shadow-elevation-1)" }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="w-12 h-12 rounded-xl shrink-0" style={{ background: item.gradient }} />
+      <div
+        className="w-12 h-12 rounded-xl shrink-0"
+        style={{ background: item.gradient ?? "linear-gradient(135deg,#7C3AED,#3B0764)" }}
+      />
       <div className="flex-1 min-w-0">
         <p className="font-iran-yekan-x font-bold text-neutral-900 text-[13px] truncate">{item.name}</p>
-        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{item.seller}</p>
-        <p className="font-iran-yekan-x font-bold text-amber-600 text-sm mt-1">{item.price} تومان</p>
+        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{item.seller ?? "فروشنده"}</p>
+        {item.price && (
+          <p className="font-iran-yekan-x font-bold text-amber-600 text-sm mt-1">{item.price} تومان</p>
+        )}
       </div>
-      <span className="text-neutral-300 text-xl leading-none">‹</span>
+      <RemoveButton onClick={onRemove} />
     </motion.div>
   );
 }
 
 /* ─── Service card (liked) ───────────────────────────── */
-function LikedServiceCard({ item }: { item: typeof LIKED_SERVICES[number] }) {
+function LikedServiceCard({ item, onRemove }: { item: LikedServiceItem; onRemove: () => void }) {
   return (
     <motion.div
       className="bg-white rounded-2xl p-4 flex items-center gap-3"
       style={{ boxShadow: "var(--shadow-elevation-1)" }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="w-12 h-12 rounded-xl shrink-0" style={{ background: item.gradient }} />
+      <div
+        className="w-12 h-12 rounded-xl shrink-0"
+        style={{ background: item.gradient ?? "linear-gradient(135deg,#0891B2,#164E63)" }}
+      />
       <div className="flex-1 min-w-0">
         <p className="font-iran-yekan-x font-bold text-neutral-900 text-[13px] truncate">{item.name}</p>
-        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{item.provider}</p>
-        <p className="font-vazirmatn text-amber-600 text-xs mt-1">{item.priceRange}</p>
+        <p className="font-vazirmatn text-xs text-neutral-400 mt-0.5">{item.provider ?? "ارائه‌دهنده"}</p>
+        {item.priceRange && (
+          <p className="font-vazirmatn text-amber-600 text-xs mt-1">{item.priceRange}</p>
+        )}
       </div>
-      <span className="text-neutral-300 text-xl leading-none">‹</span>
+      <RemoveButton onClick={onRemove} />
     </motion.div>
   );
 }
 
 /* ─── Liked Page ─────────────────────────────────────── */
 export default function LikedPage() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabKey>("videos");
+  const [likedItems, setLikedItems] = useState<LikedItemsState>({
+    videos: [],
+    products: [],
+    services: [],
+  });
+  const [reelOpen, setReelOpen] = useState(false);
+  const [reelStartIndex, setReelStartIndex] = useState(0);
+
+  useEffect(() => {
+    const sync = () => setLikedItems(getLikedItems());
+    sync();
+    window.addEventListener("focus", sync);
+    return () => window.removeEventListener("focus", sync);
+  }, []);
+
+  useEffect(() => {
+    if (location.includes("/account/liked")) {
+      setLikedItems(getLikedItems());
+    }
+  }, [location]);
+
+  const likedVideos = useMemo<VideoItem[]>(
+    () => likedItems.videos.map(likedVideoToItem),
+    [likedItems.videos],
+  );
+
+  const handleRemove = (tab: TabKey, id: string) => {
+    removeLikedItem(tab, id);
+    setLikedItems(getLikedItems());
+  };
+
+  const openReel = (videoId: string) => {
+    const index = likedVideos.findIndex((video) => video.id === videoId);
+    if (index < 0) return;
+    setReelStartIndex(index);
+    setReelOpen(true);
+  };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#F7F8FA] pb-24">
@@ -175,23 +247,53 @@ export default function LikedPage() {
             className="space-y-3 mt-3"
           >
             {activeTab === "videos" && (
-              LIKED_VIDEOS.length === 0
+              likedItems.videos.length === 0
                 ? <EmptyTab label="ویدیوی" />
-                : LIKED_VIDEOS.map(v => <LikedVideoCard key={v.id} video={v} />)
+                : likedItems.videos.map((video) => (
+                  <LikedVideoCard
+                    key={video.id}
+                    video={video}
+                    onPress={() => openReel(video.id)}
+                    onRemove={() => handleRemove("videos", video.id)}
+                  />
+                ))
             )}
             {activeTab === "products" && (
-              LIKED_PRODUCTS.length === 0
+              likedItems.products.length === 0
                 ? <EmptyTab label="محصول" />
-                : LIKED_PRODUCTS.map(p => <LikedProductCard key={p.id} item={p} />)
+                : likedItems.products.map((product) => (
+                  <LikedProductCard
+                    key={product.id}
+                    item={product}
+                    onRemove={() => handleRemove("products", product.id)}
+                  />
+                ))
             )}
             {activeTab === "services" && (
-              LIKED_SERVICES.length === 0
+              likedItems.services.length === 0
                 ? <EmptyTab label="خدمت" />
-                : LIKED_SERVICES.map(s => <LikedServiceCard key={s.id} item={s} />)
+                : likedItems.services.map((service) => (
+                  <LikedServiceCard
+                    key={service.id}
+                    item={service}
+                    onRemove={() => handleRemove("services", service.id)}
+                  />
+                ))
             )}
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {reelOpen && likedVideos.length > 0 && (
+        <ReelViewer
+          videos={likedVideos}
+          startIndex={reelStartIndex}
+          onClose={() => {
+            setReelOpen(false);
+            setLikedItems(getLikedItems());
+          }}
+        />
+      )}
 
       <BottomNav />
     </div>

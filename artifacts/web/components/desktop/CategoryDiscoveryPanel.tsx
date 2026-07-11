@@ -2,19 +2,25 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { CategoryCardFeatured } from "@/components/category/CategoryCardFeatured";
 import { CategoryCardStandard } from "@/components/category/CategoryCardStandard";
-import { getFeaturedCategories, getPopularCategories } from "@/lib/mock-categories";
+import { sortCategoriesForHome, useApiCategories } from "@/lib/categories-api";
 
 export function CategoryDiscoveryPanel() {
   const [, navigate] = useLocation();
-  const featured = getFeaturedCategories();
-  const popular = getPopularCategories().filter(c => !c.isFeatured).slice(0, 4);
+  const { categories } = useApiCategories();
+  const sorted = sortCategoriesForHome(categories);
+  const featured = sorted.filter((c) => c.isFeatured).slice(0, 4);
+  const featuredOrTop = featured.length > 0 ? featured : sorted.slice(0, 4);
+  const popular = sorted
+    .filter((c) => !featuredOrTop.some((f) => f.id === c.id))
+    .slice(0, 4);
 
   const handleSelect = (slug: string) => navigate(`/categories/${slug}`);
+
+  if (categories.length === 0) return null;
 
   return (
     <section className="py-16 bg-neutral-50" aria-label="دسته‌بندی‌ها">
       <div className="max-w-[1440px] mx-auto px-10">
-        {/* Header */}
         <motion.div
           className="flex items-end justify-between mb-8"
           initial={{ opacity: 0, y: 12 }}
@@ -38,9 +44,8 @@ export function CategoryDiscoveryPanel() {
           </button>
         </motion.div>
 
-        {/* Featured categories — full 4-col grid */}
         <div className="grid grid-cols-4 gap-5 mb-5">
-          {featured.map((cat, i) => (
+          {featuredOrTop.map((cat, i) => (
             <motion.div
               key={cat.id}
               initial={{ opacity: 0, y: 16 }}
@@ -53,20 +58,21 @@ export function CategoryDiscoveryPanel() {
           ))}
         </div>
 
-        {/* Popular non-featured — standard cards in 4-col row */}
-        <div className="grid grid-cols-4 gap-5">
-          {popular.map((cat, i) => (
-            <motion.div
-              key={cat.id}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06, duration: 0.35 }}
-            >
-              <CategoryCardStandard category={cat} onSelect={handleSelect} />
-            </motion.div>
-          ))}
-        </div>
+        {popular.length > 0 ? (
+          <div className="grid grid-cols-4 gap-5">
+            {popular.map((cat, i) => (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06, duration: 0.35 }}
+              >
+                <CategoryCardStandard category={cat} onSelect={handleSelect} />
+              </motion.div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

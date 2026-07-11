@@ -14,7 +14,7 @@
  *  9. Reviews
  * 10. extraSections (product-specific extras: FAQ, Benefits, Terms, etc.)
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,6 +22,19 @@ import {
   MapPinIcon, VerifiedIcon, StarFilledIcon,
 } from "@/components/icons";
 import { cn, toPersianNumerals, formatPrice, avatarGradientIndex } from "@/lib/utils";
+import {
+  isProductSaved,
+  isServiceSaved,
+  removeSavedProduct,
+  removeSavedService,
+  upsertSavedProduct,
+  upsertSavedService,
+  refreshSavedStatus,
+  SavedAuthRequiredError,
+  SAVED_ITEMS_CHANGED_EVENT,
+} from "@/lib/saved-items";
+import { useAuth } from "@/src/contexts/AuthContext";
+import { useLoginModal } from "@/lib/login-modal-context";
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -54,6 +67,8 @@ export interface ItemBusiness {
 
 export interface ItemDetailData {
   type: "product" | "service";
+  id: string;
+  slug: string;
   name: string;
   images: string[];
   category: string | null;
@@ -85,18 +100,36 @@ const AVATAR_GRADIENTS = [
 ];
 
 /* ─── Image Slider ────────────────────────────────────── */
+function isImageUrl(src: string): boolean {
+  const value = src.trim().toLowerCase();
+  return (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("/") ||
+    value.startsWith("data:image/") ||
+    value.startsWith("blob:")
+  );
+}
+
 function ImageSlider({ images }: { images: string[] }) {
   const [active, setActive] = useState(0);
+  const activeImage = images[active] ?? images[0] ?? "";
+  const activeIsUrl = isImageUrl(activeImage);
   return (
     <div className="relative">
       <motion.div
         key={active}
         className="w-full"
-        style={{ height: 280, background: images[active] ?? images[0] }}
+        style={{ height: 280 }}
         initial={{ opacity: 0.7 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
+        {activeIsUrl ? (
+          <img src={activeImage} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: activeImage }} />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         {images.length > 1 && (
           <div className="absolute bottom-3 end-3 bg-black/50 text-white text-[11px] font-vazirmatn px-2.5 py-1 rounded-full backdrop-blur-sm">
@@ -120,7 +153,11 @@ function ImageSlider({ images }: { images: string[] }) {
               )}
               aria-label={`تصویر ${toPersianNumerals(i + 1)}`}
             >
-              <div className="w-full h-full" style={{ background: g }} />
+              {isImageUrl(g) ? (
+                <img src={g} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full" style={{ background: g }} />
+              )}
             </button>
           ))}
         </div>
@@ -230,7 +267,10 @@ function WriteReviewButton() {
 /* ─── Main Layout ─────────────────────────────────────── */
 export function ItemDetailLayout({ item }: { item: ItemDetailData }) {
   const [, navigate] = useLocation();
+  const { isLoggedIn } = useAuth();
+  const { show: showLoginModal } = useLoginModal();
   const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -241,6 +281,65 @@ export function ItemDetailLayout({ item }: { item: ItemDetailData }) {
 
   const avatarIdx = avatarGradientIndex(business.name);
   const reviewsToShow = showAllReviews ? reviews : reviews.slice(0, 3);
+
+  useEffect(() => {
+    const sync = () => {
+      setSaved(
+        item.type === "product"
+          ? isProductSaved(item.id) || isProductSaved(item.slug)
+          : isServiceSaved(item.id) || isServiceSaved(item.slug),
+      );
+    };
+    sync();
+    if (isLoggedIn) {
+      void refreshSavedStatus().then(sync).catch(() => {});
+    }
+    window.addEventListener(SAVED_ITEMS_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(SAVED_ITEMS_CHANGED_EVENT, sync);
+  }, [item.id, item.slug, item.type, isLoggedIn]);
+
+  const toggleSaved = () => {
+    if (!isLoggedIn) {
+      showLoginModal();
+      return;
+    }
+    if (saveBusy) return;
+
+    const prev = saved;
+    const next = !saved;
+    setSaved(next);
+    setSaveBusy(true);
+
+    const run =
+      item.type === "product"
+        ? next
+          ? upsertSavedProduct({
+              id: item.id,
+              slug: item.slug,
+              name: item.name,
+              seller: business.name,
+              city: item.city ?? undefined,
+              price: item.price != null ? String(item.price) : undefined,
+            })
+          : removeSavedProduct(item.id || item.slug)
+        : next
+          ? upsertSavedService({
+              id: item.id,
+              slug: item.slug,
+              name: item.name,
+              provider: business.name,
+              city: item.city ?? undefined,
+              priceRange: item.price != null ? `${formatPrice(item.price)} تومان` : undefined,
+            })
+          : removeSavedService(item.id || item.slug);
+
+    void run
+      .catch((err) => {
+        setSaved(prev);
+        if (err instanceof SavedAuthRequiredError) showLoginModal();
+      })
+      .finally(() => setSaveBusy(false));
+  };
 
   const handleShare = () => {
     if (navigator.share) {
@@ -263,6 +362,14 @@ export function ItemDetailLayout({ item }: { item: ItemDetailData }) {
     }
   };
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigate("/");
+  };
+
   return (
     <div
       className="min-h-screen bg-page-bg pb-28"
@@ -276,7 +383,7 @@ export function ItemDetailLayout({ item }: { item: ItemDetailData }) {
       )}>
         <button
           type="button"
-          onClick={() => navigate(-1 as unknown as string)}
+          onClick={handleBack}
           className={cn(
             "w-9 h-9 rounded-full flex items-center justify-center transition-colors",
             scrolled ? "bg-neutral-100 text-neutral-700" : "bg-black/25 text-white backdrop-blur-sm"
@@ -304,12 +411,13 @@ export function ItemDetailLayout({ item }: { item: ItemDetailData }) {
           )}
           <button
             type="button"
-            onClick={() => setSaved(v => !v)}
+            onClick={toggleSaved}
             className={cn(
               "w-9 h-9 rounded-full flex items-center justify-center transition-colors",
               scrolled ? "bg-neutral-100" : "bg-black/25 backdrop-blur-sm"
             )}
-            aria-label="ذخیره"
+            aria-label={saved ? "حذف از ذخیره‌ها" : "ذخیره"}
+            aria-pressed={saved}
           >
             <BookmarkIcon
               size={18}

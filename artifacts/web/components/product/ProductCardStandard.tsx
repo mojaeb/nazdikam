@@ -4,6 +4,7 @@ import { PriceDisplay } from "./PriceDisplay";
 import { InstallmentBadge } from "./InstallmentBadge";
 import { SaveButton } from "@/components/business/SaveButton";
 import type { Product } from "@/lib/product.types";
+import { productSaveTarget } from "@/lib/saved-items";
 
 interface ProductCardStandardProps {
   product: Product;
@@ -64,7 +65,11 @@ export function ProductCardStandard({
 
         {/* Save button */}
         <div className="absolute top-2.5 end-2.5">
-          <SaveButton variant="icon" size="sm" />
+          <SaveButton
+            variant="icon"
+            size="sm"
+            target={productSaveTarget(product)}
+          />
         </div>
       </div>
 

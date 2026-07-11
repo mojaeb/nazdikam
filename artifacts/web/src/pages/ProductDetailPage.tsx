@@ -35,6 +35,8 @@ function adaptProduct(p: Product): ItemDetailData {
 
   return {
     type: "product",
+    id: p.id,
+    slug: p.slug,
     name: p.name,
     images,
     category: p.category ?? null,
@@ -112,6 +114,13 @@ interface Props { slug: string }
 
 export default function ProductDetailPage({ slug }: Props) {
   const [, navigate] = useLocation();
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigate("/");
+  };
 
   const { data, isLoading, isError } = useGetProduct(slug, {
     query: { queryKey: getGetProductQueryKey(slug), retry: 1 },
@@ -128,7 +137,7 @@ export default function ProductDetailPage({ slug }: Props) {
   );
 
   if (isLoading) return <Skeleton />;
-  if (isError || !item) return <NotFound onBack={() => navigate(-1 as unknown as string)} />;
+  if (isError || !item) return <NotFound onBack={handleBack} />;
 
   return <ItemDetailLayout item={item} />;
 }

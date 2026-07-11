@@ -10,3 +10,6 @@ export * from "./subscriptions";
 export * from "./referrals";
 export * from "./notifications";
 export * from "./verifications";
+export * from "./support";
+export * from "./admin";
+export * from "./hero-slides";

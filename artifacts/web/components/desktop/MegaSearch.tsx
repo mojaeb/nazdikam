@@ -43,7 +43,8 @@ export function MegaSearch() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/search");
+    const q = query.trim();
+    navigate(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
   };
 
   return (
@@ -152,7 +153,10 @@ export function MegaSearch() {
                           key={term}
                           type="button"
                           className="h-8 px-3 rounded-xl bg-neutral-50 border border-neutral-200 text-xs font-vazirmatn text-neutral-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors"
-                          onMouseDown={() => { setQuery(term); navigate("/search"); }}
+                          onMouseDown={() => {
+                            setQuery(term);
+                            navigate(`/search?q=${encodeURIComponent(term)}`);
+                          }}
                         >
                           {term}
                         </button>
@@ -177,7 +181,7 @@ export function MegaSearch() {
                 key={term}
                 type="button"
                 className="h-7 px-3 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-vazirmatn transition-colors border border-white/20"
-                onClick={() => navigate("/search")}
+                onClick={() => navigate(`/search?q=${encodeURIComponent(term)}`)}
               >
                 {term}
               </button>

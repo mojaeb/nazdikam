@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, toPersianNumerals, avatarGradientIndex, formatPrice } from "@/lib/utils";
-import { trackLead, trackEvent } from "@/src/lib/lead-tracker";
+import { trackLead } from "@/src/lib/lead-tracker";
 import {
   ChevronStartIcon, ShareIcon, BookmarkIcon, PhoneIcon, MessageIcon,
   MapPinIcon, StarFilledIcon, StarIcon, CloseIcon, CheckCircleIcon,
@@ -14,7 +14,14 @@ import type { Business } from "@/lib/business.types";
 import type { ProfileReview } from "@/lib/mock-business-profile";
 import { ReelCard } from "@/components/reels/ReelCard";
 import { ReelViewer } from "@/components/reels/ReelViewer";
-import { videoItems } from "@/lib/mock-data";
+import type { VideoItem } from "@/lib/mock-data";
+import { fetchBusinessPublicVideos, videoDtoToItem } from "@/lib/video-api";
+import { fetchBusinessPublicAnnouncements, announcementDtoToItem } from "@/lib/announcement-api";
+import type { BusinessAnnouncement } from "@/lib/business-announcements";
+import { isBusinessFollowed, setBusinessFollowed } from "@/lib/followed-businesses";
+import { isBusinessSaved, removeSavedBusiness, upsertSavedBusiness, refreshSavedStatus, SavedAuthRequiredError, SAVED_ITEMS_CHANGED_EVENT } from "@/lib/saved-items";
+import { useAuth } from "@/src/contexts/AuthContext";
+import { useLoginModal } from "@/lib/login-modal-context";
 
 /* ─── Inline SVG Icons ────────────────────────────────── */
 interface InlineIconProps { size?: number; className?: string }
@@ -85,12 +92,16 @@ interface DbBusiness {
   logo: string | null;
   coverImage: string | null;
   isVerified: boolean | null;
+  verification_status?: "verified" | "pending" | "unverified";
   status: string;
   telegram?: string | null;
   instagram?: string | null;
   secondaryPhone?: string | null;
   opensAt?: string | null;
   closesAt?: string | null;
+  followerCount?: number | null;
+  viewsCount?: number | null;
+  isFollowing?: boolean | null;
 }
 
 interface DbProduct {
@@ -101,6 +112,7 @@ interface DbProduct {
   originalPrice?: number | null;
   discountPercent?: number | null;
   coverGradient?: string;
+  gallery?: string[] | null;
   status: string;
 }
 
@@ -156,8 +168,8 @@ function adaptDbBusiness(db: DbBusiness): Business {
     website: db.website ?? undefined,
     rating: 0,
     reviewCount: 0,
-    followersCount: 0,
-    verificationStatus: db.isVerified ? "verified" : "unverified",
+    followersCount: db.followerCount ?? 0,
+    verificationStatus: db.verification_status ?? (db.isVerified ? "verified" : "unverified"),
     promoted: false,
     featured: false,
     isOpen: true,
@@ -166,6 +178,18 @@ function adaptDbBusiness(db: DbBusiness): Business {
     responseRate: 0,
     gallery: [],
   };
+}
+
+function isImageUrl(src: string | undefined): boolean {
+  if (!src) return false;
+  const value = src.trim().toLowerCase();
+  return (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("/") ||
+    value.startsWith("data:image/") ||
+    value.startsWith("blob:")
+  );
 }
 
 /* ─── Working hours helpers ───────────────────────────── */
@@ -197,6 +221,7 @@ function generateSchedule(opensAt = "09:00", closesAt = "21:00"): DaySchedule[] 
 /* ─── Tab definitions ────────────────────────────────── */
 const TABS = [
   { id: "videos",   label: "ویدیوها" },
+  { id: "announcements", label: "اطلاعیه‌ها" },
   { id: "catalog",  label: "محصولات / خدمات" },
   { id: "contact",  label: "اطلاعات تماس" },
   { id: "address",  label: "آدرس و مسیریابی" },
@@ -424,9 +449,12 @@ interface Props { slug: string }
 
 export default function BusinessProfilePage({ slug }: Props) {
   const [, navigate] = useLocation();
+  const { isLoggedIn } = useAuth();
+  const { show: showLoginModal } = useLoginModal();
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [following, setFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const [leadSheet, setLeadSheet] = useState<"consultation" | "price-inquiry" | null>(null);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("videos");
@@ -434,7 +462,8 @@ export default function BusinessProfilePage({ slug }: Props) {
   const [reelOpen, setReelOpen] = useState(false);
   const [reelStartIndex, setReelStartIndex] = useState(0);
   const [productFilter, setProductFilter] = useState<"all" | "products" | "services">("all");
-  const businessVideos = videoItems.filter(v => v.businessSlug === slug);
+  const [businessVideos, setBusinessVideos] = useState<VideoItem[]>([]);
+  const [businessAnnouncements, setBusinessAnnouncements] = useState<BusinessAnnouncement[]>([]);
 
   /* ── Data state ── */
   const [dbBusiness, setDbBusiness] = useState<DbBusiness | null | "loading">("loading");
@@ -444,12 +473,27 @@ export default function BusinessProfilePage({ slug }: Props) {
   const [services, setServices] = useState<DbService[]>([]);
   const [reviews] = useState<ProfileReview[]>([]);
 
+  useEffect(() => {
+    setFollowing(isBusinessFollowed(slug));
+  }, [slug]);
+
+  useEffect(() => {
+    const sync = () => setSaved(isBusinessSaved(slug));
+    sync();
+    if (isLoggedIn) {
+      void refreshSavedStatus().then(sync).catch(() => {});
+    }
+    window.addEventListener(SAVED_ITEMS_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(SAVED_ITEMS_CHANGED_EVENT, sync);
+  }, [slug, isLoggedIn]);
+
   /* ── Section refs for tab scroll ── */
   const headerRef  = useRef<HTMLDivElement>(null);
   const tabBarRef  = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const sectionRefs: Record<TabId, React.RefObject<HTMLDivElement | null>> = {
     videos:   useRef<HTMLDivElement>(null),
+    announcements: useRef<HTMLDivElement>(null),
     catalog:  useRef<HTMLDivElement>(null),
     contact:  useRef<HTMLDivElement>(null),
     address:  useRef<HTMLDivElement>(null),
@@ -469,6 +513,10 @@ export default function BusinessProfilePage({ slug }: Props) {
           setDbBusiness(data.data);
           setBusiness(adaptDbBusiness(data.data));
           setRawBusinessId(data.data.id);
+          if (typeof data.data.isFollowing === "boolean") {
+            setFollowing(data.data.isFollowing);
+            setBusinessFollowed(slug, data.data.isFollowing);
+          }
         } else if (!cancelled) {
           setDbBusiness(null);
         }
@@ -482,12 +530,28 @@ export default function BusinessProfilePage({ slug }: Props) {
     if (!rawBusinessId) return;
     let cancelled = false;
 
-    fetch(`/api/businesses/${rawBusinessId}/products/public`)
-      .then(r => r.json())
-      .then((d: { data?: DbProduct[] }) => {
-        if (!cancelled && d.data) setProducts(d.data);
+    Promise.all([
+      fetch(`/api/businesses/${rawBusinessId}/products/public`).then((r) => r.json() as Promise<{ data?: DbProduct[] }>),
+      // Backward-compatibility path: some older rows may have used slug-like business ids.
+      fetch(`/api/products?business_id=${encodeURIComponent(slug)}&per_page=100`)
+        .then((r) => (r.ok ? (r.json() as Promise<{ data?: DbProduct[] }>) : { data: [] as DbProduct[] })),
+    ])
+      .then(([byId, bySlug]) => {
+        if (cancelled) return;
+        const merged = [...(byId.data ?? []), ...(bySlug.data ?? [])];
+        const seen = new Set<string>();
+        const deduped: DbProduct[] = [];
+        for (const item of merged) {
+          const key = String(item.id);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(item);
+        }
+        setProducts(deduped);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
 
     fetch(`/api/businesses/${rawBusinessId}/services/public`)
       .then(r => r.json())
@@ -496,14 +560,40 @@ export default function BusinessProfilePage({ slug }: Props) {
       })
       .catch(() => {});
 
+    fetchBusinessPublicVideos(rawBusinessId)
+      .then((rows) => {
+        if (!cancelled) setBusinessVideos(rows.map(videoDtoToItem));
+      })
+      .catch(() => {
+        if (!cancelled) setBusinessVideos([]);
+      });
+
+    fetchBusinessPublicAnnouncements(rawBusinessId)
+      .then((rows) => {
+        if (!cancelled) setBusinessAnnouncements(rows.map(announcementDtoToItem));
+      })
+      .catch(() => {
+        if (!cancelled) setBusinessAnnouncements([]);
+      });
+
     return () => { cancelled = true; };
   }, [rawBusinessId]);
 
-  /* ── Track profile view ── */
+  /* ── Count profile view once per browser session (not on owner preview) ── */
   useEffect(() => {
-    if (!rawBusinessId) return;
-    void trackEvent({ businessId: rawBusinessId, eventType: "profile_view", entityType: "business", entityId: rawBusinessId });
-  }, [rawBusinessId]);
+    if (!slug) return;
+    const key = `biz_profile_view:${slug}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* private mode / blocked storage — still attempt count */
+    }
+    void fetch(`/api/businesses/${encodeURIComponent(slug)}/view`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+  }, [slug]);
 
   /* ── Scroll handling ── */
   useEffect(() => {
@@ -661,7 +751,27 @@ export default function BusinessProfilePage({ slug }: Props) {
               saved ? "text-rose-500" : headerScrolled ? "text-neutral-700" : "text-white"
             )}
             whileTap={{ scale: 0.92 }}
-            onClick={() => setSaved(v => !v)}
+            onClick={() => {
+              if (!isLoggedIn) {
+                showLoginModal();
+                return;
+              }
+              const next = !saved;
+              setSaved(next);
+              const run = next
+                ? upsertSavedBusiness({
+                    id: business.id,
+                    slug: business.slug,
+                    name: business.name,
+                    category: business.category,
+                    city: business.city,
+                  })
+                : removeSavedBusiness(business.slug);
+              void run.catch((err) => {
+                setSaved(!next);
+                if (err instanceof SavedAuthRequiredError) showLoginModal();
+              });
+            }}
             aria-label={saved ? "حذف از ذخیره‌ها" : "ذخیره"}
           >
             <BookmarkIcon size={16} />
@@ -693,9 +803,60 @@ export default function BusinessProfilePage({ slug }: Props) {
         <div className="absolute bottom-0 end-4 translate-y-1/2 z-10">
           <motion.button
             type="button"
-            onClick={() => setFollowing(v => !v)}
+            disabled={followBusy}
+            onClick={() => {
+              if (!isLoggedIn) {
+                showLoginModal();
+                return;
+              }
+              if (!rawBusinessId || followBusy) return;
+              const next = !following;
+              setFollowing(next);
+              setBusinessFollowed(slug, next);
+              setBusiness((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      followersCount: Math.max(0, prev.followersCount + (next ? 1 : -1)),
+                    }
+                  : prev,
+              );
+              setFollowBusy(true);
+              void fetch(`/api/businesses/${rawBusinessId}/follow`, {
+                method: next ? "POST" : "DELETE",
+                credentials: "include",
+              })
+                .then(async (r) => {
+                  if (!r.ok) throw new Error("follow failed");
+                  const body = (await r.json()) as {
+                    data?: { following?: boolean; followerCount?: number };
+                  };
+                  if (typeof body.data?.following === "boolean") {
+                    setFollowing(body.data.following);
+                    setBusinessFollowed(slug, body.data.following);
+                  }
+                  if (typeof body.data?.followerCount === "number") {
+                    setBusiness((prev) =>
+                      prev ? { ...prev, followersCount: body.data!.followerCount! } : prev,
+                    );
+                  }
+                })
+                .catch(() => {
+                  setFollowing(!next);
+                  setBusinessFollowed(slug, !next);
+                  setBusiness((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          followersCount: Math.max(0, prev.followersCount + (next ? -1 : 1)),
+                        }
+                      : prev,
+                  );
+                })
+                .finally(() => setFollowBusy(false));
+            }}
             className={cn(
-              "h-9 px-5 rounded-full text-sm font-iran-yekan-x font-bold border-2 transition-colors",
+              "h-9 px-5 rounded-full text-sm font-iran-yekan-x font-bold border-2 transition-colors disabled:opacity-60",
               following
                 ? "bg-neutral-100 border-neutral-300 text-neutral-600"
                 : "bg-white border-blue-500 text-blue-600"
@@ -717,6 +878,9 @@ export default function BusinessProfilePage({ slug }: Props) {
           </h1>
           {business.verificationStatus === "verified" && (
             <VerifiedIcon size={18} className="text-blue-500 shrink-0" />
+          )}
+          {business.verificationStatus === "pending" && (
+            <VerificationBadge status="pending" size="xs" />
           )}
         </div>
 
@@ -859,6 +1023,45 @@ export default function BusinessProfilePage({ slug }: Props) {
         )}
       </div>
 
+      {/* ══════════ ANNOUNCEMENTS ══════════════════════════ */}
+      <div ref={sectionRefs.announcements} id="section-announcements" className="bg-white mt-2 px-4 py-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-iran-yekan-x font-bold text-neutral-800">اطلاعیه‌ها</h2>
+          {businessAnnouncements.length > 0 && (
+            <span className="text-[11px] font-vazirmatn text-neutral-400">
+              {toPersianNumerals(String(businessAnnouncements.length))} مورد
+            </span>
+          )}
+        </div>
+        {businessAnnouncements.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-3">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-neutral-300" aria-hidden="true">
+                <path d="M3 11l18-5v12L3 14v-3z" />
+                <path d="M11.6 16.8a3 3 0 11-5.8-1.6" />
+              </svg>
+            </div>
+            <p className="text-xs font-vazirmatn text-neutral-400">اطلاعیه‌ای ثبت نشده</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {businessAnnouncements.map((item) => (
+              <div
+                key={item.id}
+                className="bg-neutral-50 rounded-2xl p-4 space-y-1.5"
+              >
+                <p className="text-sm font-iran-yekan-x font-bold text-neutral-800">
+                  {item.title}
+                </p>
+                <p className="text-xs font-vazirmatn text-neutral-500 leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ══════════ PRODUCTS / SERVICES ═══════════════════ */}
       <div ref={sectionRefs.catalog} id="section-catalog" className="bg-white mt-2 px-4 py-5">
         <div className="flex items-center justify-between mb-4">
@@ -900,9 +1103,14 @@ export default function BusinessProfilePage({ slug }: Props) {
           <div className="space-y-2.5">
             {catalogItems.map(item => {
               const slug = item.slug;
+              const galleryImage =
+                item._type === "product" && Array.isArray((item as DbProduct).gallery)
+                  ? (item as DbProduct).gallery?.[0]
+                  : undefined;
               const gradient = item._type === "product"
                 ? ((item as DbProduct).coverGradient ?? "linear-gradient(135deg,#CBD5E1,#94A3B8)")
                 : "linear-gradient(135deg,#0D9488,#065F46)";
+              const fallbackIsImage = isImageUrl(gradient);
               const price = item.price;
               return (
                 <motion.button
@@ -912,10 +1120,15 @@ export default function BusinessProfilePage({ slug }: Props) {
                   onClick={() => navigate(item._type === "product" ? `/products/${slug}` : `/services/${slug}`)}
                   whileTap={{ scale: 0.97 }}
                 >
-                  <div
-                    className="w-14 h-14 rounded-xl shrink-0"
-                    style={{ background: gradient }}
-                  />
+                  <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden">
+                    {galleryImage ? (
+                      <img src={galleryImage} alt={item.name} className="w-full h-full object-cover" />
+                    ) : fallbackIsImage ? (
+                      <img src={gradient} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full" style={{ background: gradient }} />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-iran-yekan-x font-bold text-neutral-800 truncate">
                       {item.name}
