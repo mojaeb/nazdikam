@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: nazdikam-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nazdikam
+      POSTGRES_PASSWORD: nazdikam123
+      POSTGRES_DB: nazdikam
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: nazdikam-api
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://nazdikam:nazdikam123@postgres:5432/nazdikam
+      SESSION_SECRET: change-this-to-a-long-random-secret
+      PORT: 3001
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: nazdikam-web
+    depends_on:
+      - api
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      BASE_PATH: /
+      NEXT_PUBLIC_API_BASE_URL: http://api:3001
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+
