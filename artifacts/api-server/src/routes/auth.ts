@@ -50,7 +50,12 @@ router.post("/auth/request-otp", async (req, res) => {
 
     await db.insert(otpCodesTable).values({ phone, code, expiresAt });
 
-    if (process.env["NODE_ENV"] !== "production") {
+    // EXPOSE_DEV_OTP=true: show OTP in response when SMS provider is not configured yet
+    const exposeDevOtp =
+      process.env["EXPOSE_DEV_OTP"] === "true" ||
+      process.env["NODE_ENV"] !== "production";
+
+    if (exposeDevOtp) {
       req.log.info({ phone, code }, "OTP generated (dev mode)");
       res.json({
         success: true,

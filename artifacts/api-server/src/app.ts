@@ -78,8 +78,18 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env["NODE_ENV"] === "production",
-      sameSite: process.env["NODE_ENV"] === "production" ? "strict" : "lax",
+      // COOKIE_SECURE=false for HTTP deploys; default secure only in production
+      secure:
+        process.env["COOKIE_SECURE"] === "true"
+          ? true
+          : process.env["COOKIE_SECURE"] === "false"
+            ? false
+            : process.env["NODE_ENV"] === "production",
+      sameSite:
+        process.env["COOKIE_SECURE"] === "false" ||
+        process.env["NODE_ENV"] !== "production"
+          ? "lax"
+          : "strict",
       maxAge: 1000 * 60 * 60 * 24 * 30,
     },
   }),
